@@ -784,7 +784,9 @@ prelink_set_timestamp (struct prelink_info *info)
   DSO *dso = info->dso;
 
   if (! verify)
-    info->ent->timestamp = (GElf_Word) time (NULL);
+    info->ent->timestamp = getenv ("PRELINK_TIMESTAMP") ?
+			atoi (getenv ("PRELINK_TIMESTAMP"))
+			: (GElf_Word) time (NULL);
   dso->info_DT_GNU_PRELINKED = info->ent->timestamp;
   if (prelink_set_checksum (dso))
     return 1;
