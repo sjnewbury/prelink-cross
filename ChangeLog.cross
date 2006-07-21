@@ -1,4 +1,9 @@
+2006-07-21   MontaVista Software, Inc.
+
+        * dso.c: Don't adjust reloc for debug info
+
 2006-06-30   Mark Hatle <mark.hatle@windriver.com>
+
         * src/elf.h: Make available the elf.h file from glibc 2.3.6
 
 2006-06-10   MontaVista Software, Inc.

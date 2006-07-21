@@ -1380,12 +1380,15 @@ adjust_dso (DSO *dso, GElf_Addr start, GElf_Addr adjust)
 	    return 1;
 	  break;
 	case SHT_REL:
-	  if (adjust_rel (dso, i, start, adjust))
-	    return 1;
+	  /* Don't adjust reloc sections for debug info.  */
+	  if (dso->shdr[i].sh_flags & SHF_ALLOC)
+	    if (adjust_rel (dso, i, start, adjust))
+	      return 1;
 	  break;
 	case SHT_RELA:
-	  if (adjust_rela (dso, i, start, adjust))
-	    return 1;
+	  if (dso->shdr[i].sh_flags & SHF_ALLOC)
+	    if (adjust_rela (dso, i, start, adjust))
+	      return 1;
 	  break;
 	}
       if ((dso->arch->machine == EM_ALPHA
