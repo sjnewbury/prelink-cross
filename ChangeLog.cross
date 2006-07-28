@@ -1,3 +1,7 @@
+2006-07-28   Alexandre Oliva <aoliva@redhat.com>
+
+	* src/cache.c: Avoid SEGFAULT when sorting cache entries (#197451)
+
 2006-07-21   MontaVista Software, Inc.
 
         * prelink.c: add PRELINK_TIMESTAMP support
