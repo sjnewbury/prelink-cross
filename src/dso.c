@@ -220,7 +220,7 @@ open_dso (const char *name)
 {
   int fd;
 
-  fd = open (name, O_RDONLY);
+  fd = wrap_open (name, O_RDONLY);
   if (fd == -1)
     {
       error (0, errno, "cannot open \"%s\"", name);
@@ -756,15 +756,15 @@ reopen_dso (DSO *dso, struct section_move *move, const char *temp_base)
     temp_base = dso->filename;
   sprintf (filename, "%s.#prelink#.XXXXXX", temp_base);
 
-  fd = mkstemp (filename);
+  fd = wrap_mkstemp (filename);
   if (fd == -1)
     {
       strcpy (filename, "/tmp/#prelink#.XXXXXX");
-      fd = mkstemp (filename);
+      fd = wrap_mkstemp (filename);
       if (fd == -1)
 	{
 	  strcpy (filename, "/dev/shm/#prelink#.XXXXXX");
-	  fd = mkstemp (filename);
+	  fd = wrap_mkstemp (filename);
 	}
       if (fd == -1)
 	{
@@ -1005,7 +1005,7 @@ error_out:
     elf_end (elf);
   if (fd != -1)
     {
-      unlink (filename);
+      wrap_unlink (filename);
       close (fd);
     }
   return 1;
@@ -1632,7 +1632,7 @@ close_dso (DSO *dso)
   int rdwr = dso_is_rdwr (dso);
 
   if (rdwr && dso->temp_filename != NULL)
-    unlink (dso->temp_filename);
+    wrap_unlink (dso->temp_filename);
   close_dso_1 (dso);
   return 0;
 }
@@ -1750,17 +1750,17 @@ update_dso (DSO *dso, const char *orig_name)
       close_dso_1 (dso);
       u.actime = time (NULL);
       u.modtime = st.st_mtime;
-      utime (name2, &u);
+      wrap_utime (name2, &u);
 
       if (set_security_context (dso, name2, orig_name ? orig_name : name1))
 	{
-	  unlink (name2);
+	  wrap_unlink (name2);
 	  return 1;
 	}
 
-      if (rename (name2, name1))
+      if (wrap_rename (name2, name1))
 	{
-	  unlink (name2);
+	  wrap_unlink (name2);
 	  error (0, errno, "Could not rename temporary to %s", name1);
 	  return 1;
 	}

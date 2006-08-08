@@ -193,7 +193,7 @@ prelink_verify (const char *filename)
   size_t count;
   char *p, *q;
 
-  if (stat64 (filename, &st) < 0)
+  if (wrap_stat64 (filename, &st) < 0)
     error (EXIT_FAILURE, errno, "Couldn't stat %s", filename);
 
   dso = open_dso (filename);
@@ -266,7 +266,7 @@ prelink_verify (const char *filename)
       break;
     }
 
-  fd = open (dso->temp_filename, O_RDONLY);
+  fd = wrap_open (dso->temp_filename, O_RDONLY);
   if (fd < 0)
     {
       error (0, errno, "Could not verify %s", filename);
@@ -430,7 +430,7 @@ failure:
 not_prelinked:
   if (dso)
     close_dso (dso);
-  fd = open (filename, O_RDONLY);
+  fd = wrap_open (filename, O_RDONLY);
   if (fd < 0)
     error (EXIT_FAILURE, errno, "Couldn't open %s", filename);
   if (handle_verify (fd, filename))

@@ -21,10 +21,12 @@
 #include <elf.h>
 #include <libelf.h>
 #include <gelfx.h>
+#include <ftw.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <utime.h>
 
 #ifndef DT_GNU_LIBLIST
 #define DT_GNU_LIBLIST		0x6ffffef9
@@ -436,5 +438,20 @@ extern enum verify_method_t verify_method;
 extern int quick;
 extern long long seed;
 extern GElf_Addr mmap_reg_start, mmap_reg_end;
+
+extern const char *sysroot;
+
+char *wrap_prelink_canonicalize (const char *name, struct stat64 *stp);
+int wrap_lstat64 (const char *file, struct stat64 *buf);
+int wrap_stat64 (const char *file, struct stat64 *buf);
+int wrap_open (const char *file, int mode, ...);
+int wrap_access (const char *file, int mode);
+int wrap_rename (const char *old, const char *new);
+int wrap_link (const char *old, const char *new);
+int wrap_nftw64 (const char *dir, __nftw64_func_t func,
+		 int descriptors, int flag);
+int wrap_utime (const char *file, struct utimbuf *file_times);
+int wrap_mkstemp (char *filename);
+int wrap_unlink (const char *filename);
 
 #endif /* PRELINK_H */

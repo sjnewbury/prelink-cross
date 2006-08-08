@@ -77,6 +77,7 @@ static char argp_doc[] = "prelink -- program to relocate and prelink ELF shared 
 #define OPT_MD5			0x89
 #define OPT_SHA			0x8a
 #define OPT_COMPUTE_CHECKSUM	0x8b
+#define OPT_SYSROOT		0x8c
 
 static struct argp_option options[] = {
   {"all",		'a', 0, 0,  "Prelink all binaries" },
@@ -94,6 +95,7 @@ static struct argp_option options[] = {
   {"quick",		'q', 0, 0,  "Quick scan" },
   {"random",		'R', 0, 0,  "Choose random base for libraries" },
   {"reloc-only",	'r', "BASE_ADDRESS", 0,  "Relocate library to given address, don't prelink" },
+  {"root",		OPT_SYSROOT, "ROOT_PATH", 0, "Prefix all paths with ROOT_PATH" },
   {"undo",		'u', 0, 0,  "Undo prelink" },
   {"verbose",		'v', 0, 0,  "Produce verbose output" },
   {"verify",		'y', 0, 0,  "Verify file consistency by undoing and redoing prelink and printing original to standard output" },
@@ -222,6 +224,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case OPT_COMPUTE_CHECKSUM:
       compute_checksum = 1;
       break;
+    case OPT_SYSROOT:
+      sysroot = arg;
+      break;
     default:
       return ARGP_ERR_UNKNOWN;
     }
@@ -237,9 +242,7 @@ main (int argc, char *argv[])
 
   setlocale (LC_ALL, "");
 
-  /* Set the default for exec_shield.  */
-  if (! access ("/proc/sys/kernel/exec-shield", F_OK))
-    exec_shield = 1;
+  exec_shield = 2;
 
   prelink_init_cache ();
 
@@ -260,6 +263,23 @@ main (int argc, char *argv[])
     error (EXIT_FAILURE, 0, "--dry-run and --verify options are incompatible");
   if ((undo || verify) && quick)
     error (EXIT_FAILURE, 0, "--undo and --quick options are incompatible");
+
+  /* Set the default for exec_shield.  */
+  if (exec_shield == 2)
+    {
+      if (sysroot == NULL && ! access ("/proc/sys/kernel/exec-shield", F_OK))
+	exec_shield = 1;
+      else
+	exec_shield = 0;
+    }
+
+  if (sysroot)
+    {
+      sysroot = prelink_canonicalize (sysroot, NULL);
+      if (sysroot == NULL)
+        error (EXIT_FAILURE, 0, "Could not canonicalize --root argument");
+      asprintf ((char **) &prelink_conf, "%s%s", sysroot, prelink_conf);
+    }
 
   if (print_cache)
     {

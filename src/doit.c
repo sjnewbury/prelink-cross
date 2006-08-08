@@ -161,7 +161,7 @@ prelink_ent (struct prelink_entry *ent)
     {
       size_t len;
 
-      if (lstat64 (hardlink->canon_filename, &st) < 0)
+      if (wrap_lstat64 (hardlink->canon_filename, &st) < 0)
 	{
 	  error (0, 0, "Could not stat %s (former hardlink to %s)",
 		 hardlink->canon_filename, ent->canon_filename);
@@ -204,19 +204,19 @@ prelink_ent (struct prelink_entry *ent)
 
       memcpy (mempcpy (move, hardlink->canon_filename, len), ".#prelink#",
 	      sizeof (".#prelink#"));
-      if (rename (hardlink->canon_filename, move) < 0)
+      if (wrap_rename (hardlink->canon_filename, move) < 0)
 	{
 	  error (0, errno, "Could not hardlink %s to %s",
 		 hardlink->canon_filename, ent->canon_filename);
 	  continue;
 	}
 
-      if (link (ent->canon_filename, hardlink->canon_filename) < 0)
+      if (wrap_link (ent->canon_filename, hardlink->canon_filename) < 0)
 	{
 	  error (0, errno, "Could not hardlink %s to %s",
 		 hardlink->canon_filename, ent->canon_filename);
 
-	  if (rename (move, hardlink->canon_filename) < 0)
+	  if (wrap_rename (move, hardlink->canon_filename) < 0)
 	    {
 	      error (0, errno, "Could not rename %s back to %s",
 		     move, hardlink->canon_filename);
@@ -224,7 +224,7 @@ prelink_ent (struct prelink_entry *ent)
 	  continue;
 	}
 
-      if (unlink (move) < 0)
+      if (wrap_unlink (move) < 0)
 	{
 	  error (0, errno, "Could not unlink %s", move);
 	  continue;
@@ -232,7 +232,7 @@ prelink_ent (struct prelink_entry *ent)
     }
   free (move);
 
-  if (! dry_run && stat64 (ent->canon_filename, &st) >= 0)
+  if (! dry_run && wrap_stat64 (ent->canon_filename, &st) >= 0)
     {
       ent->dev = st.st_dev;
       ent->ino = st.st_ino;

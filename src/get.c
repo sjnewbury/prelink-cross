@@ -144,7 +144,7 @@ prelink_record_relocations (struct prelink_info *info, FILE *f,
 	    {
 	      struct stat64 st;
 
-	      if (stat64 (filename, &st) < 0)
+	      if (wrap_stat64 (filename, &st) < 0)
 		{
 		  error (0, errno, "%s: Could not stat %s",
 			 info->ent->filename, filename);

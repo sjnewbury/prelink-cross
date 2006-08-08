@@ -88,7 +88,7 @@ undo_one (void **p, void *info)
     {
       size_t len;
 
-      if (lstat64 (hardlink->canon_filename, &st) < 0)
+      if (wrap_lstat64 (hardlink->canon_filename, &st) < 0)
 	{
 	  error (0, 0, "Could not stat %s (former hardlink to %s)",
 		 hardlink->canon_filename, ent->canon_filename);
@@ -128,19 +128,19 @@ undo_one (void **p, void *info)
 
       memcpy (mempcpy (move, hardlink->canon_filename, len), ".#prelink#",
 	      sizeof (".#prelink#"));
-      if (rename (hardlink->canon_filename, move) < 0)
+      if (wrap_rename (hardlink->canon_filename, move) < 0)
 	{
 	  error (0, errno, "Could not hardlink %s to %s",
 		 hardlink->canon_filename, ent->canon_filename);
 	  continue;
 	}
 
-      if (link (ent->canon_filename, hardlink->canon_filename) < 0)
+      if (wrap_link (ent->canon_filename, hardlink->canon_filename) < 0)
 	{
 	  error (0, errno, "Could not hardlink %s to %s",
 		 hardlink->canon_filename, ent->canon_filename);
 
-	  if (rename (move, hardlink->canon_filename) < 0)
+	  if (wrap_rename (move, hardlink->canon_filename) < 0)
 	    {
 	      error (0, errno, "Could not rename %s back to %s",
 		     move, hardlink->canon_filename);
@@ -148,7 +148,7 @@ undo_one (void **p, void *info)
 	  continue;
 	}
 
-      if (unlink (move) < 0)
+      if (wrap_unlink (move) < 0)
 	{
 	  error (0, errno, "Could not unlink %s", move);
 	  continue;

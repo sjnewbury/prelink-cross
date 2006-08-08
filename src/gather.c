@@ -587,7 +587,7 @@ add_dir_to_dirlist (const char *name, dev_t dev, int flags)
   struct prelink_dir *dir;
   size_t len;
 
-  canon_name = prelink_canonicalize (name, NULL);
+  canon_name = wrap_prelink_canonicalize (name, NULL);
   if (canon_name == NULL)
     {
       if (! all && implicit)
@@ -693,7 +693,7 @@ gather_func (const char *name, const struct stat64 *st, int type,
       if (st->st_size < sizeof (e_ident))
 	return FTW_CONTINUE;
 
-      fd = open (name, O_RDONLY);
+      fd = wrap_open (name, O_RDONLY);
       if (fd == -1)
 	return FTW_CONTINUE;
 
@@ -891,7 +891,7 @@ gather_binlib (const char *name, const struct stat64 *st)
       return 0;
     }
 
-  fd = open (name, O_RDONLY);
+  fd = wrap_open (name, O_RDONLY);
   if (fd == -1)
     {
       error (0, errno, "Could not open %s", name);
@@ -979,7 +979,7 @@ gather_object (const char *name, int deref, int onefs)
 {
   struct stat64 st;
 
-  if (stat64 (name, &st) < 0)
+  if (wrap_stat64 (name, &st) < 0)
     {
       if (implicit)
 	return 0;
@@ -1002,7 +1002,7 @@ gather_object (const char *name, int deref, int onefs)
       if (!all && implicit && ! deref)
 	return 0;
       ++implicit;
-      ret = nftw64 (name, gather_func, 20, flags | FTW_ACTIONRETVAL);
+      ret = wrap_nftw64 (name, gather_func, 20, flags | FTW_ACTIONRETVAL);
       --implicit;
 #ifndef HAVE_FTW_ACTIONRETVAL
       free (blacklist_dir);
@@ -1226,7 +1226,7 @@ add_to_blacklist (const char *name, int deref, int onefs)
       return 0;
     }
 
-  canon_name = prelink_canonicalize (name, NULL);
+  canon_name = wrap_prelink_canonicalize (name, NULL);
   if (canon_name == NULL)
     {
       if (implicit)

@@ -112,8 +112,8 @@ prelink_find_entry (const char *filename, const struct stat64 *stp,
 
   if (! stp)
     {
-      canon_filename = prelink_canonicalize (filename, &st);
-      if (canon_filename == NULL && stat64 (filename, &st) < 0)
+      canon_filename = wrap_prelink_canonicalize (filename, &st);
+      if (canon_filename == NULL && wrap_stat64 (filename, &st) < 0)
 	{
 	  error (0, errno, "Could not stat %s", filename);
 	  if (insert)
@@ -142,7 +142,7 @@ prelink_find_entry (const char *filename, const struct stat64 *stp,
     {
       ent = (struct prelink_entry *) *devino_slot;
       if (canon_filename == NULL)
-	canon_filename = prelink_canonicalize (filename, NULL);
+	canon_filename = wrap_prelink_canonicalize (filename, NULL);
       if (canon_filename == NULL)
 	{
 	  error (0, 0, "Could not canonicalize filename %s", filename);
@@ -189,7 +189,7 @@ prelink_find_entry (const char *filename, const struct stat64 *stp,
   if (canon_filename != NULL)
     ent->canon_filename = canon_filename;
   else
-    ent->canon_filename = prelink_canonicalize (filename, NULL);
+    ent->canon_filename = wrap_prelink_canonicalize (filename, NULL);
   if (ent->canon_filename == NULL)
     {
       error (0, 0, "Could not canonicalize filename %s", filename);
@@ -248,7 +248,7 @@ prelink_load_entry (const char *filename)
   if (*filename_slot != NULL)
     return (struct prelink_entry *) *filename_slot;
 
-  canon_filename = prelink_canonicalize (filename, &st);
+  canon_filename = wrap_prelink_canonicalize (filename, &st);
   if (canon_filename == NULL)
     goto error_out2;
   if (strcmp (canon_filename, filename) != 0)
@@ -364,7 +364,7 @@ prelink_load_cache (void)
   size_t cache_size;
   uint32_t string_start, *dep;
 
-  fd = open (prelink_cache, O_RDONLY);
+  fd = wrap_open (prelink_cache, O_RDONLY);
   if (fd < 0)
     return 0; /* The cache does not exist yet.  */
 
@@ -672,7 +672,7 @@ prelink_save_cache (int do_warn)
   char prelink_cache_tmp [prelink_cache_len + sizeof (".XXXXXX")];
   memcpy (mempcpy (prelink_cache_tmp, prelink_cache, prelink_cache_len),
 	  ".XXXXXX", sizeof (".XXXXXX"));
-  fd = mkstemp (prelink_cache_tmp);
+  fd = wrap_mkstemp (prelink_cache_tmp);
   if (fd < 0)
     {
       error (0, errno, "Could not write prelink cache");
@@ -683,10 +683,10 @@ prelink_save_cache (int do_warn)
       || write (fd, data, len) != len
       || fchmod (fd, 0644)
       || close (fd)
-      || rename (prelink_cache_tmp, prelink_cache))
+      || wrap_rename (prelink_cache_tmp, prelink_cache))
     {
       error (0, errno, "Could not write prelink cache");
-      unlink (prelink_cache_tmp);
+      wrap_unlink (prelink_cache_tmp);
       return 1;
     }
   return 0;

@@ -1,3 +1,11 @@
+2006-08-08   Montavista Software, Inc.
+
+        * Makefile.am: Add function wrapper support for sysroots
+        * main.c: add --root option
+        * cache.c, doit.c, dso.c, execstack.c, gather.c, get.c, 
+          prelink.h, undoall.c, verify.c: Add functional wrappers for sysroot
+        * wrap-file.c: add function wrapper definitions
+
 2006-07-28   Alexandre Oliva <aoliva@redhat.com>
 
 	* src/cache.c: Avoid SEGFAULT when sorting cache entries (#197451)

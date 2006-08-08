@@ -107,7 +107,7 @@ execstack_make_rdwr (DSO *dso, int flag)
      header we've created.  */
   sprintf (filename, "%s.#execstack#.XXXXXX", dso->filename);
 
-  fd = mkstemp (filename);
+  fd = wrap_mkstemp (filename);
   if (fd == -1)
     {
       error (0, 0, "%s: Cannot create temporary file",
@@ -183,7 +183,7 @@ execstack_make_rdwr (DSO *dso, int flag)
   ndso->filename = p;
   p = NULL;
 
-  unlink (filename);
+  wrap_unlink (filename);
   close (fd);
   fd = -1;
   close_dso (dso);
@@ -195,7 +195,7 @@ error_out:
     close_dso (ndso);
   if (fd != -1)
     {
-      unlink (filename);
+      wrap_unlink (filename);
       close (fd);
     }
   close_dso (dso);
