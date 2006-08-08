@@ -551,7 +551,9 @@ make_unprelinkable:
     }
 
   dl = dynamic_linker ?: dso->arch->dynamic_linker;
-  if (strcmp (dl, data->d_buf) != 0)
+  if (strcmp (dl, data->d_buf) != 0
+      && (dynamic_linker != NULL || dso->arch->dynamic_linker_alt == NULL
+	  || strcmp (dso->arch->dynamic_linker_alt, data->d_buf) != 0))
     {
       error (0, 0, "%s: Using %s, not %s as dynamic linker", dso->filename,
 	     (char *) data->d_buf, dl);

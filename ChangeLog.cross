@@ -1,3 +1,7 @@
+2006-08-08   CodeSourcery, LLC.
+        * gather.c: add new dynamic_linker_alt
+        * prelink.h: ditto
+
 2006-08-08   MontaVista Software, Inc.
 
         * main.c: Add relative sysroot support

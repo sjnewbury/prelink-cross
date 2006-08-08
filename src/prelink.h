@@ -120,6 +120,7 @@ struct PLArch
   int alternate_machine[3];
   int max_reloc_size;
   const char *dynamic_linker;
+  const char *dynamic_linker_alt;
   int R_COPY;
   int R_JMP_SLOT;
   int R_RELATIVE;
