@@ -273,6 +273,14 @@ main (int argc, char *argv[])
 	exec_shield = 0;
     }
 
+#ifdef DEFAULT_SYSROOT
+  if (sysroot == NULL)
+    {
+      extern char *make_relative_prefix (const char *, const char *, const char *);
+      sysroot = make_relative_prefix (argv[0], BINDIR, DEFAULT_SYSROOT);
+    }
+#endif
+
   if (sysroot)
     {
       sysroot = prelink_canonicalize (sysroot, NULL);

@@ -1,3 +1,7 @@
+2006-08-08   MontaVista Software, Inc.
+
+        * main.c: Add relative sysroot support
+
 2006-08-08   Montavista Software, Inc.
 
         * Makefile.am: Add function wrapper support for sysroots
