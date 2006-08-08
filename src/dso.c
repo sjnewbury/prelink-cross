@@ -1026,7 +1026,9 @@ adjust_symtab (DSO *dso, int n, GElf_Addr start, GElf_Addr adjust)
 	{
 	  gelfx_getsym (dso->elf, data, ndx, &sym);
 	  if (sym.st_shndx == SHN_ABS && sym.st_value != 0
-	      && GELF_ST_TYPE (sym.st_info) <= STT_FUNC)
+	      && (GELF_ST_TYPE (sym.st_info) <= STT_FUNC
+		  || (dso->ehdr.e_machine == EM_ARM
+		      && GELF_ST_TYPE (sym.st_info) == STT_ARM_TFUNC)))
 	    {
 	      /* This is problematic.  How do we find out if
 		 we should relocate this?  Assume we should.  */

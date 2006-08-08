@@ -1,4 +1,11 @@
 2006-08-08   CodeSourcery, LLC.
+
+        * arch-arm.c: add ARM EABI support, dynamic_linker_alt
+        * src/dso.c: STT_ARM_TFUNC support
+        * src/get.c: ld-linux.so.3 to the list of ldso names
+
+2006-08-08   CodeSourcery, LLC.
+
         * gather.c: add new dynamic_linker_alt
         * prelink.h: ditto
 
