@@ -61,9 +61,9 @@ const char *undo_output;
 int noreexecinit;
 time_t initctime;
 
-const char *argp_program_version = "prelink 1.0";
+const char *argp_program_version = "prelink 1.0 (20060712) Wind River Linux";
 
-const char *argp_program_bug_address = "<jakub@redhat.com>";
+const char *argp_program_bug_address = "<support@windriver.com>";
 
 static char argp_doc[] = "prelink -- program to relocate and prelink ELF shared libraries and programs";
 

@@ -1,5 +1,11 @@
 2006-08-09   Mark Hatle <mark.hatle@windriver.com>
 
+        * execstack.c: add WR versioning
+        * ld-libs.c: add argp option processing and WR versioning
+        * main.c: add WR versioning
+
+2006-08-09   Mark Hatle <mark.hatle@windriver.com>
+
         * ld-libs.c: Add --root argument to prelink-rtld
 
 2006-08-09   Mark Hatle <mark.hatle@windriver.com>

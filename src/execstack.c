@@ -32,9 +32,9 @@
 int set;
 int execflag;
 
-const char *argp_program_version = "execstack 1.0";
+const char *argp_program_version = "execstack 1.0 (20060712) Wind River";
 
-const char *argp_program_bug_address = "<jakub@redhat.com>";
+const char *argp_program_bug_address = "<support@windriver.com>";
 
 static char argp_doc[] = "execstack -- program to query or set executable stack flag";
 

@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <error.h>
+#include <argp.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +32,54 @@
 #include "reloc.h"
 
 #include "ld-libs.h"
+
+struct search_path
+{
+  int maxlen, count, allocated;
+  char **dirs;
+};
+
+struct search_path ld_dirs, ld_library_search_path;
+int host_paths;
+
+void string_to_path (struct search_path *path, const char *string);
+
+const char *argp_program_version = "prelink-rtld 1.0 (20060712) Wind River Linux";
+
+const char *argp_program_bug_address = "<support@windriver.com>";
+
+static char argp_doc[] = "prelink-rtld -- program to simulate the runtime linker";
+
+#define OPT_SYSROOT		0x8c
+#define OPT_LIBRARY_PATH	0x8e
+#define OPT_TARGET_PATHS	0x8f
+
+static struct argp_option options[] = {
+  {"library-path",		OPT_LIBRARY_PATH, "LIBRARY_PATH", 0, "Set library search path to LIBRARY_PATH" },
+  {"root",			OPT_SYSROOT, "ROOT_PATH", 0, "Prefix all paths with ROOT_PATH" },
+  {"target-paths",		OPT_TARGET_PATHS, 0, 0, "Specified paths are based on ROOT_PATH" },
+  { 0 }
+};
+
+static error_t
+parse_opt (int key, char *arg, struct argp_state *state)
+{
+  switch (key)
+    {
+    case OPT_SYSROOT:
+      sysroot = arg;
+      break;
+    case OPT_LIBRARY_PATH:
+      string_to_path(&ld_library_search_path, arg);
+      break;
+    case OPT_TARGET_PATHS:
+      host_paths = 0;
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+  return 0;
+}
 
 #ifndef PT_TLS
 #define PT_TLS		7		/* Thread-local storage segment */
@@ -213,14 +262,6 @@ in_needed_list (struct needed_list *needed_list, const char *soname)
 
 
 /****/
-
-struct search_path
-{
-  int maxlen, count, allocated;
-  char **dirs;
-};
-
-struct search_path ld_dirs, ld_library_search_path;
 
 void
 add_dir (struct search_path *path, const char *dir, int dirlen)
@@ -1104,6 +1145,7 @@ determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
     }
 }
 
+static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
 
 struct ldlibs_link_map *requested_map;
 
@@ -1112,8 +1154,9 @@ static void process_one_dso (DSO *dso, int host_paths);
 int
 main(int argc, char **argv)
 {
-  int host_paths = 1;
+  int remaining;
   int multiple = 0;
+  host_paths = 1;
 
   sysroot = getenv ("PRELINK_SYSROOT");
 #ifdef DEFAULT_SYSROOT
@@ -1126,59 +1169,37 @@ main(int argc, char **argv)
 
   elf_version (EV_CURRENT);
 
-  while (1)
-    {
-      if (argc > 2 && strcmp (argv[1], "--library-path") == 0)
-	{
-	  string_to_path (&ld_library_search_path, argv[2]);
-	  argc -= 2;
-	  argv += 2;
-	}
-      else if (argc > 2 && strcmp (argv[1], "--root") == 0)
-        {
-          string_to_path (&sysroot, argv[2]);
-          argc -= 2;
-          argv += 2;
-        }
-      else if (argc > 1 && strcmp (argv[1], "--target-paths") == 0)
-	{
-	  host_paths = 0;
-	  argc -= 1;
-	  argv += 1;
-	}
-      else
-	break;
-    }
+  argp_parse (&argp, argc, argv, 0, &remaining, 0);
 
   if (sysroot)
     sysroot = prelink_canonicalize (sysroot, NULL);
 
-  if (argc < 2)
-    error (1, 0, "No filename given.");
+  if (remaining == argc)
+    error (1, 0, "missing file arguments\nTry `%s: --help' for more information.", argv[0]);
 
-  if (argc > 2)
+  if ((argc-remaining) >= 2)
     multiple = 1;
 
-  while (argc > 1)
+  while (remaining < argc)
     {
       DSO *dso = NULL;
       int i, fd;
 
       if (host_paths)
-	fd = open (argv[1], O_RDONLY);
+	fd = open (argv[remaining], O_RDONLY);
       else
-	fd = wrap_open (argv[1], O_RDONLY);
+	fd = wrap_open (argv[remaining], O_RDONLY);
 
       if (fd >= 0)
-	dso = fdopen_dso (fd, argv[1]);
+	dso = fdopen_dso (fd, argv[remaining]);
 
       if (dso == NULL)
-	error (1, errno, "Could not open %s", argv[1]);
+	error (1, errno, "Could not open %s", argv[remaining]);
 
       load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64);
 
       if (multiple)
-	printf ("%s:\n", argv[1]);
+	printf ("%s:\n", argv[remaining]);
 
       for (i = 0; i < dso->ehdr.e_phnum; ++i)
 	if (dso->phdr[i].p_type == PT_INTERP)
@@ -1190,8 +1211,7 @@ main(int argc, char **argv)
       else
 	process_one_dso (dso, host_paths);
 
-      argc -= 1;
-      argv += 1;
+      remaining++;
     }
 
   return 0;
