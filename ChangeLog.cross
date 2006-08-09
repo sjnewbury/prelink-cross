@@ -1,5 +1,9 @@
 2006-08-09   Mark Hatle <mark.hatle@windriver.com>
 
+        * ld-libs.c: Add --root argument to prelink-rtld
+
+2006-08-09   Mark Hatle <mark.hatle@windriver.com>
+
         * cross-prelink code merged and upreved
           original code from:
              MontaVista Software, Inc.

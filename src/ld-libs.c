@@ -1124,9 +1124,6 @@ main(int argc, char **argv)
     }
 #endif
 
-  if (sysroot)
-    sysroot = prelink_canonicalize (sysroot, NULL);
-
   elf_version (EV_CURRENT);
 
   while (1)
@@ -1137,6 +1134,12 @@ main(int argc, char **argv)
 	  argc -= 2;
 	  argv += 2;
 	}
+      else if (argc > 2 && strcmp (argv[1], "--root") == 0)
+        {
+          string_to_path (&sysroot, argv[2]);
+          argc -= 2;
+          argv += 2;
+        }
       else if (argc > 1 && strcmp (argv[1], "--target-paths") == 0)
 	{
 	  host_paths = 0;
@@ -1146,6 +1149,9 @@ main(int argc, char **argv)
       else
 	break;
     }
+
+  if (sysroot)
+    sysroot = prelink_canonicalize (sysroot, NULL);
 
   if (argc < 2)
     error (1, 0, "No filename given.");
