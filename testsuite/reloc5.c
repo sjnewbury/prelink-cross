@@ -14,5 +14,9 @@ int main (void)
   printf ("  for (x = 0; x < 16384; ++x)\n");
   printf ("    if (testzero[x]) abort ();\n");
   printf ("  exit (0);\n}\n\n");
+  printf ("#ifdef __arm__\n");
+  printf ("asm (\".section nonalloced,\\\"aw\\\",%%nobits; testzero: .skip 16384\");\n");
+  printf ("#else\n");
   printf ("asm (\".section nonalloced,\\\"aw\\\",@nobits; testzero: .skip 16384\");\n");
+  printf ("#endif\n");
 }

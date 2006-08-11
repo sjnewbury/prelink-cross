@@ -5,7 +5,7 @@ echo 'int main() { }' > movelibs.C
 $CXX -o movelibs movelibs.C
 > syslib.list
 > syslnk.list
-for i in `LD_TRACE_PRELINKING=1 LD_WARN= LD_TRACE_LOADED_OBJECTS=1 ./movelibs \
+for i in `RTLD_TRACE_PRELINKING=1 LD_WARN= $LDD ./movelibs \
 	  | awk '$1 !~ /^\.\/movelibs/ { print $3 } '`; do
   k=`basename $i`
   if [ -L $i ]; then

@@ -16,7 +16,9 @@ savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 > shuffle7.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle7.log && exit 2
-LD_LIBRARY_PATH=. ./shuffle7 || exit 3
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./shuffle7 || exit 3
+fi
 readelf -a ./shuffle7 >> shuffle7.log 2>&1 || exit 4
 comparelibs >> shuffle7.log 2>&1 || exit 5
 for l in shuffle7lib{1,2}.so{,.orig}; do mv -f $l $l.first; done
@@ -27,7 +29,9 @@ for l in shuffle7lib{1,2}.so; do cp -p $l $l.orig; done
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log 2>&1 || exit 6
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle7.log && exit 7
-LD_LIBRARY_PATH=. ./shuffle7 || exit 8
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./shuffle7 || exit 8
+fi
 readelf -a ./shuffle7 >> shuffle7.log 2>&1 || exit 9
 comparelibs >> shuffle7.log 2>&1 || exit 10
 for l in shuffle7lib{1,2}.so{,.orig}; do mv -f $l $l.second; done
@@ -36,7 +40,9 @@ for l in shuffle7lib{1,2}.so{,.orig}; do cp -p $l.first $l; done
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log 2>&1 || exit 11
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle7.log && exit 12
-LD_LIBRARY_PATH=. ./shuffle7 || exit 13
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./shuffle7 || exit 13
+fi
 readelf -a ./shuffle7 >> shuffle7.log 2>&1 || exit 14
 comparelibs >> shuffle7.log 2>&1 || exit 15
 cmp -s shuffle7{,.first} || exit 16

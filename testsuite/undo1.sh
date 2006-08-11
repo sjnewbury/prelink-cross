@@ -11,7 +11,9 @@ savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./undo1 > undo1.log
 $PRELINK ${PRELINK_OPTS--vm} ./undo1 >> undo1.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` undo1.log && exit 2
-LD_LIBRARY_PATH=. ./undo1 || exit 3
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./undo1 || exit 3
+fi
 readelf -a ./undo1 >> undo1.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./undo1

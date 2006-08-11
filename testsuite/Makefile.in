@@ -161,7 +161,9 @@ check-TESTS: $(TESTS)
 	    if test -f ./$$tst; then dir=./; \
 	    elif test -f $$tst; then dir=; \
 	    else dir="$(srcdir)/"; fi; \
-	    if $(TESTS_ENVIRONMENT) $${dir}$$tst; then \
+	    $(TESTS_ENVIRONMENT) $${dir}$$tst; \
+	    ret=$$?; \
+	    if test $$ret -eq 0; then \
 	      all=`expr $$all + 1`; \
 	      case " $(XFAIL_TESTS) " in \
 	      *" $$tst "*) \
@@ -173,16 +175,16 @@ check-TESTS: $(TESTS)
 	        echo "PASS: $$tst"; \
 	      ;; \
 	      esac; \
-	    elif test $$? -ne 77; then \
+	    elif test $$ret -ne 77; then \
 	      all=`expr $$all + 1`; \
 	      case " $(XFAIL_TESTS) " in \
 	      *" $$tst "*) \
 	        xfail=`expr $$xfail + 1`; \
-	        echo "XFAIL: $$tst"; \
+	        echo "XFAIL: $$tst ($$ret)"; \
 	      ;; \
 	      *) \
 	        failed=`expr $$failed + 1`; \
-	        echo "FAIL: $$tst"; \
+	        echo "FAIL: $$tst ($$ret)"; \
 	      ;; \
 	      esac; \
 	    fi; \

@@ -1,9 +1,11 @@
 #!/bin/bash
 . `dirname $0`/functions.sh
 # Kernels before 2.4.10 are known not to work
-case "`uname -r`" in
+if [ "x$CROSS" = "x" ]; then
+ case "`uname -r`" in
   [01].*|2.[0-3].*|2.4.[0-9]|2.4.[0-9][^0-9]*) exit 77;;
-esac
+ esac
+fi
 rm -f shuffle3 shuffle3lib*.so shuffle3.log shuffle3.lds
 rm -f prelink.cache
 $CC -shared -O2 -fpic -o shuffle3lib1.so $srcdir/reloc1lib1.c
@@ -19,7 +21,9 @@ savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle3 > shuffle3.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle3 >> shuffle3.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle3.log && exit 2
-LD_LIBRARY_PATH=. ./shuffle3 || exit 3
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./shuffle3 || exit 3
+fi
 readelf -a ./shuffle3 >> shuffle3.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./shuffle3

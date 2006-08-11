@@ -16,4 +16,8 @@ int main()
   exit (0);
 }
 
+#ifdef __arm__
+asm (".section nonalloced,\"aw\",%nobits; testzero: .skip 16384");
+#else
 asm (".section nonalloced,\"aw\",@nobits; testzero: .skip 16384");
+#endif

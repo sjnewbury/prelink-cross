@@ -41,7 +41,9 @@ chmod 644 `ls $BINS | sed 's|$|.orig|'`
 echo $PRELINK ${PRELINK_OPTS--v} -avvvvv > deps2.log
 $PRELINK ${PRELINK_OPTS--v} -avvvvv > deps2.tree/etc/log1 2>&1 || exit 1
 cat deps2.tree/etc/log1 >> deps2.log
-LD_LIBRARY_PATH=deps2.tree/lib deps2.tree/usr/bin/bin1 || exit 2
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=deps2.tree/lib deps2.tree/usr/bin/bin1 || exit 2
+fi
 readelf -d deps2.tree/{usr,opt}/lib/lib1.so 2>&1 | grep CHECKSUM >> deps2.log || exit 3
 readelf -A deps2.tree/usr/lib/lib1.so >> deps2.log 2>&1 || exit 4
 readelf -A deps2.tree/opt/lib/lib1.so >> deps2.log 2>&1 || exit 5

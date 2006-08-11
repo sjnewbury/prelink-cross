@@ -12,7 +12,9 @@ savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc11 > reloc11.log
 $PRELINK ${PRELINK_OPTS--vm} ./reloc11 >> reloc11.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc11.log && exit 2
-LD_LIBRARY_PATH=. ./reloc11 || exit 3
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./reloc11 || exit 3
+fi
 readelf -a ./reloc11 >> reloc11.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc11

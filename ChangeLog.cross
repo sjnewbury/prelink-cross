@@ -1,3 +1,23 @@
+2006-08-10   Mark Hatle <mark.hatle@windriver.com>
+
+        * testsuite/Makefile.in: Allow testsuite to run using cross prelink.
+                        Disable the run-time tests, but keep all basic
+                        prelink testing.
+        * testsuite/ccx1.sh, testsuite/cycle1.sh, testsuite/cycle2.sh
+          testsuite/deps1.sh, testsuite/deps2.sh, testuite/functions.sh
+          testuite/layout1.sh, testuite/layout2.sh, testsuite/movelibs.sh
+          testsuite/quick1.sh, testsuite/quick2.sh, testsuite/quick3.sh
+          testsuite/reloc1.sh, testsuite/reloc2.sh, testsuite/reloc3.sh
+          testsuite/reloc4.sh, testsuite/reloc5.sh, testsuite/reloc6.sh
+          testsuite/reloc7.sh, testsuite/reloc8.sh, testsuite/reloc9.sh
+          testsuite/reloc10.sh, testsuite/reloc11.sh, testsuite/shuffle1.sh
+          testsuite/shuffle2.c, testsuite/shuffle2.sh, testsuite/shuffle3.sh
+          testsuite/shuffle4.sh, testsuite/shuffle5.sh, testsuite/shuffle6.sh
+          testsuite/shuffle7.sh, testsuite/shuffle8.sh, testsuite/tls1.sh
+          testsuite/tls2.sh, testsuite/tls3.sh, testsuite/tls4.sh
+          testsuite/tls5.sh, testsuite/tls6.sh, testsuite/tls7.sh
+          testsuite/undo1.sh: ditto
+
 2006-08-09   Mark Hatle <mark.hatle@windriver.com>
 
         * execstack.c: add WR versioning

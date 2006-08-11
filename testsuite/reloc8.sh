@@ -1,7 +1,9 @@
 #!/bin/bash
 . `dirname $0`/functions.sh
 # Disable this test under SELinux
-test -x /usr/sbin/getenforce -a "`/usr/sbin/getenforce`" = Enforcing && exit 77
+if [ "x$CROSS" = "x" ]; then
+ test -x /usr/sbin/getenforce -a "`/usr/sbin/getenforce`" = Enforcing && exit 77
+fi
 rm -f reloc8 reloc8lib*.so reloc8.log
 rm -f prelink.cache
 NOCOPYRELOC=-Wl,-z,nocopyreloc
@@ -17,7 +19,9 @@ savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc8 > reloc8.log
 $PRELINK ${PRELINK_OPTS--vm} ./reloc8 >> reloc8.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc8.log && exit 2
-LD_LIBRARY_PATH=. ./reloc8 >> reloc8.log || exit 3
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=. ./reloc8 >> reloc8.log || exit 3
+fi
 readelf -a ./reloc8 >> reloc8.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc8

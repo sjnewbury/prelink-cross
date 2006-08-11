@@ -112,8 +112,18 @@ echo is present in prelink.conf.
 exit 0
 EOF
 chmod 755 quick2.tree/usr/bin/bin11.script
-echo 'int main () { return 0; }' \
+if [ `$CC -dumpmachine | sed "s/-.*-.*-.*//"` = "arm" ]; then
+ cat > quick2.tree/usr/bin/bin12 << EOF
+#!/bin/sh
+echo -pie -fPIE is not supported on our ARM architectures
+echo this script will serve to disable that part of the test.
+exit 0
+EOF
+chmod 0755 quick2.tree/usr/bin/bin12
+else
+ echo 'int main () { return 0; }' \
   | $CCLINK -o quick2.tree/usr/bin/bin12 -pie -fPIE -xc - -xnone
+fi
 cat > quick2.tree/etc/prelink.conf <<EOF
 -b *.sh
 -b *.py
@@ -173,12 +183,24 @@ grep -q 'Could not prelink .*bin5 because its dependency .*lib7.so could not be 
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
 $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log4 2>&1 || exit 4
 cat quick2.tree/etc/log4 >> quick2.log
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 5
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 6
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 7
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 8
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 9
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 10
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 5
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 6
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 7
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 8
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 9
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 10
+fi
 readelf -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 11
 readelf -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 12
 readelf -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 13
@@ -201,12 +223,24 @@ done
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
 $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log5 2>&1 || exit 17
 cat quick2.tree/etc/log5 >> quick2.log
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 18
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 19
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 20
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 21
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 22
-LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 23
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 18
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 19
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 20
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 21
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 22
+fi
+if [ "x$CROSS" = "x" ]; then
+ LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 23
+fi
 readelf -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 24
 readelf -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 25
 readelf -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 26

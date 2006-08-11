@@ -4,6 +4,9 @@ CCLINK=${CCLINK:-${CC} -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`}
 CXX="${CXX:-g++} ${LINKOPTS}"
 CXXLINK=${CXXLINK:-${CXX} -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`}
 PRELINK=${PRELINK:-../src/prelink -c ./prelink.conf -C ./prelink.cache --ld-library-path=. --dynamic-linker=`echo ./ld*.so.*[0-9]`}
+LDD=${LDD:-../src/prelink-rtld}
+STRIP=${STRIP:-strip}
+HOST_CC=${HOST_CC:-$CC}
 srcdir=${srcdir:-`dirname $0`}
 savelibs() {
   for i in $LIBS $BINS; do cp -p $i $i.orig; done
