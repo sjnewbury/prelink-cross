@@ -426,7 +426,7 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
 	      const char *rpath = get_data (loader_p->dso,
 					    loader_p->dso->info[DT_STRTAB]
 					    + loader_p->dso->info[DT_RPATH],
-					    NULL);
+					    NULL, NULL);
 	      memset (&r_path, 0, sizeof (r_path));
 	      string_to_path (&r_path, rpath);
 	      ret = find_lib_in_path (&r_path, soname, elfclass);
@@ -448,7 +448,7 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
       const char *rpath = get_data (loader->dso,
 				    loader->dso->info[DT_STRTAB]
 				    + loader->dso->info[DT_RUNPATH],
-				    NULL);
+				    NULL, NULL);
       memset (&r_path, 0, sizeof (r_path));
       string_to_path (&r_path, rpath);
       ret = find_lib_in_path (&r_path, soname, elfclass);
@@ -511,7 +511,7 @@ load_dsos (DSO *dso)
 		  const char *soname = get_data (cur_dso,
 						 cur_dso->info[DT_STRTAB]
 						 + dyn.d_un.d_val,
-						 NULL);
+						 NULL, NULL);
 		  new_dso_ent = in_dso_list (dso_list, soname, NULL);
 		  if (new_dso_ent == NULL)
 		    {
