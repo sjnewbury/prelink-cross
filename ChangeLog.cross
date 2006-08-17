@@ -1,3 +1,8 @@
+2006-08-17   Mark Hatle <mark.hatle@windriver.com>
+
+        * data.c, dso.c, prelink.h: when using elfutils/libelf, we need
+                to byte swap only if the type is ELF_T_BYTE.
+
 2006-08-10   Mark Hatle <mark.hatle@windriver.com>
 
         * testsuite/Makefile.in: Allow testsuite to run using cross prelink.

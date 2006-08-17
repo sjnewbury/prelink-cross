@@ -22,12 +22,16 @@
 uint##nn##_t							\
 read_u##le##nn (DSO *dso, GElf_Addr addr)			\
 {								\
-  unsigned char *data = get_data (dso, addr, NULL);		\
+  Elf_Type type;						\
+  unsigned char *data = get_data (dso, addr, NULL, &type);	\
 								\
   if (data == NULL)						\
     return 0;							\
 								\
-  return buf_read_u##le##nn (data);				\
+  if (type == ELF_T_BYTE)					\
+    return buf_read_u##le##nn (data);				\
+  else								\
+    return *(uint##nn##_t *)data;				\
 }
 
 #define WRITE(le,nn)						\
@@ -35,12 +39,16 @@ int								\
 write_##le##nn (DSO *dso, GElf_Addr addr, uint##nn##_t val)	\
 {								\
   int sec;							\
-  unsigned char *data = get_data (dso, addr, &sec);		\
+  Elf_Type type;						\
+  unsigned char *data = get_data (dso, addr, &sec, &type);	\
 								\
   if (data == NULL)						\
     return -1;							\
 								\
-  buf_write_##le##nn (data, val);				\
+  if (type == ELF_T_BYTE)					\
+    buf_write_##le##nn (data, val);				\
+  else								\
+    *(uint##nn##_t *)data = val;				\
   elf_flagscn (dso->scn[sec], ELF_C_SET, ELF_F_DIRTY);		\
   return 0;							\
 }
@@ -48,7 +56,7 @@ write_##le##nn (DSO *dso, GElf_Addr addr, uint##nn##_t val)	\
 #define READWRITE(le,nn) UREAD(le,nn) WRITE(le,nn)
 
 unsigned char *
-get_data (DSO *dso, GElf_Addr addr, int *secp)
+get_data (DSO *dso, GElf_Addr addr, int *secp, Elf_Type *typep)
 {
   int sec = addr_to_sec (dso, addr);
   Elf_Data *data = NULL;
@@ -62,8 +70,10 @@ get_data (DSO *dso, GElf_Addr addr, int *secp)
   addr -= dso->shdr[sec].sh_addr;
   while ((data = elf_getdata (dso->scn[sec], data)) != NULL)
     if (data->d_off <= addr && data->d_off + data->d_size > addr)
+    {
+      if (typep) *typep = data->d_type;
       return (unsigned char *) data->d_buf + (addr - data->d_off);
-
+    }
   return NULL;
 }
 

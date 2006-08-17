@@ -506,7 +506,7 @@ fdopen_dso (int fd, const char *name)
       const char *soname;
 
       soname = get_data (dso, dso->info[DT_STRTAB] + dso->info[DT_SONAME],
-			 NULL);
+			 NULL, NULL);
       if (soname && soname[0] != '\0')
 	dso->soname = (const char *) strdup (soname);
     }

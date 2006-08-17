@@ -206,7 +206,7 @@ int strtabfind (DSO *dso, int strndx, const char *name);
 int shstrtabadd (DSO *dso, const char *name);
 
 /* data.c */
-unsigned char * get_data (DSO *dso, GElf_Addr addr, int *scnp);
+unsigned char * get_data (DSO *dso, GElf_Addr addr, int *scnp, Elf_Type *typep);
 #define READWRITEPROTO(le,nn)					\
 uint##nn##_t buf_read_u##le##nn (unsigned char *data);		\
 uint##nn##_t read_u##le##nn (DSO *dso, GElf_Addr addr);		\
