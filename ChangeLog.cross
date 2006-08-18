@@ -1,3 +1,7 @@
+2006-08-18   Mark Hatle <mark.hatle@windriver.com>
+
+	* arch-arm.c: remove prelink_conflict_rela
+
 2006-08-17   Mark Hatle <mark.hatle@windriver.com>
 
         * data.c, dso.c, prelink.h: when using elfutils/libelf, we need

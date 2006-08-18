@@ -496,7 +496,6 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
       value = conflict_lookup_value (conflict);
     }
 
-  value = conflict_lookup_value (conflict);
   ret = prelink_conflict_add_rela (info);
   if (ret == NULL)
     return 1;
