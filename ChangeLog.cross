@@ -1,11 +1,14 @@
 2006-08-18   Mark Hatle <mark.hatle@windriver.com>
 
 	* arch-arm.c: remove prelink_conflict_rela
+        * arch-arm.c: Add big-endian arm support, based on arch-sh.c
 
 2006-08-17   Mark Hatle <mark.hatle@windriver.com>
 
         * data.c, dso.c, prelink.h: when using elfutils/libelf, we need
                 to byte swap only if the type is ELF_T_BYTE.
+        * dso-readonly.c: add get_data prototype change for byteswapping
+        * ld-libs.c: add get_data prototype change for byteswapping
 
 2006-08-10   Mark Hatle <mark.hatle@windriver.com>
 
