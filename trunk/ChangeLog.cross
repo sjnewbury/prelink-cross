@@ -1,3 +1,21 @@
+2006-12-04  Mark Hatle <mark.hatle@windriver.com>
+
+        * Merge code from:
+
+          Richard Sandiford  <richard@codesourcery.com>
+          * src/ld-libs.c (reloc_type_class): Handle EM_MIPS.
+          (do_mips_global_relocs): New function.
+          (handle_relocs_in_entry): Call it.
+          (determine_tlsoffsets): Handle EM_MIPS.
+    
+          Richard Sandiford  <richard@codesourcery.com>
+
+          * src/ld-libs.c (do_reloc): New function, split out from
+          do_rel_section.  Take the symbol and relocation type as arguments.
+          (do_rel_section): Call it.
+          (handle_relocs_in_entry): New function.
+          (handle_relocs): Call it.
+
 2006-12-04   Mark Hatle <mark.hatle@windriver.com>
 
         * src/elf.h: Update to the latest version of elf.h for MIPS prelink

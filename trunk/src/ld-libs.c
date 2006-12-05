@@ -172,6 +172,11 @@ reloc_type_class (int type, int machine)
 	  return 0;
 	}
 
+    case EM_MIPS:
+      /* MIPS lazy resolution stubs are local to the containing object,
+	 so SHN_UNDEF symbols never participate in symbol lookup.  */
+      return ELF_RTYPE_CLASS_PLT;
+
     default:
       printf ("Unknown architecture!\n");
       exit (1);
@@ -810,17 +815,78 @@ struct
 } cache;
 
 void
-do_rel_section (DSO *dso, struct ldlibs_link_map *map,
-		struct r_scope_elem *scope,
-		int tag, int section)
+do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope,
+	  GElf_Word sym, GElf_Word type)
 {
-  Elf_Data *data;
-  int ndx, maxndx, sym, type;
   struct r_found_version *ver;
   int rtypeclass;
   void *symptr;
   const char *name;
   Elf64_Word st_name;
+
+  if (map->l_versyms)
+    {
+      int vernum = map->l_versyms[sym] & 0x7fff;
+      ver = &map->l_versions[vernum];
+    }
+  else
+    ver = NULL;
+
+  rtypeclass = reloc_type_class (type, dso->ehdr.e_machine);
+
+  if (gelf_getclass (dso->elf) == ELFCLASS32)
+    {
+      Elf32_Sym *sym32 = &((Elf32_Sym *)map->l_info[DT_SYMTAB])[sym];
+
+      if (ELF32_ST_BIND (sym32->st_info) == STB_LOCAL)
+	return;
+      symptr = sym32;
+      st_name = sym32->st_name;
+    }
+  else
+    {
+      Elf64_Sym *sym64 = &((Elf64_Sym *)map->l_info[DT_SYMTAB])[sym];
+
+      if (ELF64_ST_BIND (sym64->st_info) == STB_LOCAL)
+	return;
+      symptr = sym64;
+      st_name = sym64->st_name;
+    }
+
+  if (cache.symptr == symptr && cache.rtypeclass == rtypeclass)
+    return;
+  cache.symptr = symptr;
+  cache.rtypeclass = rtypeclass;
+
+  name = ((const char *)map->l_info[DT_STRTAB]) + st_name;
+
+  if (gelf_getclass (dso->elf) == ELFCLASS32)
+    {
+      if (ver && ver->hash)
+	rtld_lookup_symbol_versioned (name, symptr, scope, ver, rtypeclass,
+				      map, dso->ehdr.e_machine);
+      else
+	rtld_lookup_symbol (name, symptr, scope, rtypeclass, map,
+			    dso->ehdr.e_machine);
+    }
+  else
+    {
+      if (ver && ver->hash)
+	rtld_lookup_symbol_versioned64 (name, symptr, scope, ver, rtypeclass,
+					map, dso->ehdr.e_machine);
+      else
+	rtld_lookup_symbol64 (name, symptr, scope, rtypeclass, map,
+			      dso->ehdr.e_machine);
+    }
+}
+
+void
+do_rel_section (DSO *dso, struct ldlibs_link_map *map, 
+		struct r_scope_elem *scope,
+		int tag, int section)
+{
+  Elf_Data *data;
+  int ndx, maxndx, sym, type;
 
   data = elf_getdata (dso->scn[section], NULL);
   maxndx = data->d_size / dso->shdr[section].sh_entsize;
@@ -840,60 +906,8 @@ do_rel_section (DSO *dso, struct ldlibs_link_map *map,
 	  sym = GELF_R_SYM (rela.r_info);
 	  type = GELF_R_TYPE (rela.r_info);
 	}
-      if (sym == 0)
-	continue;
-      if (map->l_versyms)
-	{
-	  int vernum = map->l_versyms[sym] & 0x7fff;
-	  ver = &map->l_versions[vernum];
-	}
-      else
-	ver = NULL;
-
-      rtypeclass = reloc_type_class (type, dso->ehdr.e_machine);
-
-      if (gelf_getclass (dso->elf) == ELFCLASS32)
-	{
-	  Elf32_Sym *sym32 = &((Elf32_Sym *)map->l_info[DT_SYMTAB])[sym];
-
-	  if (ELF32_ST_BIND (sym32->st_info) == STB_LOCAL)
-	    continue;
-	  symptr = sym32;
-	  st_name = sym32->st_name;
-	}
-      else
-	{
-	  Elf64_Sym *sym64 = &((Elf64_Sym *)map->l_info[DT_SYMTAB])[sym];
-
-	  if (ELF64_ST_BIND (sym64->st_info) == STB_LOCAL)
-	    continue;
-	  symptr = sym64;
-	  st_name = sym64->st_name;
-	}
-
-      if (cache.symptr == symptr && cache.rtypeclass == rtypeclass)
-	continue;
-      cache.symptr = symptr;
-      cache.rtypeclass = rtypeclass;
-
-      name = ((const char *)map->l_info[DT_STRTAB]) + st_name;
-
-      if (gelf_getclass (dso->elf) == ELFCLASS32)
-	{
-	  if (ver && ver->hash)
-	    rtld_lookup_symbol_versioned (name, symptr, scope, ver, rtypeclass, map,
-					  dso->ehdr.e_machine);
-	  else
-	    rtld_lookup_symbol (name, symptr, scope, rtypeclass, map, dso->ehdr.e_machine);
-	}
-      else
-	{
-	  if (ver && ver->hash)
-	    rtld_lookup_symbol_versioned64 (name, symptr, scope, ver, rtypeclass, map,
-					    dso->ehdr.e_machine);
-	  else
-	    rtld_lookup_symbol64 (name, symptr, scope, rtypeclass, map, dso->ehdr.e_machine);
-	}
+      if (sym != 0)
+	do_reloc (dso, map, scope, sym, type);
     }
 }
 
@@ -929,6 +943,34 @@ do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope, in
     do_rel_section (dso, map, scope, tag, addr_to_sec (dso, dso->info[DT_JMPREL]));
 }
 
+/* MIPS GOTs are not handled by normal relocations.  Instead, entry X
+   in the global GOT is associated with symbol DT_MIPS_GOTSYM + X.
+   For the purposes of symbol lookup and conflict resolution, we need
+   to act as though entry X had a dynamic relocation against symbol
+   DT_MIPS_GOTSYM + X.  */
+
+void
+do_mips_global_got_relocs (DSO *dso, struct ldlibs_link_map *map,
+			   struct r_scope_elem *scope)
+{
+  GElf_Word i;
+
+  for (i = dso->info_DT_MIPS_GOTSYM; i < dso->info_DT_MIPS_SYMTABNO; i++)
+    do_reloc (dso, map, scope, i, R_MIPS_REL32);
+}
+
+void
+handle_relocs_in_entry (struct dso_list *entry, struct dso_list *dso_list)
+{
+  GElf_Word i;
+
+  do_relocs (entry->dso, entry->map, dso_list->map->l_local_scope, DT_REL);
+  do_relocs (entry->dso, entry->map, dso_list->map->l_local_scope, DT_RELA);
+  if (entry->dso->ehdr.e_machine == EM_MIPS)
+    do_mips_global_got_relocs (entry->dso, entry->map,
+			       dso_list->map->l_local_scope);
+}
+
 void
 handle_relocs (DSO *dso, struct dso_list *dso_list)
 {
@@ -950,19 +992,12 @@ handle_relocs (DSO *dso, struct dso_list *dso_list)
       if (is_ldso_soname (tail->dso->soname))
 	ldso = tail;
       else
-	{
-	  /* Load the symbols and relocations.  */
-	  do_relocs (tail->dso, tail->map, dso_list->map->l_local_scope, DT_REL);
-	  do_relocs (tail->dso, tail->map, dso_list->map->l_local_scope, DT_RELA);
-	}
+	handle_relocs_in_entry (tail, dso_list);
       tail = tail->prev;
     }
 
   if (ldso)
-    {
-      do_relocs (ldso->dso, ldso->map, dso_list->map->l_local_scope, DT_REL);
-      do_relocs (ldso->dso, ldso->map, dso_list->map->l_local_scope, DT_RELA);
-    }
+    handle_relocs_in_entry (ldso, dso_list);
 }
 
 void
@@ -1034,6 +1069,10 @@ determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
 
     case EM_ARM:
       offset = 8;
+      break;
+
+    case EM_MIPS:
+      offset = 0;
       break;
 
     default:
