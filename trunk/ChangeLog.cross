@@ -1,3 +1,7 @@
+2006-12-04   Mark Hatle <mark.hatle@windriver.com>
+
+        * src/elf.h: Update to the latest version of elf.h for MIPS prelink
+
 2006-12-01   Mark Hatle <mark.hatle@windriver.com>
 
         * merge to 20061201 (r151)
