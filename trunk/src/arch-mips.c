@@ -992,6 +992,7 @@ PL_ARCH = {
   .machine = EM_MIPS,
   .max_reloc_size = 4,
   .dynamic_linker = "/lib/ld.so.1",
+  .dynamic_linker_alt = "/lib32/ld.so.1",
   /* MIPS does not use COPY relocs or jump slots.  Pick a value outside
      the ELF32_R_TYPE range.  */
   .R_COPY = ~0U,

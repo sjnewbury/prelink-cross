@@ -302,7 +302,7 @@ free_path (struct search_path *path)
 }
 
 void
-load_ld_so_conf (int use_64bit)
+load_ld_so_conf (int use_64bit, int use_mipsn32)
 {
   int fd;
   FILE *conf;
@@ -318,6 +318,13 @@ load_ld_so_conf (int use_64bit)
       add_dir (&ld_dirs, "/lib64", strlen ("/lib64"));
       add_dir (&ld_dirs, "/usr/lib64/tls", strlen ("/usr/lib64/tls"));
       add_dir (&ld_dirs, "/usr/lib64", strlen ("/usr/lib64"));
+    }
+  else if (use_mipsn32)
+    {
+      add_dir (&ld_dirs, "/lib32/tls", strlen ("/lib32/tls"));
+      add_dir (&ld_dirs, "/lib32", strlen ("/lib32"));
+      add_dir (&ld_dirs, "/usr/lib32/tls", strlen ("/usr/lib32/tls"));
+      add_dir (&ld_dirs, "/usr/lib32", strlen ("/usr/lib32"));
     }
   else
     {
@@ -1235,7 +1242,8 @@ main(int argc, char **argv)
       if (dso == NULL)
 	error (1, errno, "Could not open %s", argv[remaining]);
 
-      load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64);
+      load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64, 
+		( dso->ehdr.e_machine == EM_MIPS) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ) );
 
       if (multiple)
 	printf ("%s:\n", argv[remaining]);
