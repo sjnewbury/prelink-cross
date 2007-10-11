@@ -1,3 +1,8 @@
+2007-10-11  Richard Sandiford  <richard@codesourcery.com>
+
+        * src/space.c (find_readonly_space): If a new PT_LOAD header is needed,
+        first try removing a PT_NULL header.
+
 2006-12-04  Mark Hatle <mark.hatle@windriver.com>
 
         * Merge code from:
