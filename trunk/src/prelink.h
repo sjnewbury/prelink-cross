@@ -101,6 +101,10 @@ typedef uint8_t Elf64_Byte;
 #define DT_MIPS_RWPLT		0x70000034
 #endif
 
+#ifndef SHT_MIPS_DWARF
+#define SHT_MIPS_DWARF		0x7000001e
+#endif
+
 #ifndef RSS_UNDEF
 #define RSS_UNDEF              0
 #endif
