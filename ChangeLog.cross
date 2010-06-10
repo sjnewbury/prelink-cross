@@ -1,0 +1,5 @@
+2006-06-10   MontaVista Software, Inc.
+
+        * arch-sh.c: Fix R_SH_RELATIVE endian swap problem, 
+                change max page size
+

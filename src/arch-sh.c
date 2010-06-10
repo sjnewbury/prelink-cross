@@ -373,7 +373,7 @@ sh_undo_prelink_rela (DSO *dso, GElf_Rela *rela, GElf_Addr relaaddr)
       break;
     case R_SH_RELATIVE:
       if (rela->r_addend)
-	write_le32 (dso, rela->r_offset, 0);
+	write_ne32 (dso, rela->r_offset, 0);
       break;
     case R_SH_JMP_SLOT:
       sec = addr_to_sec (dso, rela->r_offset);
@@ -465,6 +465,6 @@ PL_ARCH = {
      even dlopened libraries will get the slots they desire.  */
   .mmap_base = 0x30000000,
   .mmap_end =  0x40000000,
-  .max_page_size = 0x2000,
+  .max_page_size = 0x10000,
   .page_size = 0x1000
 };
