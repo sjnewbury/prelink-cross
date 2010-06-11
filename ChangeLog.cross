@@ -1,3 +1,7 @@
+2006-08-09   CodeSourcery, LLC.
+
+        * main.c: if we modified /sbin/init, re-run init
+
 2006-08-08   CodeSourcery, LLC.
 
         * arch-arm.c: add ARM EABI support, dynamic_linker_alt

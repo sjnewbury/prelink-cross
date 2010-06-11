@@ -58,6 +58,8 @@ const char *ld_library_path;
 const char *prelink_conf = PRELINK_CONF;
 const char *prelink_cache = PRELINK_CACHE;
 const char *undo_output;
+int noreexecinit;
+time_t initctime;
 
 const char *argp_program_version = "prelink 1.0";
 
@@ -113,6 +115,7 @@ static struct argp_option options[] = {
   {"mmap-region-end",	OPT_MMAP_REG_END, "BASE_ADDRESS", OPTION_HIDDEN, "" },
   {"seed",		OPT_SEED, "SEED", OPTION_HIDDEN, "" },
   {"compute-checksum",	OPT_COMPUTE_CHECKSUM, 0, OPTION_HIDDEN, "" },
+  {"init",		'i', 0, 0,  "Do not re-execute init" },
   { 0 }
 };
 
@@ -227,10 +230,27 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case OPT_SYSROOT:
       sysroot = arg;
       break;
+    case 'i':
+      noreexecinit=1;
+      break;
     default:
       return ARGP_ERR_UNKNOWN;
     }
   return 0;
+}
+
+time_t get_ctime(const char *file) {
+  struct stat st;
+  if(stat(file,&st) == 0)
+    return st.st_ctime;
+  return 0;
+}
+
+void checkinit() {
+  if(initctime != get_ctime("/sbin/init")) {
+    printf("Executing /sbin/init U\n");
+    system("/sbin/init U");
+  }
 }
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
@@ -249,6 +269,11 @@ main (int argc, char *argv[])
   elf_version (EV_CURRENT);
 
   argp_parse (&argp, argc, argv, 0, &remaining, 0);
+
+  if(!noreexecinit) {
+    initctime = get_ctime("/sbin/init");
+    atexit(checkinit);
+  }
 
   if (ld_library_path == NULL)
     ld_library_path = getenv ("LD_LIBRARY_PATH");
