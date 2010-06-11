@@ -61,8 +61,8 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 {
   int i, j, seen = 0;
   FILE *f = NULL;
-  const char *argv[5];
-  const char *envp[4];
+  const char *argv[6];
+  const char *envp[5];
   char *line = NULL, *p, *q = NULL;
   const char **depends = NULL;
   size_t ndepends = 0, ndepends_alloced = 0;
@@ -143,11 +143,6 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 
   i = 0;
   argv[i++] = dl;
-  if (ld_library_path)
-    {
-      argv[i++] = "--library-path";
-      argv[i++] = ld_library_path;
-    }
   if (strchr (ent->filename, '/') != NULL)
     ent_filename = ent->filename;
   else
@@ -158,13 +153,55 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
       memcpy (tp + 2, ent->filename, flen + 1);
       ent_filename = tp;
     }
-  argv[i++] = ent_filename;
-  argv[i] = NULL;
-  envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
-  envp[1] = "LD_TRACE_PRELINKING=1";
-  envp[2] = "LD_WARN=";
-  envp[3] = NULL;
-  f = execve_open (dl, (char * const *)argv, (char * const *)envp);
+
+  if (prelink_rtld == NULL)
+    {
+      i = 0;
+      argv[i++] = dl;
+      if (ld_library_path)
+        {
+          argv[i++] = "--library-path";
+          argv[i++] = ld_library_path;
+        }
+      argv[i++] = ent_filename;
+      argv[i] = NULL;
+      envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
+      envp[1] = "LD_TRACE_PRELINKING=1";
+      envp[2] = "LD_WARN=";
+      envp[3] = NULL;
+      f = execve_open (dl, (char * const *)argv, (char * const *)envp);
+    }
+  else
+    {
+      char *path;
+      i = 0;
+      argv[i++] = prelink_rtld;
+      if (ld_library_path)
+        {
+          argv[i++] = "--library-path";
+          argv[i++] = ld_library_path;
+        }
+      argv[i++] = "--target-paths";
+      argv[i++] = ent_filename;
+      argv[i] = NULL;
+      envp[0] = "RTLD_TRACE_PRELINKING=1";
+      envp[1] = "LD_WARN=";
+      path = alloca (sizeof "PATH=" + strlen (getenv ("PATH")));
+      sprintf (path, "PATH=%s", getenv ("PATH"));
+      envp[2] = path;
+
+      if (sysroot)
+       {
+         envp[3] = alloca (sizeof "PRELINK_SYSROOT=" + strlen (sysroot));
+         sprintf ((char *) envp[3], "PRELINK_SYSROOT=%s", sysroot);
+         envp[4] = NULL;
+       }
+      else
+       envp[3] = NULL;
+
+      f = execve_open (prelink_rtld, (char * const *)argv, (char * const *)envp);
+    }
+
   if (f == NULL)
     goto error_out;
 
@@ -183,8 +220,8 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 	  q = strstr (p, " (");
 	  if (q == NULL && strcmp (p, " => not found") == 0)
 	    {
-	      error (0, 0, "%s: Could not find one of the dependencies",
-		     ent->filename);
+	      error (0, 0, "%s: Could not find one of the dependencies: %s",
+		     ent->filename, line);
 	      goto error_out;
 	    }
 	}

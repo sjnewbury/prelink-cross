@@ -455,4 +455,6 @@ int wrap_utime (const char *file, struct utimbuf *file_times);
 int wrap_mkstemp (char *filename);
 int wrap_unlink (const char *filename);
 
+extern const char *prelink_rtld;
+
 #endif /* PRELINK_H */

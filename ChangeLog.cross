@@ -1,3 +1,21 @@
+2006-08-09   Mark Hatle <mark.hatle@windriver.com>
+
+        * cross-prelink code merged and upreved
+          original code from:
+             MontaVista Software, Inc.
+             CodeSourcery, LLC.
+        * Makefile.am: add prelink-rtld, libiberty
+        * dso-readonly.c: new file based on dso.c
+        * gather.c: use cross-rtld
+        * get.c: use cross-rtld
+        * ld-do-lookup.h: Add ld-do-lookup.h from glibc
+        * ld-libs.c: add cross-rtld functionality
+        * ld-libs.h: ditto
+        * ld-lookup.c: ditto
+        * ld-lookup64.c: ditto
+        * main.c: Add rtld option
+        * prelink.h: add extern rtld variable
+
 2006-08-09   CodeSourcery, LLC.
 
         * main.c: if we modified /sbin/init, re-run init

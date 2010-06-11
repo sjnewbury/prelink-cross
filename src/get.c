@@ -562,7 +562,7 @@ prelink_get_relocations (struct prelink_info *info)
 {
   FILE *f;
   DSO *dso = info->dso;
-  const char *argv[5];
+  const char *argv[6];
   const char *envp[4];
   int i, ret, status;
   char *p;
@@ -591,13 +591,6 @@ prelink_get_relocations (struct prelink_info *info)
 		       / info->symtab_entsize;
   info->symbols = calloc (sizeof (struct prelink_symbol), info->symbol_count);
 
-  i = 0;
-  argv[i++] = dl;
-  if (ld_library_path)
-    {
-      argv[i++] = "--library-path";
-      argv[i++] = ld_library_path;
-    }
   if (strchr (info->ent->filename, '/') != NULL)
     ent_filename = info->ent->filename;
   else
@@ -608,17 +601,56 @@ prelink_get_relocations (struct prelink_info *info)
       memcpy (p + 2, info->ent->filename, flen + 1);
       ent_filename = p;
     }
-  argv[i++] = ent_filename;
-  argv[i] = NULL;
-  envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
-  envp[1] = "LD_BIND_NOW=1";
-  p = alloca (sizeof "LD_TRACE_PRELINKING=" + strlen (info->ent->filename));
-  strcpy (stpcpy (p, "LD_TRACE_PRELINKING="), info->ent->filename);
-  envp[2] = p;
-  envp[3] = NULL;
+  if (prelink_rtld == NULL)
+    {
+      i = 0;
+      argv[i++] = dl;
+      if (ld_library_path)
+        {
+          argv[i++] = "--library-path";
+          argv[i++] = ld_library_path;
+        }
+      argv[i++] = ent_filename;
+      argv[i] = NULL;
+      envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
+      envp[1] = "LD_BIND_NOW=1";
+      p = alloca (sizeof "LD_TRACE_PRELINKING=" + strlen (info->ent->filename));
+      strcpy (stpcpy (p, "LD_TRACE_PRELINKING="), info->ent->filename);
+      envp[2] = p;
+      envp[3] = NULL;
+      ret = 2;
+      f = execve_open (dl, (char * const *)argv, (char * const *)envp);
+    }
+  else
+    {
+      i = 0;
+      argv[i++] = prelink_rtld;
+      if (ld_library_path)
+        {
+          argv[i++] = "--library-path";
+          argv[i++] = ld_library_path;
+        }
+      argv[i++] = "--target-paths";
+      argv[i++] = ent_filename;
+      argv[i] = NULL;
+      p = alloca (sizeof "RTLD_TRACE_PRELINKING=" + strlen (info->ent->filename));
+      strcpy (stpcpy (p, "RTLD_TRACE_PRELINKING="), info->ent->filename);
+      envp[0] = p;
+      p = alloca (sizeof "PATH=" + strlen (getenv ("PATH")));
+      sprintf (p, "PATH=%s", getenv ("PATH"));
+      envp[1] = p;
+      envp[2] = NULL;
+      if (sysroot)
+        {
+           p = alloca (sizeof "PRELINK_SYSROOT=" + strlen (sysroot));
+           sprintf (p, "PRELINK_SYSROOT=%s", sysroot);
+           envp[2] = p;
+           envp[3] = NULL;
+        }
+      ret = 2;
+      f = execve_open (prelink_rtld, (char * const *)argv, (char * const *)envp);
+    }
 
-  ret = 2;
-  f = execve_open (dl, (char * const *)argv, (char * const *)envp);
   if (f == NULL)
     {
       error (0, errno, "%s: Could not trace symbol resolving",

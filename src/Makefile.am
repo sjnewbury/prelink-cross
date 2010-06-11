@@ -4,10 +4,10 @@ AUTOMAKE_OPTIONS = 1.4 gnu
 
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -Wall
 AM_CFLAGS = -Wall
-AM_CPPFLAGS = -DSBINDIR='"@sbindir@"'
+AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"'
 INCLUDES = @GELFINCLUDE@
 
-sbin_PROGRAMS = prelink
+sbin_PROGRAMS = prelink prelink-rtld
 bin_PROGRAMS = execstack
 
 arch_SOURCES = arch-i386.c arch-alpha.c arch-ppc.c arch-ppc64.c \
@@ -21,9 +21,14 @@ prelink_SOURCES = cache.c conflict.c cxx.c doit.c exec.c execle_open.c get.c \
 		  prelinktab.h reloc.c reloc.h space.c undo.c undoall.c      \
 		  verify.c md5.c md5.h sha.c sha.h 	     \
 		  $(common_SOURCES) $(arch_SOURCES)
-prelink_LDADD = @LIBGELF@
+prelink_LDADD = @LIBGELF@ -liberty
 prelink_LDFLAGS = -all-static
 
 execstack_SOURCES = execstack.c $(common_SOURCES) $(arch_SOURCES)
+
+prelink_rtld_LDADD = @LIBGELF@ -liberty
+prelink_rtld_SOURCES = data.c dso-readonly.c ld-libs.c ld-lookup.c \
+			canonicalize.c wrap-file.c ld-lookup64.c
+prelink_rtld_LDFLAGS = -all-static
 
 extra_DIST = makecrc.c

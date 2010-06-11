@@ -80,6 +80,7 @@ static char argp_doc[] = "prelink -- program to relocate and prelink ELF shared 
 #define OPT_SHA			0x8a
 #define OPT_COMPUTE_CHECKSUM	0x8b
 #define OPT_SYSROOT		0x8c
+#define OPT_RTLD		0x8d
 
 static struct argp_option options[] = {
   {"all",		'a', 0, 0,  "Prelink all binaries" },
@@ -115,6 +116,7 @@ static struct argp_option options[] = {
   {"mmap-region-end",	OPT_MMAP_REG_END, "BASE_ADDRESS", OPTION_HIDDEN, "" },
   {"seed",		OPT_SEED, "SEED", OPTION_HIDDEN, "" },
   {"compute-checksum",	OPT_COMPUTE_CHECKSUM, 0, OPTION_HIDDEN, "" },
+  {"rtld",		OPT_RTLD, "RTLD", OPTION_HIDDEN, "" },
   {"init",		'i', 0, 0,  "Do not re-execute init" },
   { 0 }
 };
@@ -230,6 +232,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case OPT_SYSROOT:
       sysroot = arg;
       break;
+    case OPT_RTLD:
+      prelink_rtld = arg;
+      break;
     case 'i':
       noreexecinit=1;
       break;
@@ -254,6 +259,8 @@ void checkinit() {
 }
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
+
+const char *prelink_rtld = NULL;
 
 int
 main (int argc, char *argv[])
@@ -313,6 +320,18 @@ main (int argc, char *argv[])
         error (EXIT_FAILURE, 0, "Could not canonicalize --root argument");
       asprintf ((char **) &prelink_conf, "%s%s", sysroot, prelink_conf);
     }
+
+  if (prelink_rtld == NULL)
+    {
+      extern char *make_relative_prefix (const char *, const char *, const char *);
+      const char *path = make_relative_prefix (argv[0], BINDIR, BINDIR);
+      if (strchr (argv[0], '/'))
+	asprintf ((char **) &prelink_rtld, "%s-rtld", argv[0]);
+      else
+	asprintf ((char **) &prelink_rtld, "%s/%s-rtld", path, argv[0]);
+    }
+  else if (prelink_rtld[0] == 0)
+    prelink_rtld = NULL;
 
   if (print_cache)
     {
