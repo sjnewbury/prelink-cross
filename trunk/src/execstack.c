@@ -198,6 +198,7 @@ execstack_make_rdwr (DSO *dso, int flag)
   p = NULL;
 
   wrap_unlink (filename);
+  fsync (fd);
   close (fd);
   fd = -1;
   close_dso (dso);
@@ -210,6 +211,7 @@ error_out:
   if (fd != -1)
     {
       wrap_unlink (filename);
+      fsync (fd);
       close (fd);
     }
   close_dso (dso);

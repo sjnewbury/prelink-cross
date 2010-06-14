@@ -553,7 +553,10 @@ error_out:
   if (elf)
     elf_end (elf);
   if (fd != -1)
-    close (fd);
+    {
+      fsync (fd);
+      close (fd);
+    }
   return NULL;
 }
 
@@ -1017,6 +1020,7 @@ error_out:
   if (fd != -1)
     {
       wrap_unlink (filename);
+      fsync (fd);
       close (fd);
     }
   return 1;
@@ -1636,10 +1640,12 @@ close_dso_1 (DSO *dso)
     }
 
   elf_end (dso->elf);
+  fsync (dso->fd);
   close (dso->fd);
   if (dso->elfro)
     {
       elf_end (dso->elfro);
+      fsync (dso->fdro);
       close (dso->fdro);
     }
   if (dso->filename != dso->soname)

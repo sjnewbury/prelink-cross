@@ -2,6 +2,13 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2009-03-19  Joseph Myers  <joseph@codesourcery.com>
+
+	Issue #4626
+	* src/cache.c, src/dso-readonly.c, src/dso.c, src/execstack.c,
+        src/gather.c, src/layout.c, src/mapfile.c, src/verify.c: fsync
+        file descriptors before closing them.
+
 	2008-09-23  Joseph Myers  <joseph@codesourcery.com>
 
         * src/arch-arm.c (arm_prelink_conflict_rela): Correct

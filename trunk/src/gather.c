@@ -810,6 +810,7 @@ gather_func (const char *name, const struct stat64 *st, int type,
       if (read (fd, e_ident, sizeof (e_ident)) != sizeof (e_ident))
 	{
 close_it:
+	  fsync (fd);
 	  close (fd);
 	  return FTW_CONTINUE;
 	}
@@ -828,6 +829,7 @@ make_unprelinkable:
 		  ent->type = ET_UNPRELINKABLE;
 		}
 	    }
+	  fsync (fd);
 	  close (fd);
 	  return FTW_CONTINUE;
 	}
@@ -969,6 +971,7 @@ gather_binlib (const char *name, const struct stat64 *st)
   if (read (fd, e_ident, sizeof (e_ident)) != sizeof (e_ident))
     {
       error (0, errno, "Could not read ELF header from %s", name);
+      fsync (fd);
       close (fd);
       return 1;
     }
@@ -978,6 +981,7 @@ gather_binlib (const char *name, const struct stat64 *st)
   if (memcmp (e_ident, ELFMAG, SELFMAG) != 0)
     {
       error (0, 0, "%s is not an ELF object", name);
+      fsync (fd);
       close (fd);
       return 1;
     }
@@ -1002,6 +1006,7 @@ gather_binlib (const char *name, const struct stat64 *st)
     {
 unsupported_type:
       error (0, 0, "%s is neither ELF executable nor ELF shared library", name);
+      fsync (fd);
       close (fd);
       return 1;
     }

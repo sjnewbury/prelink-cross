@@ -682,6 +682,7 @@ prelink_save_cache (int do_warn)
   if (write (fd, &cache, sizeof (cache)) != sizeof (cache)
       || write (fd, data, len) != len
       || fchmod (fd, 0644)
+      || fsync (fd)
       || close (fd)
       || wrap_rename (prelink_cache_tmp, prelink_cache))
     {

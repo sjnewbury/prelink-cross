@@ -385,6 +385,7 @@ layout_libs (void)
 		  mmap_start += mmap_base;
 		}
 
+	      fsync (fd);
 	      close (fd);
 	    }
 
