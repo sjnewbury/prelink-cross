@@ -2,6 +2,11 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2007-03-02  Sandra Loosemore  <sandra@codesourcery.com>
+
+        * doc/prelink.8: Copy edit.  Add entry for --root option.  Update
+        list of unsupported systems.
+
 	2007-02-16  Daniel Jacobowitz  <dan@codesourcery.com>
 
         * src/prelink.h (sysroot_file_name): Declare.
