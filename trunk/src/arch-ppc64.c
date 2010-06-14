@@ -816,7 +816,7 @@ ppc64_free_opd (struct prelink_entry *ent)
   return 0;
 }
 
-PL_ARCH = {
+PL_ARCH(ppc64) = {
   .name = "PowerPC",
   .class = ELFCLASS64,
   .machine = EM_PPC64,

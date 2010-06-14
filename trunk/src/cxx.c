@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "prelink.h"
+#include "reloc-info.h"
 
 struct find_cxx_sym
 {
@@ -166,10 +167,10 @@ remove_redundant_cxx_conflicts (struct prelink_info *info)
   memset (&fcs2, 0, sizeof (fcs2));
   for (i = 0; i < info->conflict_rela_size; ++i)
     {
-      reloc_type = GELF_R_TYPE (info->conflict_rela[i].r_info);
+      reloc_type = reloc_r_type (info->dso, info->conflict_rela[i].r_info);
       reloc_size = info->dso->arch->reloc_size (reloc_type);
 
-      if (GELF_R_SYM (info->conflict_rela[i].r_info) != 0)
+      if (reloc_r_sym (info->dso, info->conflict_rela[i].r_info) != 0)
 	continue;
 
       if (state
@@ -296,7 +297,8 @@ remove_noref:
 	       (int) (info->conflict_rela[i].r_offset - fcs1.sym.st_value));
 
       info->conflict_rela[i].r_info =
-	GELF_R_INFO (1, GELF_R_TYPE (info->conflict_rela[i].r_info));
+	reloc_r_info (info->dso, 1,
+		      reloc_r_type (info->dso, info->conflict_rela[i].r_info));
       ++removed;
       continue;
 
@@ -350,7 +352,7 @@ check_pltref:
 					      - fcs1.sym.st_value));
 
 			      info->conflict_rela[i].r_info =
-				GELF_R_INFO (1, GELF_R_TYPE (info->conflict_rela[i].r_info));
+				reloc_r_info (info->dso, 1, reloc_r_type (info->dso, info->conflict_rela[i].r_info));
 			      ++removed;
 			    }
 			break;
@@ -364,7 +366,7 @@ check_pltref:
   if (removed)
     {
       for (i = 0, j = 0; i < info->conflict_rela_size; ++i)
-	if (GELF_R_SYM (info->conflict_rela[i].r_info) == 0)
+	if (reloc_r_sym (info->dso, info->conflict_rela[i].r_info) == 0)
 	  {
 	    if (i != j)
 	      info->conflict_rela[j] = info->conflict_rela[i];

@@ -1,5 +1,6 @@
 /* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
+   Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,6 +28,10 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <utime.h>
+
+#ifndef HAVE_ELF64_BYTE
+typedef uint8_t Elf64_Byte;
+#endif
 
 #ifndef DT_GNU_LIBLIST
 #define DT_GNU_LIBLIST		0x6ffffef9
@@ -92,6 +97,10 @@
 #define STO_MIPS_PLT		0x8
 #define DT_MIPS_PLTGOT		0x70000032
 #define DT_MIPS_RWPLT		0x70000034
+#endif
+
+#ifndef RSS_UNDEF
+#define RSS_UNDEF              0
 #endif
 
 struct prelink_entry;
@@ -304,8 +313,8 @@ unsigned char *get_data_from_iterator (struct data_iterator *it,
 				       GElf_Addr size);
 int get_sym_from_iterator (struct data_iterator *it, GElf_Sym *sym);
 
-#define PL_ARCH \
-static struct PLArch plarch __attribute__((section("pl_arch"),used))
+#define PL_ARCH(F) \
+static struct PLArch plarch_##F __attribute__((section("pl_arch"),used))
 
 #define addr_adjust(addr, start, adjust)	\
   do {						\

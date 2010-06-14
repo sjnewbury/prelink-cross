@@ -25,7 +25,7 @@ arch_SOURCES = arch-i386.c arch-alpha.c arch-ppc.c arch-ppc64.c \
 	       arch-s390.c arch-s390x.c arch-arm.c arch-sh.c arch-ia64.c
 common_SOURCES = checksum.c data.c dso.c dwarf2.c dwarf2.h fptr.c fptr.h     \
 		 hashtab.c hashtab.h mdebug.c prelink.h stabs.c crc32.c      \
-		 wrap-file.c canonicalize.c
+		 wrap-file.c canonicalize.c reloc-info.c reloc-info.h
 prelink_SOURCES = cache.c conflict.c cxx.c doit.c exec.c execle_open.c get.c \
 		  gather.c layout.c main.c prelink.c     \
 		  prelinktab.h reloc.c reloc.h space.c undo.c undoall.c      \
@@ -39,7 +39,8 @@ execstack_LDADD = -liberty
 execstack_LDFLAGS =
 
 prelink_rtld_SOURCES = data.c dso-readonly.c ld-libs.c ld-lookup.c \
-			canonicalize.c wrap-file.c ld-lookup64.c
+		       canonicalize.c wrap-file.c ld-lookup64.c \
+                       reloc-info.c reloc-info.h
 prelink_rtld_LDADD = @LIBGELF@ -liberty
 prelink_rtld_LDFLAGS =
 

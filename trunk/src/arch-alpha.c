@@ -459,7 +459,7 @@ alpha_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(alpha) = {
   .name = "Alpha",
   .class = ELFCLASS64,
   .machine = EM_ALPHA,

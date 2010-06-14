@@ -2,6 +2,104 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2008-10-02  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* src/arch-mips.c (mips_prelink_reloc): Do not complain about
+	TLS_DTPMOD32 or TLS_DTPMOD64 relocations found in executables.
+
+	2008-09-03  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* src/prelink.h (Elf64_Byte): New definition.
+	(R_MIPS_TLS_DTPMOD64): New macro.
+	(R_MIPS_TLS_DTPREL64): Likewise.
+	(R_MIPS_TLS_TPREL64): Likewise.
+	(RSS_UNDEF): Likewise.
+	(PL_ARCH): Use plarch_##F as the name of the struct in all
+	variants.
+	* src/reloc-info.c: New file.
+	* src/reloc-info.h: Likewise.
+	* src/arch-mips.c (mips_buf_read_addr): New function.
+	(mips_buf_write_addr): Likewise.
+	(mips_arch_adjust): Replace calls to buf_read_une32() and
+	buf_write_ne32() with ones to mips_buf_read_addr() and
+	mips_buf_write_addr() respectively.
+	(mips_read_addend): Rename to...
+	(mips_read_32bit_addend): ... this.
+	(mips_write_addend): Rename to...
+	(mips_write_32bit_addend): ... this.
+	(mips_read_64bit_addend): New function.
+	(mips_write_64bit_addend): Likewise.
+	(mips_adjust_reloc): Handle 64-bit REL relocations.  Use
+	reloc_r_sym() and reloc_r_type() in place of GELF_R_SYM() and
+	GELF_R_TYPE() respectively.
+	(mips_prelink_64bit_reloc): New function.
+	(mips_prelink_reloc): Handle 64-bit REL and GLOB_DAT relocations.
+	Handle TLS_DTPMOD64, TLS_DTPREL64 and TLS_TPREL64 relocations.
+	Use reloc_r_sym() and reloc_r_type().
+	(mips_prelink_rel): Handle 64-bit REL relocations.  Use
+	reloc_r_sym(), reloc_r_type() and reloc_r_info_ext() (replacing
+	GELF_R_INFO()).
+	(mips_prelink_conflict_reloc): Handle 64-bit REL relocations.
+	Handle TLS_DTPMOD64, TLS_DTPREL64 and TLS_TPREL64 relocations.
+	Use reloc_r_sym(), reloc_r_type() and reloc_r_info_ext().
+	(mips_arch_prelink_conflict): Use mips_buf_read_addr().  Use
+	reloc_r_info_ext().
+	(mips_apply_conflict_rela): Handle 64-bit REL relocations.  Use
+	reloc_r_type().  Use mips_buf_read_addr() and
+	mips_buf_write_addr().
+	(mips_apply_reloc): Handle 64-bit REL relocations.  Use
+	reloc_r_sym() and reloc_r_type().
+	(mips_rel_to_rela): Handle 64-bit REL relocations.  Handle
+	TLS_DTPMOD64, TLS_DTPREL64 and TLS_TPREL64 relocations.  Use
+	reloc_r_sym() and reloc_r_type().
+	(mips_rela_to_rel): Handle 64-bit REL and GLOB_DAT relocations.
+	Handle TLS_DTPMOD64, TLS_DTPREL64 and TLS_TPREL64 relocations.
+	Use reloc_r_sym() and reloc_r_type().
+	(mips_need_rel_to_rela): Use data obtained with gelfx_getshdr() to
+	determine the size of a relocation entry.  Use gelfx_getrel() to
+	retrieve them.  Handle 64-bit REL relocations.  Handle
+	TLS_DTPMOD64, TLS_DTPREL64 and TLS_TPREL64 relocations.  Use
+	reloc_r_sym() and reloc_r_type() instead of ELF32_R_SYM() and
+	ELF32_R_TYPE() respectively.
+	(mips_reloc_class): Handle TLS_DTPMOD64, TLS_DTPREL64 and
+	TLS_TPREL64 relocations.
+	(mips_arch_prelink): Use mips_buf_read_addr() and
+	mips_buf_write_addr().
+	(mips_arch_undo_prelink): Likewise.
+	(mips_undo_prelink_rel): Handle 64-bit GLOB_DAT relocations.  Use
+	reloc_r_sym(), reloc_r_type() and reloc_r_info_ext().
+	(mips64): New PL_ARCH.
+	* src/prelink.c (prelink_prepare): Handle SHT_MIPS_OPTIONS.
+	* src/conflict.c (conflict_rela_cmp_dso): New variable.
+	(conflict_rela_cmp): Use conflict_rela_cmp_dso and reloc_r_sym().
+	(get_relocated_mem): Use reloc_r_type().
+	(prelink_add_copy_rel): Use reloc_r_sym() and reloc_r_type().
+	(prelink_build_conflicts): Use reloc_r_sym(), reloc_r_type() and
+	reloc_r_info().  Pass dso to conflict_rela_cmp() through
+	conflict_rela_cmp_dso.
+	(prelink_find_copy_rela): Use reloc_r_type().
+	* src/cxx.c (remove_redundant_cxx_conflicts): Use reloc_r_sym(),
+	reloc_r_type() and reloc_r_info().
+	* src/ld-libs.c (do_rel_section): Use reloc_r_sym() and
+	reloc_r_type().
+	* src/Makefile.am (common_SOURCES): Add reloc-info.c and
+	reloc-info.h.
+	(prelink_rtld_SOURCES): Likewise.
+	* src/Makefile.in: Regenerate.
+	* configure.in: Check for the Elf64_Byte type.  Require autoconf
+	2.50.
+	* configure: Regenerate.
+
+	2008-09-03  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* src/arch-mips.c (mips_undo_prelink_rel): Fix formatting.
+
+	2008-09-03  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* src/arch-mips.c (mips_init_local_got_iterator): Use ELF_T_ADDR
+	to determine the width of GOT entries.
+	(mips_init_global_got_iterator): Likewise.
+
 	2008-09-03  Maciej W. Rozycki  <macro@codesourcery.com>
 
         * src/data.c (buf_read_une##nn): Fix the width of the data

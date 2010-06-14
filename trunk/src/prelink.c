@@ -440,6 +440,7 @@ prelink_prepare (DSO *dso)
 	    break;
 	  case SHT_DYNAMIC:
 	  case SHT_MIPS_REGINFO:
+	  case SHT_MIPS_OPTIONS:
 	    /* The same applies to these sections on MIPS.  The convention
 	       is to put .dynamic and .reginfo near the beginning of the
 	       read-only segment, before the program text.  No relocations

@@ -30,6 +30,7 @@
 
 #include "prelinktab.h"
 #include "reloc.h"
+#include "reloc-info.h"
 
 #include "ld-libs.h"
 
@@ -944,15 +945,15 @@ do_rel_section (DSO *dso, struct ldlibs_link_map *map,
 	{
 	  GElf_Rel rel;
 	  gelfx_getrel (dso->elf, data, ndx, &rel);
-	  sym = GELF_R_SYM (rel.r_info);
-	  type = GELF_R_TYPE (rel.r_info);
+	  sym = reloc_r_sym (dso, rel.r_info);
+	  type = reloc_r_type (dso, rel.r_info);
 	}
       else
 	{
 	  GElf_Rela rela;
 	  gelfx_getrela (dso->elf, data, ndx, &rela);
-	  sym = GELF_R_SYM (rela.r_info);
-	  type = GELF_R_TYPE (rela.r_info);
+	  sym = reloc_r_sym (dso, rela.r_info);
+	  type = reloc_r_type (dso, rela.r_info);
 	}
       if (sym != 0)
 	do_reloc (dso, map, scope, sym, type);

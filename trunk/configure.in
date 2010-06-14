@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script. -*-m4-*-
 AC_INIT(src/prelink.c)
 AM_CONFIG_HEADER(config.h)
-AC_PREREQ(2.13)			dnl Minimum Autoconf version required.
+AC_PREREQ(2.50)			dnl Minimum Autoconf version required.
 AC_CANONICAL_SYSTEM
 AC_ARG_PROGRAM
 
@@ -92,6 +92,9 @@ if test x"$newbu" = xtrue; then
 fi
 
 AC_LIBELF_SXWORD
+
+dnl Elf64_Byte is specific to the 64-bit MIPS psABI and may not be defined.
+AC_CHECK_TYPES([Elf64_Byte], [], [], [#include <libelf.h>])
 
 # Package version.
 AC_ARG_WITH(pkgversion,
