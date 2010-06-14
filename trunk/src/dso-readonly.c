@@ -115,6 +115,8 @@ read_dynamic (DSO *dso)
 		      dso->info_DT_MIPS_GOTSYM = dyn.d_un.d_val;
 		    else if (dyn.d_tag == DT_MIPS_SYMTABNO)
 		      dso->info_DT_MIPS_SYMTABNO = dyn.d_un.d_val;
+		    else if (dyn.d_tag == DT_MIPS_PLTGOT)
+		      dso->info_DT_MIPS_PLTGOT = dyn.d_un.d_val;
 		  }
 	      }
 	    if (ndx < maxndx)

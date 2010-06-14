@@ -82,7 +82,10 @@ FCT (const char *undef_name, unsigned long int hash, const ElfW(Sym) *ref,
 #ifdef USE_TLS
 	       && ELFW(ST_TYPE) (sym->st_info) != STT_TLS
 #endif
-	       )
+	      )
+	      || (machine == EM_MIPS
+		  && sym->st_shndx == SHN_UNDEF
+		  && !(sym->st_other & STO_MIPS_PLT))
 	      || (type_class & (sym->st_shndx == SHN_UNDEF)))
 	    continue;
 

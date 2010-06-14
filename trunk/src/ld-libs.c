@@ -173,10 +173,18 @@ reloc_type_class (int type, int machine)
 	}
 
     case EM_MIPS:
-      /* MIPS lazy resolution stubs are local to the containing object,
-	 so SHN_UNDEF symbols never participate in symbol lookup.  */
-      return ELF_RTYPE_CLASS_PLT;
-
+      switch (type)
+	{
+	case R_MIPS_COPY:
+         return ELF_RTYPE_CLASS_COPY;
+	case R_MIPS_JUMP_SLOT:
+	case R_MIPS_TLS_DTPMOD32:
+	case R_MIPS_TLS_DTPREL32:
+	case R_MIPS_TLS_TPREL32:
+         return ELF_RTYPE_CLASS_PLT;
+	default:
+         return 0;
+	}
     default:
       printf ("Unknown architecture!\n");
       exit (1);

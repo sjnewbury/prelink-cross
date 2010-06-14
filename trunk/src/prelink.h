@@ -76,8 +76,22 @@
 #define R_MIPS_TLS_TPREL32	47
 #endif
 
+#ifndef R_MIPS_TLS_DTPMOD64
+#define R_MIPS_TLS_DTPMOD64	40
+#define R_MIPS_TLS_DTPREL64	41
+#define R_MIPS_TLS_TPREL64	48
+#endif
+
 #ifndef R_MIPS_GLOB_DAT
 #define R_MIPS_GLOB_DAT		51
+#endif
+
+#ifndef R_MIPS_COPY
+#define R_MIPS_COPY		126
+#define R_MIPS_JUMP_SLOT	127
+#define STO_MIPS_PLT		0x8
+#define DT_MIPS_PLTGOT		0x70000032
+#define DT_MIPS_RWPLT		0x70000034
 #endif
 
 struct prelink_entry;
@@ -115,6 +129,7 @@ typedef struct
   GElf_Addr info_DT_MIPS_LOCAL_GOTNO;
   GElf_Addr info_DT_MIPS_GOTSYM;
   GElf_Addr info_DT_MIPS_SYMTABNO;
+  GElf_Addr info_DT_MIPS_PLTGOT;
 #define DT_GNU_PRELINKED_BIT 50
 #define DT_CHECKSUM_BIT 51
 #define DT_VERNEED_BIT 52

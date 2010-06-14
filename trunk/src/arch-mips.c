@@ -454,6 +454,10 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
       write_ne32 (dso, r_offset, info->resolve (info, r_sym, r_type));
       break;
 
+    case R_MIPS_JUMP_SLOT:
+      write_ne32 (dso, r_offset, info->resolve (info, r_sym, r_type));
+      break;
+
     case R_MIPS_TLS_DTPMOD32:
       if (dso->ehdr.e_type == ET_EXEC)
 	{
@@ -480,6 +484,13 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
 	  mips_prelink_32bit_reloc (dso, rela, value);
 	}
       break;
+
+    case R_MIPS_COPY:
+      if (dso->ehdr.e_type == ET_EXEC)
+	/* COPY relocs are handled specially in generic code.  */
+	return 0;
+      error (0, 0, "%s: R_MIPS_COPY reloc in shared library?", dso->filename);
+      return 1;
 
     default:
       error (0, 0, "%s: Unknown MIPS relocation type %d",
@@ -596,6 +607,10 @@ mips_prelink_conflict_reloc (DSO *dso, struct prelink_info *info,
     case R_MIPS_GLOB_DAT:
       break;
 
+    case R_MIPS_COPY:
+      error (0, 0, "R_MIPS_COPY should not be present in shared libraries");
+      return 1;
+
     case R_MIPS_TLS_DTPMOD32:
       if (conflict != NULL && mips_get_tls (dso, conflict, &tls) == 1)
 	return 1;
@@ -693,6 +708,10 @@ mips_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
       buf_write_ne32 (info->dso, buf, rela->r_addend);
       break;
 
+    case R_MIPS_JUMP_SLOT:
+      buf_write_ne32 (info->dso, buf, rela->r_addend);
+      break;
+
     default:
       abort ();
     }
@@ -726,6 +745,15 @@ mips_apply_reloc (struct prelink_info *info, GElf_Xword r_info,
     {
     case R_MIPS_NONE:
       break;
+
+    case R_MIPS_JUMP_SLOT:
+      buf_write_ne32 (info->dso, buf,
+		      info->resolve (info, GELF_R_SYM (r_info),
+				     GELF_R_TYPE (r_info)));
+      break;
+
+    case R_MIPS_COPY:
+      abort ();
 
     case R_MIPS_REL32:
       mips_apply_adjustment (dso, rela, buf,
@@ -766,6 +794,7 @@ mips_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
       break;
 
     case R_MIPS_NONE:
+    case R_MIPS_COPY:
     case R_MIPS_GLOB_DAT:
     case R_MIPS_TLS_DTPMOD32:
       /* These relocations have no addend.  */
@@ -788,6 +817,7 @@ mips_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_MIPS_NONE:
+    case R_MIPS_COPY:
       break;
 
     case R_MIPS_REL32:
@@ -831,6 +861,8 @@ mips_need_rel_to_rela (DSO *dso, int first, int last)
 	    switch (ELF32_R_TYPE (rel->r_info))
 	      {
 	      case R_MIPS_NONE:
+	      case R_MIPS_COPY:
+	      case R_MIPS_JUMP_SLOT:
 		break;
 
 	      case R_MIPS_REL32:
@@ -871,8 +903,8 @@ mips_need_rel_to_rela (DSO *dso, int first, int last)
 
 	      default:
 		error (0, 0, "%s: Unknown MIPS relocation type %d",
-		       dso->filename, (int) GELF_R_TYPE (rel->r_info));
-		return 1;
+		dso->filename, (int) GELF_R_TYPE (rel->r_info));
+		  return 1;
 	      }
 	}
     }
@@ -890,14 +922,16 @@ mips_reloc_class (int reloc_type)
 {
   switch (reloc_type)
     {
+    case R_MIPS_COPY:
+      return RTYPE_CLASS_COPY;
+    case R_MIPS_JUMP_SLOT:
+      return RTYPE_CLASS_PLT;
     case R_MIPS_TLS_DTPMOD32:
     case R_MIPS_TLS_DTPREL32:
     case R_MIPS_TLS_TPREL32:
       return RTYPE_CLASS_TLS;
     default:
-      /* MIPS lazy resolution stubs are local to the containing object,
-	 so SHN_UNDEF symbols never participate in symbol lookup.  */
-      return RTYPE_CLASS_PLT;
+      return RTYPE_CLASS_VALID;
     }
 }
 
@@ -907,8 +941,31 @@ mips_arch_prelink (struct prelink_info *info)
   struct mips_global_got_iterator ggi;
   DSO *dso;
   GElf_Addr value;
+  int i;
 
   dso = info->dso;
+  if (dso->info_DT_MIPS_PLTGOT)
+    {
+      /* Write address of .plt into gotplt[1].  This is in each
+	 normal gotplt entry unless prelinking.  */
+      int sec = addr_to_sec (dso, dso->info_DT_MIPS_PLTGOT);
+      Elf32_Addr data;
+
+      if (sec == -1)
+	return 1;
+
+      for (i = 1; i < dso->ehdr.e_shnum; i++)
+	if (dso->shdr[i].sh_type == SHT_PROGBITS
+	    && ! strcmp (strptr (dso, dso->ehdr.e_shstrndx,
+				 dso->shdr[i].sh_name),
+			 ".plt"))
+	break;
+      if (i == dso->ehdr.e_shnum)
+	return 0;
+      data = dso->shdr[i].sh_addr;
+      write_ne32 (dso, dso->info_DT_MIPS_PLTGOT + 4, data);
+    }
+
   if (dso->info[DT_PLTGOT] == 0)
     return 0;
 
@@ -953,6 +1010,30 @@ static int
 mips_arch_undo_prelink (DSO *dso)
 {
   struct mips_global_got_iterator ggi;
+  int i;
+
+  if (dso->info_DT_MIPS_PLTGOT)
+    {
+      /* Clear gotplt[1] if it contains the address of .plt.  */
+      int sec = addr_to_sec (dso, dso->info_DT_MIPS_PLTGOT);
+      Elf32_Addr data;
+
+      if (sec == -1)
+	return 1;
+
+      for (i = 1; i < dso->ehdr.e_shnum; i++)
+	if (dso->shdr[i].sh_type == SHT_PROGBITS
+	    && ! strcmp (strptr (dso, dso->ehdr.e_shstrndx,
+				 dso->shdr[i].sh_name),
+			 ".plt"))
+	break;
+
+      if (i == dso->ehdr.e_shnum)
+	return 0;
+      data = read_une32 (dso, dso->info_DT_MIPS_PLTGOT + 4);
+      if (data == dso->shdr[i].sh_addr)
+	write_ne32 (dso, dso->info_DT_MIPS_PLTGOT + 4, 0);
+    }
 
   if (dso->info[DT_PLTGOT] == 0)
     return 0;
@@ -971,6 +1052,9 @@ mips_arch_undo_prelink (DSO *dso)
 static int
 mips_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
 {
+  int sec;
+  const char *name;
+
   /* Convert R_MIPS_GLOB_DAT relocations back into R_MIPS_REL32
      relocations.  Ideally we'd have some mechanism for recording
      these changes in the undo section, but in the absence of that,
@@ -983,6 +1067,27 @@ mips_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
       rel->r_info = GELF_R_INFO (GELF_R_SYM (rel->r_info), R_MIPS_REL32);
       return 2;
     }
+  else if (GELF_R_TYPE (rel->r_info) == R_MIPS_JUMP_SLOT)
+    {
+      sec = addr_to_sec (dso, rel->r_offset);
+      name = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[sec].sh_name);
+      if (sec == -1 || strcmp (name, ".got.plt"))
+	{
+	  error (0, 0,
+		 "%s: R_MIPS_JUMP_SLOT not pointing into .got.plt section",
+		 dso->filename);
+	  return 1;
+	}
+      else
+	{
+	  Elf32_Addr data = read_une32 (dso, dso->shdr[sec].sh_addr + 4);
+
+	  assert (rel->r_offset >= dso->shdr[sec].sh_addr + 8);
+	  assert (((rel->r_offset - dso->shdr[sec].sh_addr) & 3) == 0);
+	  write_ne32 (dso, rel->r_offset, data);
+	}
+    }
+
   return 0;
 }
 
@@ -993,10 +1098,8 @@ PL_ARCH = {
   .max_reloc_size = 4,
   .dynamic_linker = "/lib/ld.so.1",
   .dynamic_linker_alt = "/lib32/ld.so.1",
-  /* MIPS does not use COPY relocs or jump slots.  Pick a value outside
-     the ELF32_R_TYPE range.  */
-  .R_COPY = ~0U,
-  .R_JMP_SLOT = ~0U,
+  .R_COPY = R_MIPS_COPY,
+  .R_JMP_SLOT = R_MIPS_JUMP_SLOT,
   /* R_MIPS_REL32 relocations against symbol 0 do act as relative relocs,
      but those against other symbols don't.  */
   .R_RELATIVE = ~0U,

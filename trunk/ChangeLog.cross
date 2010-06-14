@@ -2,6 +2,32 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2008-03-06  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* src/ld-do-lookup.h: Check for STO_MIPS_PLT on MIPS.
+	* src/ld-libs.c (reloc_type_class): Handle copy and PLT relocs.
+	* src/prelink.h (R_MIPS_TLS_DTPMOD32, R_MIPS_TLS_DTPREL32)
+	(R_MIPS_TLS_TPREL32, R_MIPS_GLOB_DAT): Remove duplicate definitions.
+	(R_MIPS_COPY, R_MIPS_JUMP_SLOT, STO_MIPS_PLT, DT_MIPS_PLTGOT)
+	(DT_MIPS_PLTNO, DT_MIPS_RWPLT): Define.
+	(DSO): Add info_DT_MIPS_PLTGOT.
+	* src/arch-mips.c (mips_prelink_reloc): Handle R_MIPS_JUMP_SLOT and
+	R_MIPS_COPY.
+	(mips_prelink_conflict_reloc): Handle R_MIPS_COPY.
+	(mips_apply_conflict_rela): Handle R_MIPS_JUMP_SLOT.
+	(mips_apply_reloc): Handle R_MIPS_JUMP_SLOT and R_MIPS_COPY.
+	(mips_rel_to_rela, mips_rela_to_rel): Handle R_MIPS_COPY.
+	(mips_need_rel_to_rela): Handle R_MIPS_COPY and R_MIPS_JUMP_SLOT.
+	Correct error message.
+	(mips_reloc_class): Handle R_MIPS_COPY and R_MIPS_JUMP_SLOT.  Use
+	RTYPE_CLASS_VALID by default.
+	(mips_arch_prelink): Save .plt in gotplt[1].
+	(mips_arch_undo_prelink): Clear gotplt[1].
+	(mips_undo_prelink_rel): Undo R_MIPS_JUMP_SLOT relocations.
+	(PL_ARCH): Set R_COPY and R_JMP_SLOT.
+	* src/dso.c (read_dynamic): Save DT_MIPS_PLTGOT.
+	* src/dso-readonly.c (read_dynamic): ditto
+
 	2007-07-09  Daniel Jacobowitz  <dan@codesourcery.com>
 
         Issue #1816
