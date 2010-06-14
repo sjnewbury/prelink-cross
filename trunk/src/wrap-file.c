@@ -334,7 +334,7 @@ wrap_stat_body (const char *file, struct stat64 *buf, int lstat)
     return -1;
 
   len = strlen (file_copy);
-  if (len && file_copy[len - 1] == '/' || file_copy[len - 1] == '\\'))
+  if (len && (file_copy[len - 1] == '/' || file_copy[len - 1] == '\\'))
     file_copy[len - 1] = '\0';
 
   ret = lstat ? lstat64 (file_copy, buf) : stat64 (file_copy, buf);

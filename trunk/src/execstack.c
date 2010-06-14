@@ -32,11 +32,11 @@
 int set;
 int execflag;
 
-const char *argp_program_version = "execstack 1.0 (20061201) Wind River";
+const char *argp_program_version = EXECSTACK_PROG PKGVERSION " 1.0";
 
-const char *argp_program_bug_address = "<support@windriver.com>";
+const char *argp_program_bug_address = REPORT_BUGS_TO;
 
-static char argp_doc[] = "execstack -- program to query or set executable stack flag";
+static char argp_doc[] = EXECSTACK_PROG " -- program to query or set executable stack flag";
 
 static struct argp_option options[] = {
   {"set-execstack",	's', 0, 0,  "Set executable stack flag bit" },

@@ -44,11 +44,11 @@ int host_paths;
 
 void string_to_path (struct search_path *path, const char *string);
 
-const char *argp_program_version = "prelink-rtld 1.0 (20061201) Wind River Linux";
+const char *argp_program_version = PRELINK_RTLD_PROG PKGVERSION " 1.0";
 
-const char *argp_program_bug_address = "<support@windriver.com>";
+const char *argp_program_bug_address = REPORT_BUGS_TO;
 
-static char argp_doc[] = "prelink-rtld -- program to simulate the runtime linker";
+static char argp_doc[] = PRELINK_RTLD_PROG " -- program to simulate the runtime linker";
 
 #define OPT_SYSROOT		0x8c
 #define OPT_LIBRARY_PATH	0x8e

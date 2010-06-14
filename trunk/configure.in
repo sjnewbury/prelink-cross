@@ -93,6 +93,32 @@ fi
 
 AC_LIBELF_SXWORD
 
+# Package version.
+AC_ARG_WITH(pkgversion,
+  AS_HELP_STRING([--with-pkgversion=PKG],
+                 [Add PKG to the version string]),
+  [case "$withval" in
+    yes) AC_MSG_ERROR([package version not specified]) ;;
+    no)  PKGVERSION= ;;
+    *)   PKGVERSION=" ($withval)" ;;
+   esac],
+  PKGVERSION=
+)
+AC_SUBST(PKGVERSION)
+
+# The location to which bugs should be reported.
+AC_ARG_WITH(bugurl,
+  AS_HELP_STRING([--with-bugurl=URL],
+                 [Direct users to URL to report a bug]),
+  [case "$withval" in
+    yes) AC_MSG_ERROR([bug URL not specified]) ;;
+    no)  REPORT_BUGS_TO="" ;;
+    *)   REPORT_BUGS_TO="<URL:$withval>" ;;
+   esac],
+   REPORT_BUGS_TO="<jakub@redhat.com>"
+)
+AC_SUBST(REPORT_BUGS_TO)
+
 AC_OUTPUT([Makefile
 	   src/Makefile
 	   gelfx/Makefile
