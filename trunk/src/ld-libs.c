@@ -497,9 +497,10 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
 }
 
 static struct dso_list *
-load_dsos (DSO *dso)
+load_dsos (DSO *dso, int host_paths)
 {
   struct dso_list *dso_list, *dso_list_tail, *cur_dso_ent, *new_dso_ent;
+  struct stat64 st;
 
   dso_list = malloc (sizeof (struct dso_list));
   dso_list->dso = dso;
@@ -508,7 +509,14 @@ load_dsos (DSO *dso)
   dso_list->needed = NULL;
   dso_list->name = dso->filename;
   dso_list->loader = NULL;
-  dso_list->canon_filename = wrap_prelink_canonicalize (dso->filename, NULL);
+
+  if (host_paths)
+    dso_list->canon_filename = canonicalize_file_name (dso->filename);
+  else
+    dso_list->canon_filename = prelink_canonicalize (dso->filename, &st);
+
+  if (dso_list->canon_filename == NULL)
+    dso_list->canon_filename = strdup (dso->filename);
 
   cur_dso_ent = dso_list_tail = dso_list;
 
@@ -1243,7 +1251,7 @@ main(int argc, char **argv)
   argp_parse (&argp, argc, argv, 0, &remaining, 0);
 
   if (sysroot)
-    sysroot = prelink_canonicalize (sysroot, NULL);
+    sysroot = canonicalize_file_name (sysroot);
 
   if (remaining == argc)
     error (1, 0, "missing file arguments\nTry `%s: --help' for more information.", argv[0]);
@@ -1301,7 +1309,7 @@ process_one_dso (DSO *dso, int host_paths)
   if (getenv ("LD_WARN") == 0 && req != NULL)
     process_relocs = 1;
 
-  dso_list = load_dsos (dso);
+  dso_list = load_dsos (dso, host_paths);
 
   cur_dso_ent = dso_list;
   i = 0;
@@ -1353,19 +1361,11 @@ process_one_dso (DSO *dso, int host_paths)
 	  if (cur_dso_ent->dso->filename[0] == '/')
 	    rooted_filename = cur_dso_ent->dso->filename;
 	  else
-	    rooted_filename = wrap_prelink_canonicalize (cur_dso_ent->dso->filename, NULL);
+	    rooted_filename = cur_dso_ent->canon_filename;
 
-	  /* This covers the odd case where we have a sysroot set,
-	   * but the item isn't in the sysroot!
-           */
-	  if (rooted_filename == NULL)
-	    filename = strdup (cur_dso_ent->dso->filename);
-	  else
-	    {
-	      filename = malloc (strlen (rooted_filename) + strlen (sysroot) + 1);
-	      strcpy (filename, sysroot);
-	      strcat (filename, rooted_filename);
-	    }
+	  filename = malloc (strlen (rooted_filename) + strlen (sysroot) + 1);
+	  strcpy (filename, sysroot);
+	  strcat (filename, rooted_filename);
 	}
       else if (cur_dso_ent->dso)
 	filename = strdup (cur_dso_ent->dso->filename);

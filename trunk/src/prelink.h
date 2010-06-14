@@ -522,6 +522,7 @@ int wrap_nftw64 (const char *dir, __nftw64_func_t func,
 int wrap_utime (const char *file, struct utimbuf *file_times);
 int wrap_mkstemp (char *filename);
 int wrap_unlink (const char *filename);
+char *sysroot_file_name (const char *name, int allow_last_link, struct stat64 *stp);
 
 extern const char *prelink_rtld;
 

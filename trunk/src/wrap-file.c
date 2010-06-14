@@ -231,7 +231,7 @@ error:
 
 const char *sysroot;
 
-static char *
+char *
 sysroot_file_name (const char *name, int allow_last_link, struct stat64 *stp)
 {
   char *ret;
