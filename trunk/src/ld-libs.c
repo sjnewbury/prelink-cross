@@ -384,10 +384,24 @@ string_to_path (struct search_path *path, const char *string)
 
 char *
 find_lib_in_path (struct search_path *path, const char *soname,
-		  int elfclass)
+		  int elfclass, int machine)
 {
   char *ret;
   int i;
+  int alt_machine;
+
+  switch (machine)
+    {
+    case EM_SPARC:
+      alt_machine = EM_SPARC32PLUS;
+      break;
+    case EM_SPARC32PLUS:
+      alt_machine = EM_SPARC;
+      break;
+    default:
+      alt_machine = machine;
+      break;
+    }
 
   ret = malloc (strlen (soname) + 2 + path->maxlen);
 
@@ -396,13 +410,19 @@ find_lib_in_path (struct search_path *path, const char *soname,
       sprintf (ret, "%s/%s", path->dirs[i], soname);
       if (wrap_access (ret, F_OK) == 0)
 	{
-	  /* Skip 32-bit libraries when looking for 64-bit.  */
 	  DSO *dso = open_dso (ret);
+          int dso_class = gelf_getclass (dso->elf);
+	  int dso_machine = (dso_class == ELFCLASS32) ?
+			    elf32_getehdr (dso->elf)->e_machine :
+			    elf64_getehdr (dso->elf)->e_machine;
 
 	  if (dso == NULL)
 	    continue;
 
-	  if (gelf_getclass (dso->elf) != elfclass)
+	  /* Skip 32-bit libraries when looking for 64-bit.  Also
+	     skip libraries for alternative machines.  */
+	  if (gelf_getclass (dso->elf) != elfclass
+	      || (dso_machine != machine && dso_machine != alt_machine))
 	    {
 	      close_dso (dso);
 	      continue;
@@ -419,7 +439,7 @@ find_lib_in_path (struct search_path *path, const char *soname,
 
 char *
 find_lib_by_soname (const char *soname, struct dso_list *loader,
-		    int elfclass)
+		    int elfclass, int machine)
 {
   char *ret;
 
@@ -441,7 +461,7 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
 					    NULL, NULL);
 	      memset (&r_path, 0, sizeof (r_path));
 	      string_to_path (&r_path, rpath);
-	      ret = find_lib_in_path (&r_path, soname, elfclass);
+	      ret = find_lib_in_path (&r_path, soname, elfclass, machine);
 	      free_path (&r_path);
 	      if (ret)
 		return ret;
@@ -450,7 +470,7 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
 	}
     }
 
-  ret = find_lib_in_path (&ld_library_search_path, soname, elfclass);
+  ret = find_lib_in_path (&ld_library_search_path, soname, elfclass, machine);
   if (ret)
     return ret;
 
@@ -463,13 +483,13 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
 				    NULL, NULL);
       memset (&r_path, 0, sizeof (r_path));
       string_to_path (&r_path, rpath);
-      ret = find_lib_in_path (&r_path, soname, elfclass);
+      ret = find_lib_in_path (&r_path, soname, elfclass, machine);
       free_path (&r_path);
       if (ret)
 	return ret;
     }
 
-  ret = find_lib_in_path (&ld_dirs, soname, elfclass);
+  ret = find_lib_in_path (&ld_dirs, soname, elfclass, machine);
   if (ret)
     return ret;
 
@@ -527,8 +547,13 @@ load_dsos (DSO *dso)
 		  new_dso_ent = in_dso_list (dso_list, soname, NULL);
 		  if (new_dso_ent == NULL)
 		    {
+		      int machine;
+		      int class = gelf_getclass (dso->elf);
+		      machine = (class == ELFCLASS32) ?
+				elf32_getehdr (dso->elf)->e_machine :
+				elf64_getehdr (dso->elf)->e_machine;
 		      new_name = find_lib_by_soname (soname, cur_dso_ent,
-						     gelf_getclass (dso->elf));
+						     class, machine);
 		      if (new_name == 0 || wrap_access (new_name, R_OK) < 0)
 			{
 			  dso_open_error ++;

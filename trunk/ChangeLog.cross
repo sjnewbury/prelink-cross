@@ -4,6 +4,18 @@
 
 	2006-11-28  Mark Shinwell  <shinwell@codesourcery.com>
 
+        * src/layout.c (layout_libs): Add assertion to check for buffer
+        overflow.
+        * src/ld-libs.c (find_lib_in_path): Add "machine" argument.
+        Skip libraries whose ELF machine type field does not match
+        that argument.
+        (find_lib_by_soname): Add "machine" argument.  Pass it to
+        find_lib_in_path.
+        (load_dsos): Determine machine type of input DSO.  Pass it
+        to find_lib_by_soname.
+
+	2006-11-28  Mark Shinwell  <shinwell@codesourcery.com>
+
         * src/gather.c (maybe_pie): New.
         (gather_func): Use it.
 
