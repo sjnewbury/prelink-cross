@@ -1273,7 +1273,7 @@ add_to_blacklist (const char *name, int deref, int onefs)
   size_t len;
   struct stat64 st;
 
-  if (stat64 (name, &st) < 0)
+  if (wrap_stat64 (name, &st) < 0)
     {
       if (implicit)
 	return 0;

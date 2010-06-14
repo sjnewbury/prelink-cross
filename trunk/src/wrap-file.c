@@ -312,31 +312,15 @@ wrap_prelink_canonicalize (const char *name, struct stat64 *stp)
     return prelink_canonicalize(name, stp);
 }
 
-int
-wrap_lstat64 (const char *file, struct stat64 *buf)
-{
-  char *tmpname = sysroot_file_name (file, 1, NULL);
-  int ret;
-
-  if (tmpname == NULL)
-    return -1;
-
-  ret = lstat64 (tmpname, buf);
-
-  if (tmpname != file)
-    free (tmpname);
-  return ret;
-}
-
-int
-wrap_stat64 (const char *file, struct stat64 *buf)
+static int
+wrap_stat_body (const char *file, struct stat64 *buf, int lstat)
 {
   char* file_copy;
   char *tmpname;
   int ret;
   int len;
 
-  tmpname = sysroot_file_name (file, 0, NULL);
+  tmpname = sysroot_file_name (file, lstat, NULL);
 
   if (tmpname == NULL)
     return -1;
@@ -350,14 +334,26 @@ wrap_stat64 (const char *file, struct stat64 *buf)
     return -1;
 
   len = strlen (file_copy);
-  if (file_copy[len - 1] == '/')
+  if (len && file_copy[len - 1] == '/' || file_copy[len - 1] == '\\'))
     file_copy[len - 1] = '\0';
 
-  ret = stat64 (file_copy, buf);
+  ret = lstat ? lstat64 (file_copy, buf) : stat64 (file_copy, buf);
 
   free (file_copy);
 
   return ret;
+}
+
+int
+wrap_lstat64 (const char *file, struct stat64 *buf)
+{
+  return wrap_stat_body (file, buf, 1);
+}
+
+int
+wrap_stat64 (const char *file, struct stat64 *buf)
+{
+  return wrap_stat_body (file, buf, 0);
 }
 
 int

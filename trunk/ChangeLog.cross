@@ -2,6 +2,11 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	006-11-30  Mark Shinwell  <shinwell@codesourcery.com>
+
+        * wrap-file.c (wrap_stat_body): New.
+        (wrap_lstat64, wrap_stat64): Use wrap_stat_body.
+
 	2006-11-28  Mark Shinwell  <shinwell@codesourcery.com>
 
         * src/layout.c (layout_libs): Add assertion to check for buffer
