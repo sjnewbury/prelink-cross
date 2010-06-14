@@ -2,6 +2,11 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2008-09-03  Maciej W. Rozycki  <macro@codesourcery.com>
+
+        * src/data.c (buf_read_une##nn): Fix the width of the data
+        transfer used.
+
 	2008-03-06  Daniel Jacobowitz  <dan@codesourcery.com>
 
 	* src/ld-do-lookup.h: Check for STO_MIPS_PLT on MIPS.

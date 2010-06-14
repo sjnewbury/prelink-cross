@@ -58,9 +58,9 @@ uint##nn##_t							\
 buf_read_une##nn (DSO *dso, unsigned char *buf)			\
 {								\
   if (dso->ehdr.e_ident[EI_DATA] == ELFDATA2LSB)		\
-    return buf_read_ule32 (buf);				\
+    return buf_read_ule##nn (buf);				\
   else								\
-    return buf_read_ube32 (buf);				\
+    return buf_read_ube##nn (buf);				\
 }
 
 #define READUNE(nn)						\
