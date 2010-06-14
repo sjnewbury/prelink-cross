@@ -1,15 +1,19 @@
-2007-08-08  Mark Hatle <mark.hatle@windriver.com>
+2010-06-14   Mark Hatle <mark.hatle@windriver.com>
+	* configure.in: Add option to disable selinux
+	* src/Makefile.am: Stop static linking
+
+2007-08-08   Mark Hatle <mark.hatle@windriver.com>
 
         * src/arch-mips.c: add /lib32/ld.so.1 as an alternative 32-bit linker
         * src/ld-libs.c: add a check for MIPS n32, and adjust ld_dirs as
                          necessary
 
-2007-10-11  Richard Sandiford  <richard@codesourcery.com>
+2007-10-11   Richard Sandiford  <richard@codesourcery.com>
 
         * src/space.c (find_readonly_space): If a new PT_LOAD header is needed,
         first try removing a PT_NULL header.
 
-2006-12-04  Mark Hatle <mark.hatle@windriver.com>
+2006-12-04   Mark Hatle <mark.hatle@windriver.com>
 
         * Merge code from:
 

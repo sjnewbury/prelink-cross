@@ -69,6 +69,16 @@ if test "x$ac_cv_ftw_actionretval" = xyes; then
 fi
 
 dnl SELinux checks
+AC_ARG_ENABLE(selinux,
+	      AS_HELP_STRING([--disable-selinux],
+	      [Disable selinux support in the prelinker]),
+	      [ enable_selinux="$enableval" ],
+	      [ enable_selinux="yes" ])
+
+if test "x$enable_selinux" != "no"; then
+  ac_cv_lib_selinux_is_selinux_enabled=disabled
+fi
+
 AC_CHECK_LIB(selinux,is_selinux_enabled)
 AC_CHECK_HEADERS(selinux/selinux.h)
 

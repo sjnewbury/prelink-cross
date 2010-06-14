@@ -22,13 +22,15 @@ prelink_SOURCES = cache.c conflict.c cxx.c doit.c exec.c execle_open.c get.c \
 		  verify.c md5.c md5.h sha.c sha.h 	     \
 		  $(common_SOURCES) $(arch_SOURCES)
 prelink_LDADD = @LIBGELF@ -liberty
-prelink_LDFLAGS = -all-static
+prelink_LDFLAGS =
 
 execstack_SOURCES = execstack.c $(common_SOURCES) $(arch_SOURCES)
+execstack_LDADD = -liberty
+execstack_LDFLAGS =
 
-prelink_rtld_LDADD = @LIBGELF@ -liberty
 prelink_rtld_SOURCES = data.c dso-readonly.c ld-libs.c ld-lookup.c \
 			canonicalize.c wrap-file.c ld-lookup64.c
-prelink_rtld_LDFLAGS = -all-static
+prelink_rtld_LDADD = @LIBGELF@ -liberty
+prelink_rtld_LDFLAGS =
 
 extra_DIST = makecrc.c
