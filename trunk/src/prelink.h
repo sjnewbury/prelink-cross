@@ -510,6 +510,7 @@ extern GElf_Addr mmap_reg_start, mmap_reg_end;
 extern const char *sysroot;
 
 char *wrap_prelink_canonicalize (const char *name, struct stat64 *stp);
+int wrap_readlink (const char *path, char *buf, int len);
 int wrap_lstat64 (const char *file, struct stat64 *buf);
 int wrap_stat64 (const char *file, struct stat64 *buf);
 int wrap_open (const char *file, int mode, ...);

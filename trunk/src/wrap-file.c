@@ -534,3 +534,20 @@ wrap_unlink (const char *filename)
     free (tmpname);
   return ret;
 }
+
+int
+wrap_readlink (const char *path, char *buf, int len)
+{
+  char *tmpname = sysroot_file_name (path, 1, NULL);
+  int ret;
+
+  if (tmpname == NULL)
+    return -1;
+
+  ret = readlink (tmpname, buf, len);
+
+  if (tmpname != path)
+    free (tmpname);
+  return ret;
+}
+

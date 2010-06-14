@@ -28,6 +28,7 @@
 #include <stddef.h>
 
 #include "hashtab.h"
+#include "prelink.h"
 
 htab_t prelink_dirname_htab;
 
@@ -241,7 +242,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 	  dest = mempcpy (dest, start, end - start);
 	  *dest = '\0';
 
-	  if (lstat64 (rpath, stp) < 0)
+	  if (wrap_lstat64 (rpath, stp) < 0)
 	    goto error;
 
 	  stp_initialized = 1;
@@ -257,7 +258,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 		  goto error;
 		}
 
-	      n = readlink (rpath, buf, path_max);
+	      n = wrap_readlink (rpath, buf, path_max);
 	      if (n < 0)
 		goto error;
 	      buf[n] = '\0';
@@ -294,7 +295,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
     --dest;
   *dest = '\0';
 
-  if (!stp_initialized && lstat64 (rpath, stp) < 0)
+  if (!stp_initialized && wrap_lstat64 (rpath, stp) < 0)
     goto error;
 
   if (dest + 1 - rpath <= (rpath_limit - rpath) / 2)

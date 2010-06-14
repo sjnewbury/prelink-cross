@@ -2,6 +2,13 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2006-11-28  Mark Shinwell  <shinwell@codesourcery.com>
+
+        * src/canonicalize.c: Add prelink.h include directive.
+        Use wrap_readlink and wrap_lstat64.
+        * src/prelink.h: Declare wrap_readlink.
+        * src/wrap-file.c (wrap_readlink): New.
+
 	2006-10-13  Daniel Jacobowitz  <dan@codesourcery.com>
 
         * src/execle_open.c (execve_open): Add an error message if execve
