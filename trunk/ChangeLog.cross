@@ -2,6 +2,11 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2008-09-23  Joseph Myers  <joseph@codesourcery.com>
+
+        * src/arch-arm.c (arm_prelink_conflict_rela): Correct
+        R_ARM_TLS_TPOFF32 handling.
+
 	2008-09-18  Joseph Myers  <joseph@codesourcery.com>
 
         * src/ld-libs.c (reloc_type_class, determine_tlsoffsets): Handle

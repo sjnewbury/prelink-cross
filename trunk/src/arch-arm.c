@@ -545,7 +545,7 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	  ret->r_addend = value;
 	  break;
 	case R_ARM_TLS_TPOFF32:
-	  ret->r_addend = value + rela->r_offset + tls->offset;
+	  ret->r_addend = value + rela->r_addend + tls->offset;
 	  break;
 	}
       break;
