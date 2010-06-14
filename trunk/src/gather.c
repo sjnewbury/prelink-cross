@@ -673,6 +673,77 @@ add_dir_to_dirlist (const char *name, dev_t dev, int flags)
   return 0;
 }
 
+/* Determine if a buffer holding an ELF header and program header
+   table may be that of a position-independent executable.  */
+static int
+maybe_pie (unsigned char *e_ident, int big_endian, int sixty_four)
+{
+  uint16_t num_phdrs;
+  uint16_t phdr;
+  size_t p_type_offset;
+  size_t phnum_offset;
+  unsigned char *phdr_table;
+  unsigned char *this_phdr;
+
+  if (sixty_four)
+    {
+      uint64_t phdr_offset;
+  
+      p_type_offset = offsetof (Elf64_Phdr, p_type);
+      phnum_offset = offsetof (Elf64_Ehdr, e_phnum);
+      if (big_endian)
+        phdr_offset = buf_read_ube64 (&e_ident [offsetof (Elf64_Ehdr,
+                                                         e_phoff)]);
+      else
+        phdr_offset = buf_read_ule64 (&e_ident [offsetof (Elf64_Ehdr,
+                                                         e_phoff)]);
+      phdr_table = e_ident + phdr_offset;
+    }
+  else
+    {
+      uint32_t phdr_offset;
+  
+      p_type_offset = offsetof (Elf32_Phdr, p_type);
+      phnum_offset = offsetof (Elf32_Ehdr, e_phnum);
+      if (big_endian)
+        phdr_offset = buf_read_ube32 (&e_ident [offsetof (Elf32_Ehdr,
+                                                         e_phoff)]);
+      else
+        phdr_offset = buf_read_ule32 (&e_ident [offsetof (Elf32_Ehdr,
+                                                         e_phoff)]);
+      phdr_table = e_ident + phdr_offset;
+    }
+
+  this_phdr = phdr_table;
+
+  if (big_endian)
+    num_phdrs = buf_read_ube16 (&e_ident [phnum_offset]);
+  else
+    num_phdrs = buf_read_ule16 (&e_ident [phnum_offset]);
+
+  for (phdr = 0; phdr < num_phdrs; phdr++)
+    {
+      unsigned char *p_type_start = this_phdr + p_type_offset;
+      uint32_t p_type;
+  
+      if (big_endian)
+       p_type = buf_read_ube32 (p_type_start);
+      else
+       p_type = buf_read_ule32 (p_type_start);
+     
+      if (p_type == PT_PHDR)
+       return 1;
+
+      /* Any PT_PHDR entry must come before any PT_LOAD entry.  */
+      if (p_type == PT_LOAD)
+        return 0;
+  
+      this_phdr += sixty_four ? sizeof (Elf64_Phdr) : sizeof (Elf32_Phdr);
+    }
+    
+  return 0;
+}
+
 static int
 gather_func (const char *name, const struct stat64 *st, int type,
 	     struct FTW *ftwp)
@@ -772,17 +843,7 @@ make_unprelinkable:
 		goto make_unprelinkable;
 	      else if (e_ident [EI_CLASS] == ELFCLASS32)
 		{
-		  if (e_ident [offsetof (Elf32_Ehdr, e_phoff)]
-		      == sizeof (Elf32_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf32_Ehdr, e_phoff) + 1,
-				 "\0\0\0", 3) == 0
-		      && (e_ident [offsetof (Elf32_Ehdr, e_phnum)]
-			  || e_ident [offsetof (Elf32_Ehdr, e_phnum) + 1])
-		      && e_ident [sizeof (Elf32_Ehdr)
-				  + offsetof (Elf32_Phdr, p_type)] == PT_PHDR
-		      && memcmp (e_ident + sizeof (Elf32_Ehdr)
-				 + offsetof (Elf32_Phdr, p_type) + 1,
-				 "\0\0\0", 3) == 0)
+		  if (maybe_pie (e_ident, 0, 0))
 		    {
 maybe_pie:
 		      dso = fdopen_dso (fd, name);
@@ -799,17 +860,7 @@ maybe_pie:
 		}
 	      else if (e_ident [EI_CLASS] == ELFCLASS64)
 		{
-		  if (e_ident [offsetof (Elf64_Ehdr, e_phoff)]
-		      == sizeof (Elf64_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf64_Ehdr, e_phoff) + 1,
-				 "\0\0\0\0\0\0\0", 7) == 0
-		      && (e_ident [offsetof (Elf64_Ehdr, e_phnum)]
-			  || e_ident [offsetof (Elf64_Ehdr, e_phnum) + 1])
-		      && e_ident [sizeof (Elf64_Ehdr)
-				  + offsetof (Elf64_Phdr, p_type)] == PT_PHDR
-		      && memcmp (e_ident + sizeof (Elf64_Ehdr)
-				 + offsetof (Elf64_Phdr, p_type) + 1,
-				 "\0\0\0", 3) == 0)
+		  if (maybe_pie (e_ident, 0, 1))
 		    goto maybe_pie;
 		  goto close_it;
 		}
@@ -826,35 +877,13 @@ maybe_pie:
 		goto make_unprelinkable;
 	      else if (e_ident [EI_CLASS] == ELFCLASS32)
 		{
-		  if (e_ident [offsetof (Elf32_Ehdr, e_phoff) + 3]
-		      == sizeof (Elf32_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf32_Ehdr, e_phoff),
-				 "\0\0\0", 3) == 0
-		      && (e_ident [offsetof (Elf32_Ehdr, e_phnum)]
-			  || e_ident [offsetof (Elf32_Ehdr, e_phnum) + 1])
-		      && e_ident [sizeof (Elf32_Ehdr)
-				  + offsetof (Elf32_Phdr, p_type) + 3]
-			 == PT_PHDR
-		      && memcmp (e_ident + sizeof (Elf32_Ehdr)
-				 + offsetof (Elf32_Phdr, p_type),
-				 "\0\0\0", 3) == 0)
+		  if (maybe_pie (e_ident, 1, 0))
 		    goto maybe_pie;
 		  goto close_it;
 		}
 	      else if (e_ident [EI_CLASS] == ELFCLASS64)
 		{
-		  if (e_ident [offsetof (Elf64_Ehdr, e_phoff) + 7]
-		      == sizeof (Elf64_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf64_Ehdr, e_phoff),
-				 "\0\0\0\0\0\0\0", 7) == 0
-		      && (e_ident [offsetof (Elf64_Ehdr, e_phnum)]
-			  || e_ident [offsetof (Elf64_Ehdr, e_phnum) + 1])
-		      && e_ident [sizeof (Elf64_Ehdr)
-				  + offsetof (Elf64_Phdr, p_type) + 3]
-			 == PT_PHDR
-		      && memcmp (e_ident + sizeof (Elf64_Ehdr)
-				 + offsetof (Elf64_Phdr, p_type),
-				 "\0\0\0", 3) == 0)
+		  if (maybe_pie (e_ident, 1, 1))
 		    goto maybe_pie;
 		  goto close_it;
 		}
