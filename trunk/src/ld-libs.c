@@ -583,7 +583,7 @@ load_dsos (DSO *dso, int host_paths)
 		      /* See if the filename we found has already been
 			 opened (possibly under a different SONAME via
 			 some symlink). */
-		      new_canon_name = wrap_prelink_canonicalize (new_name, NULL);
+		      new_canon_name = prelink_canonicalize (new_name, NULL);
 		      if (new_canon_name == NULL)
 			new_canon_name = strdup (new_name);
 		      new_dso_ent = in_dso_list (dso_list, soname, new_canon_name);

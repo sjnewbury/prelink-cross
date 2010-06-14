@@ -2,6 +2,21 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2007-07-09  Daniel Jacobowitz  <dan@codesourcery.com>
+
+        Issue #1816
+        * src/wrap-file.c (chroot_canon): Delete.
+        (sysroot_file_name): Use canon_filename.
+        (unsysroot_file_name): Make global.
+        (wrap_canonicalize_file_name): Delete.
+        * src/ld-libs.c (load_dsos): Use prelink_canonicalize.
+        * src/canonicalize.c (canon_filename): Make global.  Add chroot,
+        allow_last_link, allow_missing arguments.  Handle links inside
+        a chroot.  Handle canonicalizing the current directory.  Remove
+        debugging output.
+        (prelink_canonicalize): Update.  Use unsysroot_file_name.
+        * src/prelink.h (wrap_canonicalize_file_name): Delete prototype.
+
 	2007-03-02  Sandra Loosemore  <sandra@codesourcery.com>
 
         * doc/prelink.8: Copy edit.  Add entry for --root option.  Update

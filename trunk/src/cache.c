@@ -112,7 +112,7 @@ prelink_find_entry (const char *filename, const struct stat64 *stp,
 
   if (! stp)
     {
-      canon_filename = wrap_prelink_canonicalize (filename, &st);
+      canon_filename = prelink_canonicalize (filename, &st);
       if (canon_filename == NULL && wrap_stat64 (filename, &st) < 0)
 	{
 	  error (0, errno, "Could not stat %s", filename);
@@ -142,7 +142,7 @@ prelink_find_entry (const char *filename, const struct stat64 *stp,
     {
       ent = (struct prelink_entry *) *devino_slot;
       if (canon_filename == NULL)
-	canon_filename = wrap_prelink_canonicalize (filename, NULL);
+	canon_filename = prelink_canonicalize (filename, NULL);
       if (canon_filename == NULL)
 	{
 	  error (0, 0, "Could not canonicalize filename %s", filename);
@@ -189,7 +189,7 @@ prelink_find_entry (const char *filename, const struct stat64 *stp,
   if (canon_filename != NULL)
     ent->canon_filename = canon_filename;
   else
-    ent->canon_filename = wrap_prelink_canonicalize (filename, NULL);
+    ent->canon_filename = prelink_canonicalize (filename, NULL);
   if (ent->canon_filename == NULL)
     {
       error (0, 0, "Could not canonicalize filename %s", filename);
@@ -248,7 +248,7 @@ prelink_load_entry (const char *filename)
   if (*filename_slot != NULL)
     return (struct prelink_entry *) *filename_slot;
 
-  canon_filename = wrap_prelink_canonicalize (filename, &st);
+  canon_filename = prelink_canonicalize (filename, &st);
   if (canon_filename == NULL)
     goto error_out2;
   if (strcmp (canon_filename, filename) != 0)

@@ -1,11 +1,6 @@
 /* Copyright (C) 2003 MontaVista Software, Inc.
    Written by Daniel Jacobowitz <drow@mvista.com>, 2003.
 
-   The chroot_canon function is copied from the GNU C Library,
-   elf/chroot-canon.c, also licensed under the GPL:
-   Copyright (C) 1996,1997,1998,1999,2000,2001 Free Software Foundation, Inc.
-   [and then further modified.]
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2, or (at your option)
@@ -44,231 +39,33 @@
 #define MAXSYMLINKS 20
 #endif
 
-/* Return the canonical absolute name of file NAME as if chroot(CHROOT) was
-   done first.  A canonical name does not contain any `.', `..' components
-   nor any repeated path separators ('/') or symlinks.  All path components
-   must exist and NAME must be absolute filename.  The result is malloc'd.
-   The returned name includes the CHROOT prefix.
-
-   If ALLOW_LAST_LINK, then symlinks in the last component won't be
-   resolved.  */
-
-static char *
-chroot_canon_filename (const char * chroot, const char *name, int allow_last_link, struct stat64 *stp)
-{
-  char *rpath, *dest, *extra_buf = NULL;
-  char *rpath_root;
-  const char *start, *end, *rpath_limit;
-  long int path_max;
-  int num_links = 0;
-  int stp_initialized = 0;
-  size_t chroot_len = 0;
-
-  if (name == NULL)
-    {
-      errno = EINVAL;
-      return NULL;
-    }
-
-  if (name[0] == '\0')
-    {
-      errno = ENOENT;
-      return NULL;
-    }
-
-  if (chroot == NULL)
-    {
-      errno = EINVAL;
-      return NULL;
-    }
-
-  chroot_len = strlen (chroot);
-
-#ifdef PATH_MAX
-  path_max = PATH_MAX;
-#else
-  path_max = pathconf (name, _PC_PATH_MAX);
-  if (path_max <= 0)
-    path_max = 1024;
-#endif
-
-  rpath = malloc (chroot_len + path_max);
-  if (rpath == NULL)
-    return NULL;
-  rpath_limit = rpath + chroot_len + path_max;
-
-  rpath_root = (char *) mempcpy (rpath, chroot, chroot_len) - 1;
-  if (*rpath_root != '/')
-    *++rpath_root = '/';
-  dest = rpath_root + 1;
-
-  for (start = end = name; *start; start = end)
-    {
-      int n;
-
-      /* Skip sequence of multiple path-separators.  */
-      while (*start == '/')
-	++start;
-
-      /* Find end of path component.  */
-      for (end = start; *end && *end != '/'; ++end)
-	/* Nothing.  */;
-
-      if (end - start == 0)
-	break;
-      else if (end - start == 1 && start[0] == '.')
-	/* nothing */;
-      else if (end - start == 2 && start[0] == '.' && start[1] == '.')
-	{
-	  /* Back up to previous component, ignore if at root already.  */
-	  if (dest > rpath_root + 1)
-	    while ((--dest)[-1] != '/');
-	  stp_initialized = 0;
-	}
-      else
-	{
-	  size_t new_size;
-
-	  if (dest[-1] != '/')
-	    *dest++ = '/';
-
-	  if (dest + (end - start) >= rpath_limit)
-	    {
-	      ptrdiff_t dest_offset = dest - rpath;
-	      char *new_rpath;
-
-	      new_size = rpath_limit - rpath;
-	      if (end - start + 1 > path_max)
-		new_size += end - start + 1;
-	      else
-		new_size += path_max;
-	      new_rpath = (char *) realloc (rpath, new_size);
-	      if (new_rpath == NULL)
-		goto error;
-	      rpath = new_rpath;
-	      rpath_limit = rpath + new_size;
-
-	      dest = rpath + dest_offset;
-	    }
-
-	  dest = mempcpy (dest, start, end - start);
-	  *dest = '\0';
-
-	  if (lstat64 (rpath, stp) < 0)
-	    goto error;
-
-	  stp_initialized = 1;
-
-          if (allow_last_link && *end == '\0')
-            goto done;
-
-	  if (S_ISLNK (stp->st_mode))
-	    {
-	      char *buf = alloca (path_max);
-	      size_t len;
-
-	      if (++num_links > MAXSYMLINKS)
-		{
-		  errno = ELOOP;
-		  goto error;
-		}
-
-	      n = readlink (rpath, buf, path_max);
-	      if (n < 0)
-		goto error;
-	      buf[n] = '\0';
-
-	      if (!extra_buf)
-		extra_buf = alloca (path_max);
-
-	      len = strlen (end);
-	      if ((long int) (n + len) >= path_max)
-		{
-		  errno = ENAMETOOLONG;
-		  goto error;
-		}
-
-	      /* Careful here, end may be a pointer into extra_buf... */
-	      memmove (&extra_buf[n], end, len + 1);
-	      name = end = memcpy (extra_buf, buf, n);
-
-	      if (buf[0] == '/')
-		dest = rpath_root + 1;	/* It's an absolute symlink */
-	      else
-		/* Back up to previous component, ignore if at root already: */
-		if (dest > rpath_root + 1)
-		  while ((--dest)[-1] != '/');
-	    }
-	  else if (!S_ISDIR (stp->st_mode) && *end != '\0')
-	    {
-	      errno = ENOTDIR;
-	      goto error;
-	    }
-	}
-    }
-done:
-  if (dest > rpath_root + 1 && dest[-1] == '/')
-    --dest;
-  *dest = '\0';
-
-  if (!stp_initialized && lstat64 (rpath, stp) < 0)
-    goto error;
-
-  if (dest + 1 - rpath <= (rpath_limit - rpath) / 2)
-    {
-      char *new_rpath = realloc (rpath, dest + 1 - rpath);
-
-      if (new_rpath != NULL)
-	return new_rpath;
-    }
-  return rpath;
-
-error:
-  free (rpath);
-  return NULL;
-}
-
+extern char *canon_filename (const char *name, int nested, struct stat64 *stp,
+			     const char *chroot, int allow_last_link,
+			     int allow_missing);
 
 const char *sysroot;
 
 char *
-sysroot_file_name (const char *name, int allow_last_link, struct stat64 *stp)
+sysroot_file_name (const char *name, int allow_last_link)
 {
-  char *ret;
   struct stat64 st;
+  char *ret;
 
-  if (sysroot == NULL || name == NULL)
+  if (sysroot == NULL)
     return (char *) name;
 
-  if (name[0] != '/')
-    {
-      char *tmpname = malloc (strlen (name) + 2);
-      strcpy (tmpname, "/");
-      strcat (tmpname, name);
-      ret = chroot_canon_filename (sysroot, tmpname, allow_last_link, stp ? stp : &st);
-      free (tmpname);
-    }
-  else
-    ret = chroot_canon_filename (sysroot, name, allow_last_link, stp ? stp : &st);
+  ret = canon_filename (name, 0, &st, sysroot, allow_last_link, 1);
 
   if (ret == NULL)
-  {
-    char *ret_root;
+    /* That will have set errno.  */
+    return NULL;
 
-    ret = malloc(strlen(sysroot) + strlen(name) + 1);
-    ret_root = mempcpy(ret, sysroot, strlen(sysroot));
-    ret_root = mempcpy(ret_root, name, strlen(name));
-    *ret_root='\0';
-  }
   return ret;
 }
 
-static char *
+char *
 unsysroot_file_name (const char *name)
 {
-  if (name == NULL)
-    return (char *)name;
-
   if (sysroot)
     {
       int sysroot_len = strlen (sysroot);
@@ -283,35 +80,6 @@ unsysroot_file_name (const char *name)
   return (char *)name;
 }
 
-char *
-wrap_prelink_canonicalize (const char *name, struct stat64 *stp)
-{
-  if (sysroot)
-    {
-      struct stat64 st;
-      char *tmpname;
-      char *ret;
-
-      /* Use chroot_canon_filename because we want a NULL return if it doesn't exist! */
-      tmpname = chroot_canon_filename (sysroot, name, 0, stp ? stp : &st);
-
-      if (tmpname == NULL)
-        return NULL;
-
-      ret = unsysroot_file_name (tmpname);
-
-      if (ret == tmpname)
-       ret = strdup (ret);
-
-      if (tmpname != name)
-       free (tmpname);
-
-      return ret;
-    }
-  else
-    return prelink_canonicalize(name, stp);
-}
-
 static int
 wrap_stat_body (const char *file, struct stat64 *buf, int lstat)
 {
@@ -320,7 +88,7 @@ wrap_stat_body (const char *file, struct stat64 *buf, int lstat)
   int ret;
   int len;
 
-  tmpname = sysroot_file_name (file, lstat, NULL);
+  tmpname = sysroot_file_name (file, lstat);
 
   if (tmpname == NULL)
     return -1;
@@ -359,14 +127,14 @@ wrap_stat64 (const char *file, struct stat64 *buf)
 int
 wrap_rename (const char *old, const char *new)
 {
-  char *tmpold = sysroot_file_name (old, 1, NULL);
+  char *tmpold = sysroot_file_name (old, 1);
   char *tmpnew;
   int ret;
 
   if (tmpold == NULL)
     return -1;
 
-  tmpnew = sysroot_file_name (new, 1, NULL);
+  tmpnew = sysroot_file_name (new, 1);
   if (tmpnew == NULL)
     return -1;
 
@@ -382,7 +150,7 @@ wrap_rename (const char *old, const char *new)
 int
 wrap_open (const char *name, int mode, ...)
 {
-  char *tmpname = sysroot_file_name (name, 0, NULL);
+  char *tmpname = sysroot_file_name (name, 0);
   int ret;
 
   if (tmpname == NULL)
@@ -408,7 +176,7 @@ wrap_open (const char *name, int mode, ...)
 int
 wrap_access (const char *name, int mode)
 {
-  char *tmpname = sysroot_file_name (name, 0, NULL);
+  char *tmpname = sysroot_file_name (name, 0);
   int ret;
 
   if (tmpname == NULL)
@@ -424,14 +192,14 @@ wrap_access (const char *name, int mode)
 int
 wrap_link (const char *old, const char *new)
 {
-  char *tmpold = sysroot_file_name (old, 1, NULL);
+  char *tmpold = sysroot_file_name (old, 1);
   char *tmpnew;
   int ret;
 
   if (tmpold == NULL)
     return -1;
 
-  tmpnew = sysroot_file_name (new, 1, NULL);
+  tmpnew = sysroot_file_name (new, 1);
   if (tmpnew == NULL)
     return -1;
 
@@ -466,7 +234,7 @@ int
 wrap_nftw64 (const char *dir, __nftw64_func_t func,
 	     int descriptors, int flag)
 {
-  char *tmpdir = sysroot_file_name (dir, 1, NULL);
+  char *tmpdir = sysroot_file_name (dir, 1);
   int ret;
 
   if (tmpdir == NULL)
@@ -483,7 +251,7 @@ wrap_nftw64 (const char *dir, __nftw64_func_t func,
 int
 wrap_utime (const char *file, struct utimbuf *file_times)
 {
-  char *tmpname = sysroot_file_name (file, 0, NULL);
+  char *tmpname = sysroot_file_name (file, 0);
   int ret;
 
   if (tmpname == NULL)
@@ -499,7 +267,7 @@ wrap_utime (const char *file, struct utimbuf *file_times)
 int
 wrap_mkstemp (char *filename)
 {
-  char *tmpname = sysroot_file_name (filename, 1, NULL);
+  char *tmpname = sysroot_file_name (filename, 1);
   int ret;
 
   if (tmpname == NULL)
@@ -518,7 +286,7 @@ wrap_mkstemp (char *filename)
 int
 wrap_unlink (const char *filename)
 {
-  char *tmpname = sysroot_file_name (filename, 1, NULL);
+  char *tmpname = sysroot_file_name (filename, 1);
   int ret;
 
   if (tmpname == NULL)
@@ -534,7 +302,7 @@ wrap_unlink (const char *filename)
 int
 wrap_readlink (const char *path, char *buf, int len)
 {
-  char *tmpname = sysroot_file_name (path, 1, NULL);
+  char *tmpname = sysroot_file_name (path, 1);
   int ret;
 
   if (tmpname == NULL)

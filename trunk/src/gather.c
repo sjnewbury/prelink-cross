@@ -626,7 +626,7 @@ add_dir_to_dirlist (const char *name, dev_t dev, int flags)
   struct prelink_dir *dir;
   size_t len;
 
-  canon_name = wrap_prelink_canonicalize (name, NULL);
+  canon_name = prelink_canonicalize (name, NULL);
   if (canon_name == NULL)
     {
       if (! all && implicit)
@@ -1294,7 +1294,7 @@ add_to_blacklist (const char *name, int deref, int onefs)
       return 0;
     }
 
-  canon_name = wrap_prelink_canonicalize (name, NULL);
+  canon_name = prelink_canonicalize (name, NULL);
   if (canon_name == NULL)
     {
       if (implicit)

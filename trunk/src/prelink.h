@@ -509,7 +509,6 @@ extern GElf_Addr mmap_reg_start, mmap_reg_end;
 
 extern const char *sysroot;
 
-char *wrap_prelink_canonicalize (const char *name, struct stat64 *stp);
 int wrap_readlink (const char *path, char *buf, int len);
 int wrap_lstat64 (const char *file, struct stat64 *buf);
 int wrap_stat64 (const char *file, struct stat64 *buf);
@@ -522,7 +521,7 @@ int wrap_nftw64 (const char *dir, __nftw64_func_t func,
 int wrap_utime (const char *file, struct utimbuf *file_times);
 int wrap_mkstemp (char *filename);
 int wrap_unlink (const char *filename);
-char *sysroot_file_name (const char *name, int allow_last_link, struct stat64 *stp);
+char *sysroot_file_name (const char *name, int allow_last_link);
 
 extern const char *prelink_rtld;
 

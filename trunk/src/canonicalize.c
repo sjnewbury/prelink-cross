@@ -73,14 +73,17 @@ dirname_eq (const void *p, const void *q)
    separators ('/') or symlinks.  All path components must exist.
    The result is malloc'd.  */
 
-static char *
-canon_filename (const char *name, int nested, struct stat64 *stp)
+char *
+canon_filename (const char *name, int nested, struct stat64 *stp,
+		const char *chroot, int allow_last_link,
+		int allow_missing)
 {
-  char *rpath, *dest, *extra_buf = NULL;
+  char *rpath, *dest, *extra_buf = NULL, *rpath_root;
   const char *start, *end, *rpath_limit;
   long int path_max;
   int num_links = 0;
   int stp_initialized = 0;
+  int chroot_len;
 
   if (name == NULL)
     {
@@ -93,6 +96,9 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
       errno = ENOENT;
       return NULL;
     }
+  chroot_len = strlen (chroot);
+  if (chroot_len > 0 && chroot[chroot_len - 1] == '/')
+    chroot_len--;
 
 #ifdef PATH_MAX
   path_max = PATH_MAX;
@@ -102,7 +108,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
     path_max = 1024;
 #endif
 
-  rpath = malloc (path_max);
+  rpath = malloc (path_max + chroot_len + 1);
   if (rpath == NULL)
     return NULL;
   rpath_limit = rpath + path_max;
@@ -114,12 +120,32 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 	  rpath[0] = '\0';
 	  goto error;
 	}
-      dest = strchr (rpath, '\0');
+      if (chroot_len > 0)
+	{
+	  struct stat64 st;
+	  char *cwd = canon_filename (rpath, 1, &st, chroot, 0, 0);
+	  if (cwd == NULL)
+	    goto error;
+	  if (memcmp (cwd, chroot, chroot_len) != 0)
+	    goto error;
+	  strcpy (rpath, cwd);
+	  free (cwd);
+	  rpath_root = rpath + chroot_len;
+	}
+      else
+	rpath_root = rpath;
+
+      dest = strchr (rpath_root, '\0');
     }
   else
     {
-      rpath[0] = '/';
-      dest = rpath + 1;
+      if (chroot_len > 0)
+	rpath_root = (char *) mempcpy (rpath, chroot, chroot_len);
+      else
+	rpath_root = rpath;
+
+      rpath_root[0] = '/';
+      dest = rpath_root + 1;
 
       if (!nested)
 	{
@@ -152,7 +178,8 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 		  ep->dirname_len = e.dirname_len;
 		  memcpy (dirname, name, ep->dirname_len);
 		  dirname[ep->dirname_len] = '\0';
-		  ep->canon_dirname = canon_filename (ep->dirname, 1, &st);
+		  ep->canon_dirname = canon_filename (ep->dirname, 1, &st,
+						      chroot, 0, 0);
 		  if (ep->canon_dirname == NULL || !S_ISDIR (st.st_mode))
 		    free (ep);
 		  else
@@ -169,10 +196,11 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 
 	      if (rpath + ep->canon_dirname_len + 1 >= rpath_limit)
 		{
-		  size_t new_size;
+		  size_t new_size, root_size;
 		  char *new_rpath;
 
 		  new_size = rpath_limit - rpath;
+		  root_size = rpath_root - rpath;
 		  if (ep->canon_dirname_len + 1 > path_max)
 		    new_size += ep->canon_dirname_len + 1;
 		  else
@@ -182,6 +210,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 		    goto error;
 		  rpath = new_rpath;
 		  rpath_limit = rpath + new_size;
+		  rpath_root = rpath + root_size;
 		}
 	      dest = mempcpy (rpath, ep->canon_dirname, ep->canon_dirname_len);
 	      *dest = '\0';
@@ -209,7 +238,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
       else if (end - start == 2 && start[0] == '.' && start[1] == '.')
 	{
 	  /* Back up to previous component, ignore if at root already.  */
-	  if (dest > rpath + 1)
+	  if (dest > rpath_root + 1)
 	    while ((--dest)[-1] != '/');
 	  stp_initialized = 0;
 	}
@@ -223,6 +252,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 	  if (dest + (end - start) >= rpath_limit)
 	    {
 	      ptrdiff_t dest_offset = dest - rpath;
+	      size_t root_size = rpath_root - rpath;
 	      char *new_rpath;
 
 	      new_size = rpath_limit - rpath;
@@ -235,6 +265,7 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 		goto error;
 	      rpath = new_rpath;
 	      rpath_limit = rpath + new_size;
+	      rpath_root = rpath + root_size;
 
 	      dest = rpath + dest_offset;
 	    }
@@ -242,8 +273,15 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 	  dest = mempcpy (dest, start, end - start);
 	  *dest = '\0';
 
-	  if (wrap_lstat64 (rpath, stp) < 0)
-	    goto error;
+	  if (allow_last_link && *end == '\0')
+	    break;
+
+	  if (lstat64 (rpath, stp) < 0)
+	    {
+	      if (allow_missing && *end == '\0')
+		break;
+	      goto error;
+	    }
 
 	  stp_initialized = 1;
 
@@ -258,9 +296,13 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 		  goto error;
 		}
 
-	      n = wrap_readlink (rpath, buf, path_max);
+	      n = readlink (rpath, buf, path_max);
 	      if (n < 0)
-		goto error;
+		{
+		  if (allow_missing && *end == '\0')
+		    break;
+		  goto error;
+		}
 	      buf[n] = '\0';
 
 	      if (!extra_buf)
@@ -278,10 +320,10 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
 	      name = end = memcpy (extra_buf, buf, n);
 
 	      if (buf[0] == '/')
-		dest = rpath + 1;	/* It's an absolute symlink */
+		dest = rpath_root + 1;	/* It's an absolute symlink */
 	      else
 		/* Back up to previous component, ignore if at root already: */
-		if (dest > rpath + 1)
+		if (dest > rpath_root + 1)
 		  while ((--dest)[-1] != '/');
 	    }
 	  else if (!S_ISDIR (stp->st_mode) && *end != '\0')
@@ -295,7 +337,8 @@ canon_filename (const char *name, int nested, struct stat64 *stp)
     --dest;
   *dest = '\0';
 
-  if (!stp_initialized && wrap_lstat64 (rpath, stp) < 0)
+  if (!stp_initialized && !allow_missing && !allow_last_link
+      && lstat64 (rpath, stp) < 0)
     goto error;
 
   if (dest + 1 - rpath <= (rpath_limit - rpath) / 2)
@@ -312,9 +355,20 @@ error:
   return NULL;
 }
 
+char *unsysroot_file_name (const char *name);
+
 char *
 prelink_canonicalize (const char *name, struct stat64 *stp)
 {
   struct stat64 st;
-  return canon_filename (name, 0, stp ? stp : &st);
+  char *canon, *final;
+
+  canon = canon_filename (name, 0, stp ? stp : &st,
+			  sysroot ? sysroot : "", 0, 0);
+  if (canon == NULL)
+    return NULL;
+  final = unsysroot_file_name (canon);
+  if (final != canon)
+    free (canon);
+  return final;
 }
