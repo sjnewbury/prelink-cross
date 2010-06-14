@@ -2,6 +2,11 @@
 
 	* Integrate prelinker/cross-prelinking patches
 
+	2006-10-13  Daniel Jacobowitz  <dan@codesourcery.com>
+
+        * src/execle_open.c (execve_open): Add an error message if execve
+        fails.
+
 	2006-10-03  Richard Sandiford  <richard@codesourcery.com>
 
         * configure.in (AC_CANONICAL_HOST): Remove in favour of...

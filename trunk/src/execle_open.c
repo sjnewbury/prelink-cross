@@ -64,6 +64,7 @@ execve_open (const char *path, char *const argv[], char *const envp[])
 	}
       dup2 (1, 2);
       execve (path, argv, envp);
+      error (0, errno, "Could not run %s", path);
       _exit (127);
     }
 
