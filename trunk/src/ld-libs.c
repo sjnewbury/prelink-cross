@@ -177,15 +177,49 @@ reloc_type_class (int type, int machine)
       switch (type)
 	{
 	case R_MIPS_COPY:
-         return ELF_RTYPE_CLASS_COPY;
+	  return ELF_RTYPE_CLASS_COPY;
 	case R_MIPS_JUMP_SLOT:
 	case R_MIPS_TLS_DTPMOD32:
 	case R_MIPS_TLS_DTPREL32:
 	case R_MIPS_TLS_TPREL32:
-         return ELF_RTYPE_CLASS_PLT;
+	  return ELF_RTYPE_CLASS_PLT;
 	default:
-         return 0;
+	  return 0;
 	}
+
+    case EM_SPARC:
+    case EM_SPARC32PLUS:
+      switch (type)
+	{
+	case R_SPARC_COPY:
+	  return ELF_RTYPE_CLASS_COPY;
+	case R_SPARC_JMP_SLOT:
+	case R_SPARC_TLS_DTPMOD32:
+	case R_SPARC_TLS_DTPOFF32:
+	case R_SPARC_TLS_TPOFF32:
+	case R_SPARC_TLS_LE_HIX22:
+	case R_SPARC_TLS_LE_LOX10:
+	  return ELF_RTYPE_CLASS_PLT;
+	default:
+	  return 0;
+	}
+
+    case EM_SPARCV9:
+      switch (type)
+	{
+	case R_SPARC_COPY:
+	  return ELF_RTYPE_CLASS_COPY;
+	case R_SPARC_JMP_SLOT:
+	case R_SPARC_TLS_DTPMOD64:
+	case R_SPARC_TLS_DTPOFF64:
+	case R_SPARC_TLS_TPOFF64:
+	case R_SPARC_TLS_LE_HIX22:
+	case R_SPARC_TLS_LE_LOX10:
+	  return ELF_RTYPE_CLASS_PLT;
+	default:
+	  return 0;
+	}
+
     default:
       printf ("Unknown architecture!\n");
       exit (1);
@@ -1122,6 +1156,15 @@ determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
 
     case EM_MIPS:
       offset = 0;
+      break;
+
+    case EM_SPARC:
+    case EM_SPARC32PLUS:
+      offset = -1;
+      break;
+
+    case EM_SPARCV9:
+      offset = -1;
       break;
 
     default:
