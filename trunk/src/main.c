@@ -61,11 +61,11 @@ const char *undo_output;
 int noreexecinit;
 time_t initctime;
 
-const char *argp_program_version = "prelink 1.0 (20061201) Wind River Linux";
+const char *argp_program_version = PRELINK_PROG "1.0 (20061201) Wind River Linux";
 
 const char *argp_program_bug_address = "<support@windriver.com>";
 
-static char argp_doc[] = "prelink -- program to relocate and prelink ELF shared libraries and programs";
+static char argp_doc[] = PRELINK_PROG " -- program to relocate and prelink ELF shared libraries and programs";
 
 #define OPT_DYNAMIC_LINKER	0x80
 #define OPT_LD_LIBRARY_PATH	0x81
@@ -320,18 +320,16 @@ main (int argc, char *argv[])
         error (EXIT_FAILURE, 0, "Could not canonicalize --root argument");
       asprintf ((char **) &prelink_conf, "%s%s", sysroot, prelink_conf);
     }
-
+  if (prelink_rtld != NULL && prelink_rtld[0] == 0)
+    prelink_rtld = NULL;
+  else
   if (prelink_rtld == NULL)
     {
       extern char *make_relative_prefix (const char *, const char *, const char *);
       const char *path = make_relative_prefix (argv[0], BINDIR, BINDIR);
-      if (strchr (argv[0], '/'))
-	asprintf ((char **) &prelink_rtld, "%s-rtld", argv[0]);
-      else
-	asprintf ((char **) &prelink_rtld, "%s/%s-rtld", path, argv[0]);
+      asprintf ((char **) &prelink_rtld, "%s/%s", path,
+               PRELINK_RTLD_PROG EXEEXT);
     }
-  else if (prelink_rtld[0] == 0)
-    prelink_rtld = NULL;
 
   if (print_cache)
     {

@@ -4,7 +4,11 @@ AUTOMAKE_OPTIONS = 1.4 gnu
 
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -Wall
 AM_CFLAGS = -Wall
-AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"'
+AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"' \
+            -DPRELINK_PROG="\"`echo prelink | sed '$(transform)'`\"" \
+            -DPRELINK_RTLD_PROG="\"`echo prelink-rtld | \
+                                    sed '$(transform)'`\"" \
+            -DEXEEXT='"$(EXEEXT)"'
 INCLUDES = @GELFINCLUDE@
 
 sbin_PROGRAMS = prelink prelink-rtld

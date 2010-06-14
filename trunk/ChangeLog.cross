@@ -1,3 +1,27 @@
+2010-06-14  Mark Hatle <mark.hatle@windriver.com>
+
+	* Integrate prelinker/cross-prelinking patches
+
+	2006-10-03  Richard Sandiford  <richard@codesourcery.com>
+
+        * configure.in (AC_CANONICAL_HOST): Remove in favour of...
+        (AC_CANONICAL_SYSTEM): ...this new directive.
+        (AC_ARG_PROGRAM): New directive.
+        * src/Makefile.am (AM_CFLAGS): Define PRELINK_PROG, PRELINK_RTLD_PROG
+        and EXEEXT.
+        (execstack_LDADD): Add -liberty.
+        * src/execstack.c (program_path, prelink_path): New variables.
+        (execstack_make_rdwr): Initialize prelink_path if it has not
+        been set yet.  Use make_relative_prefix, PRELINK_PROG and EXEEXT
+        to get the full pathname of the prelink executable.  Pass this path
+        to execl() as the name of executable file.
+        (main): Initialize program_path.
+        * src/main.c (argp_program_version, argp_doc): Use PRELINK_PROG as
+        the program name.
+        (main): Handle empty --rtld= arguments first.  Always use
+        make_relative_prefix to work out the path of the defalt rtld
+        executable.  Also use PRELINK_RTLD and EXEEXT for this purpose.
+
 2010-06-14   Mark Hatle <mark.hatle@windriver.com>
 	* configure.in: Add option to disable selinux
 	* src/Makefile.am: Stop static linking
