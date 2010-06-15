@@ -390,10 +390,11 @@ load_ld_so_conf (int use_64bit, int use_mipsn32)
       if (p)
 	*p = 0;
       len = strlen (buf);
-      while (isspace (buf[len - 1]))
+      while (len > 0 && isspace (buf[len - 1]))
 	buf[--len] = 0;
 
-      add_dir (&ld_dirs, buf, len);
+      if (len > 0)
+        add_dir (&ld_dirs, buf, len);
     }
   fclose (conf);
 }

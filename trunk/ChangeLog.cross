@@ -1,3 +1,9 @@
+2009-04-27  Maciej W. Rozycki  <macro@codesourcery.com>
+        Issue #5165
+        * src/ld-libs.c (load_ld_so_conf): Fix a buffer overrun.  Don't
+        record empty paths.
+
+
 2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
 
         Issue #5165
