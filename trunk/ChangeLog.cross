@@ -1,3 +1,9 @@
+2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
+
+        Issue #5165
+        * src/execle_open.c (execve_open): Add missing pid
+        initialisation.
+
 2010-06-15  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r174
 	* src/arch-mips.c, src/conflict.c, src/cxx.c, src/main.c, src/verify.c:

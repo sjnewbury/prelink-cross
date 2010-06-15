@@ -50,7 +50,7 @@ execve_open (const char *path, char *const argv[], char *const envp[])
       return NULL;
     }
 
-  switch (vfork ())
+  switch (pid = vfork ())
     {
     case -1:
       error (0, errno, "Could not run %s", path);
