@@ -1,24 +1,33 @@
-2009-09-01  Maciej W. Rozycki  <macro@codesourcery.com>
+2009-06-15  Mark Hatle <mark.hatle@windriver.com>
+	* Merge to upstream r184
+	* Resync dso-readonly.c from dso.c
+	* Cleanup ChangeLog.cross
+
+2009-06-15  Mark Hatle <mark.hatle@windriver.com>
+
+	* Integrate prelinker/cross-prelinking patches
+
+	2009-09-01  Maciej W. Rozycki  <macro@codesourcery.com>
 
         Issue #5273
         * src/arch-mips.c (mips_prelink_reloc): Resolve
         R_MIPS_TLS_DTPMOD32 and R_MIPS_TLS_DTPMOD64 relocations in
         executables.
 
-2009-04-27  Maciej W. Rozycki  <macro@codesourcery.com>
+	2009-04-27  Maciej W. Rozycki  <macro@codesourcery.com>
+
         Issue #5165
         * src/ld-libs.c (load_ld_so_conf): Fix a buffer overrun.  Don't
         record empty paths.
 
-
-2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
+	2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
 
         Issue #5165
         * src/ld-lookup.c (rtld_elf_hash): Handle an initial NULL
         character correctly.  Reformat for consistency with
         rtld_elf_gnu_hash()
 
-2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
+	2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
 
         Issue #5165
         * src/ld-do-lookup.h (FCT): Remove the hash argument and
@@ -37,7 +46,7 @@
         (rtld_lookup_symbol): Remove hash calculation.
         (rtld_lookup_symbol_versioned): Likewise.
 
-2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
+	2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
 
         Issue #5165
         * src/execle_open.c (execve_open): Add missing pid
