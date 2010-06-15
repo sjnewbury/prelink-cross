@@ -45,17 +45,13 @@ struct sym_val
   struct ldlibs_link_map *m;
 };
 
-#include "ld-do-lookup.h"
-#define VERSIONED 1
-#include "ld-do-lookup.h"
-#undef VERSIONED
-
 static unsigned long
 rtld_elf_hash (const char *name)
 {
   const unsigned char *str = (const unsigned char *) name;
-  unsigned long int hash, hi;
-  hash = *str++;
+  unsigned long int hash = 0;
+  unsigned long int hi;
+
   while (*str != '\0')
     {
       hash = (hash << 4) + *str++;
@@ -65,6 +61,97 @@ rtld_elf_hash (const char *name)
     }
   return hash & 0xffffffff;
 }
+
+static unsigned long
+rtld_elf_gnu_hash (const char *name)
+{
+  const unsigned char *str = (const unsigned char *) name;
+  unsigned long int hash = 5381;
+
+  while (*str != '\0')
+    hash = (hash << 5) + hash + *str++;
+  return hash & 0xffffffff;
+}
+
+static inline unsigned long
+rtld_elf_any_hash (const char *name, int gnu_hash)
+{
+    return gnu_hash ? rtld_elf_gnu_hash (name) : rtld_elf_hash (name);
+}
+
+static inline Elf_Symndx
+do_lookup_get_first (struct ldlibs_link_map *map,
+                     unsigned long int hash, int gnu_hash)
+{
+  Elf_Symndx symidx = STN_UNDEF;
+
+  if (gnu_hash)
+    {
+      Elf_Symndx bucket;
+      int match;
+
+      if (map->l_maskword64)
+	{
+	  const Elf64_Xword *const masks = map->l_maskwords;
+	  const Elf64_Xword mask = masks[(hash / 64) % map->l_nmaskwords];
+	  const Elf64_Xword set = ((1ULL << (hash % 64))
+				   | (1ULL << ((hash >> map->l_shift) % 64)));
+
+	  match = (mask & set) == set;
+	}
+      else
+	{
+	  const Elf32_Word *const masks = map->l_maskwords;
+	  const Elf32_Word mask = masks[(hash / 32) % map->l_nmaskwords];
+	  const Elf32_Word set = ((1UL << (hash % 32))
+				   | (1UL << ((hash >> map->l_shift) % 32)));
+
+	  match = (mask & set) == set;
+	}
+
+      if (match
+	  && (bucket = map->l_buckets[hash % map->l_nbuckets]) != STN_UNDEF)
+	do
+	  if (((map->l_chain[bucket] ^ hash) & ~1UL) == 0)
+	    {
+	      symidx = bucket;
+	      break;
+	    }
+	while ((map->l_chain[bucket++] & 1) == 0);
+    }
+  else
+    symidx = map->l_buckets[hash % map->l_nbuckets];
+
+  return symidx;
+}
+
+static inline Elf_Symndx
+do_lookup_get_next (Elf_Symndx osymidx, struct ldlibs_link_map *map,
+                    unsigned long int hash, int gnu_hash)
+{
+  Elf_Symndx symidx = STN_UNDEF;
+
+  if (gnu_hash)
+    {
+      Elf_Symndx bucket = osymidx;
+
+      while ((map->l_chain[bucket++] & 1) == 0)
+	if (((map->l_chain[bucket] ^ hash) & ~1UL) == 0)
+	  {
+	    symidx = bucket;
+	    break;
+	  }
+    }
+  else
+    symidx = map->l_chain[osymidx];
+
+  return symidx;
+}
+
+#include "ld-do-lookup.h"
+#define VERSIONED 1
+#include "ld-do-lookup.h"
+#undef VERSIONED
 
 static int
 _dl_soname_match_p (const char *name, struct ldlibs_link_map *map)
@@ -86,8 +173,7 @@ rtld_lookup_symbol (const char *name, const ElfW(Sym) *sym,
   struct sym_val result;
 
   result.s = NULL;
-  ret = do_lookup (name, rtld_elf_hash (name), sym,
-		   &result, scope, 0, 0, NULL, rtypeclass);
+  ret = do_lookup (name, sym, &result, scope, 0, 0, NULL, rtypeclass);
   if (ret > 0)
     printf ("name %s /%d\n", name, rtypeclass);
 #if 0
@@ -125,13 +211,11 @@ rtld_lookup_symbol_versioned (const char *name, const ElfW(Sym) *sym,
   result2.s = NULL;
   result2.m = NULL;
   if (version)
-    ret = do_lookup_versioned (name, rtld_elf_hash (name), sym,
-			       &result, scope, 0, version, NULL, rtypeclass,
-			       machine);
+    ret = do_lookup_versioned (name, sym, &result, scope, 0, version, NULL,
+			       rtypeclass, machine);
   else
-    ret = do_lookup (name, rtld_elf_hash (name), sym,
-		     &result, scope, 0, 0, NULL, rtypeclass,
-		     machine);
+    ret = do_lookup (name, sym, &result, scope, 0, 0, NULL,
+		     rtypeclass, machine);
 
   if (result.s == NULL && ELFW(ST_BIND) (sym->st_info) != STB_WEAK)
     printf ("undefined symbol: %s\t(%s)\n", name, undef_map->filename);
@@ -145,13 +229,13 @@ rtld_lookup_symbol_versioned (const char *name, const ElfW(Sym) *sym,
       result2.s = NULL;
       result2.m = NULL;
       if (version)
-	ret = do_lookup_versioned (name, rtld_elf_hash (name), sym,
-				   &result2, undef_map->l_local_scope, 0, version,
-				   NULL, rtypeclass, machine);
+	ret = do_lookup_versioned (name, sym, &result2,
+				   undef_map->l_local_scope, 0, version, NULL,
+				   rtypeclass, machine);
       else
-	ret = do_lookup (name, rtld_elf_hash (name), sym,
-			 &result2, undef_map->l_local_scope, 0, 0,
-			 NULL, rtypeclass, machine);
+	ret = do_lookup (name, sym, &result2,
+			 undef_map->l_local_scope, 0, 0, NULL,
+			 rtypeclass, machine);
 
       if (result2.s != result.s
 	  || result2.m != result.m)

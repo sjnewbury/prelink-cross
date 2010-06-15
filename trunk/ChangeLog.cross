@@ -1,6 +1,32 @@
 2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
 
         Issue #5165
+        * src/ld-lookup.c (rtld_elf_hash): Handle an initial NULL
+        character correctly.  Reformat for consistency with
+        rtld_elf_gnu_hash()
+
+2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
+
+        Issue #5165
+        * src/ld-do-lookup.h (FCT): Remove the hash argument and
+        calculate the value within the function.  Call
+        do_lookup_get_first() and do_lookup_get_next() to iterate over
+        symbols.
+        * src/prelink.h (dynamic_info_is_set): Convert macro to a
+        function.  Return 1 for success rather than the bit set.
+        * src/ld-libs.h (ldlibs_link_map): Add l_gnu_hash, l_maskword64,
+        l_nmaskwords, l_shift and l_maskwords members.
+        * src/ld-libs.c (create_ldlibs_link_map): Handle the GNU hash.
+        * src/ld-lookup.c (rtld_elf_gnu_hash): New function.
+        (rtld_elf_any_hash): Likewise.
+        (rtld_elf_hash): Move above "ld-do-lookup.h" inclusions.
+        (do_lookup_get_first, do_lookup_get_next): New functions.
+        (rtld_lookup_symbol): Remove hash calculation.
+        (rtld_lookup_symbol_versioned): Likewise.
+
+2009-04-23  Maciej W. Rozycki  <macro@codesourcery.com>
+
+        Issue #5165
         * src/execle_open.c (execve_open): Add missing pid
         initialisation.
 

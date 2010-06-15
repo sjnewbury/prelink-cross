@@ -34,7 +34,9 @@ struct ldlibs_link_map
     void *l_info[DT_NUM + DT_VERSIONTAGNUM];
 
     /* Symbol hash table.  */
-    Elf_Symndx l_nbuckets;
+    int l_gnu_hash, l_maskword64;
+    Elf_Symndx l_nbuckets, l_nmaskwords, l_shift;
+    const void *l_maskwords;
     const Elf_Symndx *l_buckets, *l_chain;
 
     unsigned int l_nversions;

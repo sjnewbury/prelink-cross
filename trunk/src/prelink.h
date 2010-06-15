@@ -1,5 +1,6 @@
 /* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
    Red Hat, Inc.
+   Copyright (C) 2008 CodeSourcery.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
    Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
 
@@ -179,7 +180,11 @@ typedef struct
   GElf_Shdr shdr[0];
 } DSO;
 
-#define dynamic_info_is_set(dso,bit) ((dso)->info_set_mask & (1ULL << (bit)))
+static inline int
+dynamic_info_is_set (DSO *dso, int bit)
+{
+  return ((dso)->info_set_mask & (1ULL << (bit))) != 0;
+}
 
 struct layout_libs;
 

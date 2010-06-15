@@ -29,9 +29,9 @@
    found the symbol, the value 0 if nothing is found and < 0 if
    something bad happened.  */
 static inline int
-FCT (const char *undef_name, unsigned long int hash, const ElfW(Sym) *ref,
-     struct sym_val *result, struct r_scope_elem *scope, size_t i, ARG,
-     struct ldlibs_link_map *skip, int type_class, int machine)
+FCT (const char *undef_name, const ElfW(Sym) *ref, struct sym_val *result,
+     struct r_scope_elem *scope, size_t i, ARG, struct ldlibs_link_map *skip,
+     int type_class, int machine)
 {
   struct ldlibs_link_map **list = scope->r_list;
   size_t n = scope->r_nlist;
@@ -39,11 +39,13 @@ FCT (const char *undef_name, unsigned long int hash, const ElfW(Sym) *ref,
 
   do
     {
+      unsigned long int hash;
       const ElfW(Sym) *symtab;
       const char *strtab;
       const ElfW(Half) *verstab;
       Elf_Symndx symidx;
       const ElfW(Sym) *sym;
+      int gnu_hash;
 #if ! VERSIONED
       int num_versions = 0;
       const ElfW(Sym) *versioned_sym = NULL;
@@ -68,12 +70,14 @@ FCT (const char *undef_name, unsigned long int hash, const ElfW(Sym) *ref,
       symtab = (const void *) D_PTR (map, l_info[DT_SYMTAB]);
       strtab = (const void *) D_PTR (map, l_info[DT_STRTAB]);
       verstab = map->l_versyms;
+      gnu_hash = map->l_gnu_hash;
+      hash = rtld_elf_any_hash (undef_name, gnu_hash);
 
       /* Search the appropriate hash bucket in this object's symbol table
 	 for a definition for the same symbol name.  */
-      for (symidx = map->l_buckets[hash % map->l_nbuckets];
+      for (symidx = do_lookup_get_first (map, hash, gnu_hash);
 	   symidx != STN_UNDEF;
-	   symidx = map->l_chain[symidx])
+	   symidx = do_lookup_get_next (symidx, map, hash, gnu_hash))
 	{
 	  sym = &symtab[symidx];
 

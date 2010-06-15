@@ -864,12 +864,28 @@ create_ldlibs_link_map (struct dso_list *cur_dso_ent)
   data = elf_getdata (dso->scn[i], NULL);
   map->l_info[DT_STRTAB] = data->d_buf;
 
+  map->l_gnu_hash = dynamic_info_is_set (dso, DT_GNU_HASH_BIT);
+  if (map->l_gnu_hash)
+    i = addr_to_sec (dso, dso->info_DT_GNU_HASH);
+  else
   i = addr_to_sec (dso, dso->info[DT_HASH]);
   data = elf_getdata (dso->scn[i], NULL);
   hash = data->d_buf;
-  map->l_nbuckets = *hash;
+  map->l_nbuckets = hash[0];
+  if (map->l_gnu_hash)
+    {
+      map->l_nmaskwords = hash[2];
+      map->l_maskword64 = gelf_getclass (dso->elf) == ELFCLASS64;
+      map->l_shift = hash[3];
+      map->l_maskwords = hash + 4;
+      map->l_buckets = hash + 4 + (map->l_nmaskwords << map->l_maskword64);
+      map->l_chain = map->l_buckets + map->l_nbuckets - hash[1];
+    }
+  else
+    {
   map->l_buckets = hash + 2;
-  map->l_chain = hash + 2 + map->l_nbuckets;
+      map->l_chain = map->l_buckets + map->l_nbuckets;
+    }
 
   get_version_info (dso, map);
 
