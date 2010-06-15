@@ -901,9 +901,7 @@ mips_apply_reloc (struct prelink_info *info, GElf_Xword r_info,
       break;
 
     case R_MIPS_JUMP_SLOT:
-      buf_write_ne32 (info->dso, buf,
-		      info->resolve (info, GELF_R_SYM (r_info),
-				     GELF_R_TYPE (r_info)));
+      buf_write_ne32 (info->dso, buf, value);
       break;
 
     case R_MIPS_COPY:

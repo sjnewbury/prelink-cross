@@ -1,3 +1,9 @@
+2010-06-15  Mark Hatle <mark.hatle@windriver.com>
+	* Merge to upstream r174
+	* src/arch-mips.c, src/conflict.c, src/cxx.c, src/main.c, src/verify.c:
+	  fix items missed in the merge
+        * Resync dso-readonly.c from dso.c
+
 2010-06-14  Mark Hatle <mark.hatle@windriver.com>
 
 	* Integrate prelinker/cross-prelinking patches

@@ -610,7 +610,7 @@ pltref_remove:
 				      - fcs1.sym.st_value));
 
 		      info->conflict_rela[i].r_info =
-			GELF_R_INFO (1, GELF_R_TYPE (info->conflict_rela[i].r_info));
+			reloc_r_info (info->dso, 1, reloc_r_type (info->dso, info->conflict_rela[i].r_info));
 		      ++removed;
 		      goto pltref_check_done;
 		    }

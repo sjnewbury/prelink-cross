@@ -611,7 +611,8 @@ prelink_build_conflicts (struct prelink_info *info)
       /* Record library's position in search scope into R_SYM field.  */
       for (j = first_conflict; j < info->conflict_rela_size; ++j)
 	info->conflict_rela[j].r_info
-	  = GELF_R_INFO (i, GELF_R_TYPE (info->conflict_rela[j].r_info));
+	  = reloc_r_info (dso, i,
+			  reloc_r_type (dso, info->conflict_rela[j].r_info));
 
       if (dynamic_info_is_set (dso, DT_TEXTREL)
 	  && info->conflict_rela_size > first_conflict)

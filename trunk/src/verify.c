@@ -304,7 +304,7 @@ prelink_verify (const char *filename)
   if (prelink (dso2, ent))
     goto failure_unlink;
 
-  unlink (ent->filename);
+  wrap_unlink (ent->filename);
 
   if (write_dso (dso2))
     goto failure;

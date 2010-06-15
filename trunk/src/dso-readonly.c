@@ -861,6 +861,7 @@ reopen_dso (DSO *dso, struct section_move *move, const char *temp_base)
 	    }
 	  else
 	    {
+	      memset (&data, 0, sizeof data);
 	      data.d_type = ELF_T_NUM;
 	      data1 = NULL;
 	      while ((data1 = elf_getdata (dso->scn[j], data1))
@@ -1032,6 +1033,7 @@ error_out:
   if (fd != -1)
     {
       wrap_unlink (filename);
+      fsync (fd);
       close (fd);
     }
   return 1;
