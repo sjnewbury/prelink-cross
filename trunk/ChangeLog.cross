@@ -1,3 +1,10 @@
+2009-09-01  Maciej W. Rozycki  <macro@codesourcery.com>
+
+        Issue #5273
+        * src/arch-mips.c (mips_prelink_reloc): Resolve
+        R_MIPS_TLS_DTPMOD32 and R_MIPS_TLS_DTPMOD64 relocations in
+        executables.
+
 2009-04-27  Maciej W. Rozycki  <macro@codesourcery.com>
         Issue #5165
         * src/ld-libs.c (load_ld_so_conf): Fix a buffer overrun.  Don't

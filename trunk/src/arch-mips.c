@@ -535,8 +535,20 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
 
     case R_MIPS_TLS_DTPMOD32:
     case R_MIPS_TLS_DTPMOD64:
-      /* These relocations will be resolved using a conflict.  We need
-	 not change the field value here.  */
+      /* Relocations in a shared library will be resolved using a conflict.
+         We need not change the relocation field here.  */
+      if (dso->ehdr.e_type == ET_EXEC)
+	{
+	  struct prelink_tls *tls = info->symbols[r_sym].u.tls;
+
+	  if (tls == NULL)
+	    break;
+	  value = tls->modid;
+	  if (r_type == R_MIPS_TLS_DTPMOD32)
+	    mips_prelink_32bit_reloc (dso, rela, value);
+	  else
+	    mips_prelink_64bit_reloc (dso, rela, value);
+	}
       break;
 
     case R_MIPS_TLS_DTPREL32:
