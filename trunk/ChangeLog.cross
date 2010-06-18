@@ -1,3 +1,13 @@
+2010-06-18  Mark Hatle <mark.hatle@windriver.com>
+
+	* Sync src/dso-readonly.c and ...
+	* Integrate patch from
+
+	2010-05-06  Andrew Stubbs  <ams@codesourcery.com>
+
+        * src/dso.c (adjust_dso): Support MIPS debug sections.
+        * src/prelink.h (SHT_MIPS_DWARF): New define.
+
 2009-06-15  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r184
 	* Resync dso-readonly.c from dso.c

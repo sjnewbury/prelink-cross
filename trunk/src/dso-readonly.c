@@ -1409,6 +1409,7 @@ adjust_dso (DSO *dso, GElf_Addr start, GElf_Addr adjust)
       switch (dso->shdr[i].sh_type)
 	{
 	case SHT_PROGBITS:
+	case SHT_MIPS_DWARF:
 	  name = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[i].sh_name);
 	  if (strcmp (name, ".stab") == 0
 	      && adjust_stabs (dso, i, start, adjust))
