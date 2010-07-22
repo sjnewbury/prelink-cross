@@ -1,3 +1,112 @@
+2010-04-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/reloc8.sh: Don't use -Wl,-z,nocopyreloc on
+	sparc64.
+	* testsuite/reloc9.sh: Likewise.
+
+	* src/dwarf2.c (DEBUG_TYPES): Define.
+	(debug_sections): Add .debug_types entry.
+	(read_abbrev): Handle new DWARF4 forms.
+	(adjust_attributes): DW_AT_segment can be a loclistptr.
+	DW_AT_byte_size, DW_AT_bit_offset, DW_AT_bit_size,
+	DW_AT_string_length, DW_AT_lower_bound, DW_AT_return_addr,
+	DW_AT_bit_stride, DW_AT_upper_bound, DW_AT_count,
+	DW_AT_segment, DW_AT_static_link, DW_AT_use_location,
+	DW_AT_allocated, DW_AT_associated, DW_AT_data_location
+	and DW_AT_byte_stride can be exprloc.  Handle new DWARF4 forms.
+	(adjust_dwarf2_line): Handle adjusting DWARF4 .debug_line
+	sections.
+	(adjust_dwarf2_frame): Handle adjusting DWARF4 .debug_frame
+	section.
+	(adjust_dwarf2_info): New function, moved from adjust_dwarf2.
+	Handle DWARF4 .debug_info and handle .debug_types too.
+	(adjust_dwarf2): Call it for .debug_info and .debug_types
+	sections.
+	* src/dwarf2.h (DW_TAG_type_unit, DW_TAG_rvalue_reference_type,
+	DW_TAG_template_alias, DW_FORM_sec_offset, DW_FORM_exprloc,
+	DW_FORM_flag_present, DW_FORM_ref_sig8, DW_AT_bit_stride,
+	DW_AT_byte_stride, DW_AT_description, DW_AT_binary_scale,
+	DW_AT_decimal_scale, DW_AT_small, DW_AT_decimal_sign,
+	DW_AT_digit_count, DW_AT_picture_string, DW_AT_mutable,
+	DW_AT_threads_scaled, DW_AT_explicit, DW_AT_object_pointer,
+	DW_AT_endianity, DW_AT_elemental, DW_AT_pure, DW_AT_recursive,
+	DW_AT_signature, DW_AT_main_subprogram, DW_AT_data_bit_offset,
+	DW_AT_const_expr, DW_AT_enum_class, DW_AT_linkage_name,
+	DW_LNS_set_prologue_end, DW_LNS_set_epilogue_begin,
+	DW_LNS_set_isa, DW_LNE_set_discriminator, DW_LANG_Python): Define.
+
+	* src/prelink.h (send_file): New prototype.
+	* src/execstack.c (send_file): New dummy function.
+	* src/verify.c (send_file): No longer static.  Don't loop forever
+	if write or read return 0.
+	* src/undo.c (prelink_undo): If undo_output is -, use /tmp/undo
+	instead of - as temp file prefix.
+	* src/dso.c (set_security_context): Drop unused dso argument, add
+	ignore_errors argument.  If it is non-zero, don't error if
+	setfilecon failed.
+	(update_dso): If orig_name is non-NULL, don't error if fchown or
+	fchmod fails.  If rename fails or name1 is - and orig_name is
+	non-NULL, copy the temporary file to name1 (or to stdout if
+	name1 is -) instead of failing.
+
+2010-01-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/arch-s390.c (s390_prelink_conflict_rela) <case R_390_PC32DBL>:
+	Ensure negative addends are sign-extended to 64-bits, instead of
+	zero-extended.
+
+2010-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/arch-s390.c (s390_prelink_rela, s390_apply_rela,
+	s390_prelink_conflict_rela, s390_prelink_conflict_rela,
+	s390_undo_prelink_rela, s390_reloc_size): Handle
+	R_390_{PC32DBL,16,PC16,PC16DBL,8} relocs.
+
+2009-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/reloc2.sh: Don't assume textrel works if getenforce
+	exists, but doesn't print Permissive or Disabled.
+	* testsuite/reloc8.sh: Likewise.
+	* testsuite/reloc9.sh: Likewise.
+	* testsuite/tls3.sh: Likewise.
+
+2009-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/arch-x86_64.c (x86_64_reloc_size): Handle R_X86_64_IRELATIVE.
+
+	* src/prelink.h (R_PPC_IRELATIVE, R_PPC64_IRELATIVE,
+	R_PPC64_JMP_IREL): Define if not defined.
+	* src/undo.c (undo_sections, prelink_undo): Allow .iplt section to
+	change from SHT_NOBITS to SHT_PROGBITS.
+	* src/arch-ppc.c (ppc_adjust_rela, ppc_prelink_rela,
+	ppc_apply_conflict_rela, ppc_undo_prelink_rela): Handle
+	R_PPC_IRELATIVE.
+	(ppc_prelink_conflict_rela): Handle R_PPC_IRELATIVE and
+	conflict->ifunc conflicts.
+	* src/arch-ppc64.c (ppc64_adjust_rela, ppc64_prelink_rela,
+	ppc64_undo_prelink_rela): Handle R_PPC64_IRELATIVE and
+	R_PPC64_JMP_IREL.
+	(ppc64_apply_conflict_rela, ppc64_reloc_size): Handle
+	R_PPC64_IRELATIVE.
+	(ppc64_prelink_conflict_rela): Handle R_PPC64_IRELATIVE,
+	R_PPC64_JMP_IREL and conflict->ifunc conflicts.
+	* testsuite/ifunc.h (IFUNC_ASM): Add powerpc definition.
+	(IFUNC_DECL): Define.
+	(IFUNC): Use IFUNC_DECL.
+
+2009-10-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* src/conflict.c (prelink_build_conflicts): Use >= not > to
+	determine whether a relocation points outside the first bss
+	section.
+
+	* m4/libelf.m4: Resync with version of code in aclocal.m4.
+
+2009-09-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/dwarf2.c (adjust_location_list) <case DW_OP_implicit_value>: Add
+	missing break statement.
+
 2009-08-06  Joseph Myers  <joseph@codesourcery.com>
 
 	* src/dwarf2.c (dwarf2_write_le64, dwarf2_write_be64): Shift by 56

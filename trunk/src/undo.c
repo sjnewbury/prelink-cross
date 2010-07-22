@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2005 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2005, 2010 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -406,7 +406,7 @@ undo_sections (DSO *dso, int undo, struct section_move *move,
 
 	if (! strcmp (name, ".bss")
 	    || ! strcmp (name, ".sbss")
-	    || (! strcmp (name, ".plt")
+	    || ((! strcmp (name, ".plt") || ! strcmp (name, ".iplt"))
 		&& dso->shdr[i].sh_type == SHT_PROGBITS))
 	  {
 	    int is_plt = ! strcmp (name, ".plt");
@@ -500,7 +500,8 @@ prelink_undo (DSO *dso)
   if (undo == dso->ehdr.e_shnum)
     {
       if (undo_output)
-	return reopen_dso (dso, NULL, undo_output);
+	return reopen_dso (dso, NULL, strcmp (undo_output, "-") == 0
+			   ? "/tmp/undo" : undo_output);
       error (0, 0, "%s does not have .gnu.prelink_undo section", dso->filename);
       return 1;
     }
@@ -516,7 +517,8 @@ prelink_undo (DSO *dso)
   if (undo_sections (dso, undo, move, &rinfo, &ehdr, phdr, shdr))
     goto error_out;
 
-  if (reopen_dso (dso, move, undo_output))
+  if (reopen_dso (dso, move, (undo_output && strcmp (undo_output, "-") == 0)
+			     ? "/tmp/undo" : undo_output))
     goto error_out;
 
   if (find_reloc_sections (dso, &rinfo))
@@ -621,7 +623,8 @@ prelink_undo (DSO *dso)
 	    {
 	      assert (strcmp (name, ".bss") == 0
 		      || strcmp (name, ".sbss") == 0
-		      || strcmp (name, ".plt") == 0);
+		      || strcmp (name, ".plt") == 0
+		      || strcmp (name, ".iplt") == 0);
 	      scn = dso->scn[i];
 	      d = elf_getdata (scn, NULL);
 	      assert (d != NULL && elf_getdata (scn, d) == NULL);

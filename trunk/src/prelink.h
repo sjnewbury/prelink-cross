@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010
    Red Hat, Inc.
    Copyright (C) 2008 CodeSourcery.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
@@ -117,6 +117,15 @@ typedef uint8_t Elf64_Byte;
 
 #ifndef R_X86_64_IRELATIVE
 #define R_X86_64_IRELATIVE	37
+#endif
+
+#ifndef R_PPC_IRELATIVE
+#define R_PPC_IRELATIVE		248
+#endif
+
+#ifndef R_PPC64_JMP_IREL
+#define R_PPC64_JMP_IREL	247
+#define R_PPC64_IRELATIVE	248
 #endif
 
 struct prelink_entry;
@@ -517,6 +526,7 @@ int is_ldso_soname (const char *soname);
 int prelink_undo (DSO *dso);
 
 int prelink_verify (const char *filename);
+ssize_t send_file (int outfd, int infd, off_t *poff, size_t count);
 
 int gather_object (const char *dir, int deref, int onefs);
 int read_config (const char *config);
