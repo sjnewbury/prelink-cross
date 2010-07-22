@@ -1,0 +1,114 @@
+2006-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/verify.c (prelink_verify): Unlink ent->filename in case of
+	failures between closing the unprelinked dso and unlinking
+	ent->filename.
+
+2006-10-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/prelink.h (READWRITEPROTOSIZE): Undef after use.
+
+2006-10-24  Richard Sandiford  <richard@codesourcery.com>
+
+	* testsuite/tls3.sh: Use -fpic for MIPS too.
+	* testsuite/reloc2.sh: Likewise.
+
+	* testsuite/reloc4.sh: Use -mxgot when compiling for MIPS targets.
+	* testsuite/reloc5.c (main): Make the printed inline asm globalize
+	testzero.
+
+	* testsuite/shuffle2.c (testzero): Globalize asm definition.
+
+	* src/Makefile.am (arch_SOURCES): Add arch-mips.c
+	* src/Makefile.in: Regenerate.
+	* src/arch-mips.c: New file.
+
+	* src/prelink.h (DT_MIPS_RLD_VERSION): Define.
+	(DT_MIPS_TIME_STAMP): Likewise.
+	(DT_MIPS_ICHECKSUM): Likewise.
+	(DT_MIPS_IVERSION): Likewise.
+	(DT_MIPS_FLAGS): Likewise.
+	(DT_MIPS_BASE_ADDRESS): Likewise.
+	(DT_MIPS_CONFLICT): Likewise.
+	(DT_MIPS_LIBLIST): Likewise.
+	(DT_MIPS_LOCAL_GOTNO): Likewise.
+	(DT_MIPS_CONFLICTNO): Likewise.
+	(DT_MIPS_LIBLISTNO): Likewise.
+	(DT_MIPS_SYMTABNO): Likewise.
+	(DT_MIPS_UNREFEXTNO): Likewise.
+	(DT_MIPS_GOTSYM): Likewise.
+	(DT_MIPS_HIPAGENO): Likewise.
+	(DT_MIPS_RLD_MAP): Likewise.
+	(R_MIPS_TLS_DTPMOD): Likewise.
+	(R_MIPS_TLS_DTPREL): Likewise.
+	(R_MIPS_TLS_TPREL): Likewise.
+	(R_MIPS_GLOB_DAT): Likewise.
+	(DSO): Add info_DT_MIPS_LOCAL_GOTNO, info_DT_MIPS_GOTSYM,
+	and info_DT_MIPS_SYMTABNO.
+
+	* src/dso.c (read_dynamic): Initialize the new DSO fields.
+	(adjust_symbol_p): Handle stub values on MIPS.
+	* src/prelink.c (prelink_prepare): Handle SHT_DYNAMIC and
+	SHT_MIPS_REGINFO on MIPS.
+	* src/space.c (find_readonly_space): Don't place the new section
+	in the PT_PHDR segment.
+
+	* src/prelink.h (data_iterator): New structure.
+	(init_data_iterator): Declare.
+	(get_data_from_iterator): Likewise.
+	(get_sym_from_iterator): Likewise.
+	* src/data.c (init_data_iterator): New function.
+	(get_data_from_iterator): Likewise.
+	(get_sym_from_iterator): Likewise.
+
+	* src/prelink.h (READWRITEPROTOSIZE): New macro.  Instantiate
+	READWRITEPROTO for big and little endian.  Add prototypes for
+	native-endian functions (buf_read_uneNN, read_uneNN, buf_write_neNN
+	and write_neNN).  Replace uses of READWRITEPROTO with uses of
+	this macro.
+	* src/data.c (BUFREADUNE, READUNE, WRITENE, BUFWRITENE): New macros.
+	(READWRITESIZE): New macro.  Instantiate READWRITE for big and
+	little endian.  Instantiate BUFREADUNE, READUNE, WRITENE
+	and BUFWRITENE.  Replace uses of READWRITE with uses of this macro.
+	* src/arch-sh.c (read_une32, write_ne32, buf_write_ne32): Delete.
+
+	* src/prelink.h (PLArch): Add an arch_prelink_conflict callback.
+	* src/conflict.c (prelink_build_conflicts): If defined, call it
+	for each dependency.
+
+	* src/prelink.h (PLArch): Make the arch_prelink callback take
+	a "struct prelink_info *" argument, not a "DSO *" argument.
+	* src/prelink.c (prelink): Adjust call accordingly.
+	* src/arch-alpha.c (alpha_arch_prelink): Adjust definition accordingly.
+	* src/arch-arm.c (arm_arch_prelink): Likewise.
+	* src/arch-cris.c (cris_arch_prelink): Likewise.
+	* src/arch-i386.c (i386_arch_prelink): Likewise.
+	* src/arch-ia64.c (ia64_arch_prelink): Likewise.
+	* src/arch-ppc.c (ppc_arch_prelink): Likewise.
+	* src/arch-s390.c (s390_arch_prelink): Likewise
+	* src/arch-s390x.c (s390x_arch_prelink): Likewise
+	* src/arch-sh.c (sh_arch_prelink): Likewise.
+	* src/arch-sparc64.c (sparc64_arch_prelink): Likewise.
+	* src/arch-sparc.c (sparc_arch_prelink): Likewise
+	* src/arch-x86_64.c (x86_64_arch_prelink): Likewise.
+
+	* src/prelink.h (PLArch): Add an arch_adjust callback.
+	* src/dso.c (adjust_dso): Use it, if defined.
+
+	* src/prelink.h (adjust_symbol_p): Declare.
+	* src/dso.c (adjust_symbol_p): New function, extracted from...
+	(adjust_symtab): ...here.
+
+2006-10-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/dwarf2.c (adjust_dwarf2_ranges): Fix adjusting if end of range
+	is at the end of some section and there is padding before the
+	following one.
+
+2006-07-28  Alexandre Oliva  <aoliva@redhat.com>
+
+	* src/cache.c (deps_cmp): Avoid segfault if both a and b are NULL.
+
+2001-05-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* The beginning.
