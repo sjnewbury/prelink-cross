@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004 Red Hat, Inc.
+/* Copyright (C) 2002, 2003, 2004, 2009 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2002.
 
    This program is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@ ppc64_adjust_section (DSO *dso, int n, GElf_Addr start, GElf_Addr adjust)
 
 static int
 ppc64_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
-		 GElf_Addr adjust)
+		  GElf_Addr adjust)
 {
   if (dyn->d_tag == DT_PPC64_GLINK && dyn->d_un.d_ptr >= start)
     {
@@ -73,7 +73,7 @@ ppc64_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
 
 static int
 ppc64_adjust_rel (DSO *dso, GElf_Rel *rel, GElf_Addr start,
-		 GElf_Addr adjust)
+		  GElf_Addr adjust)
 {
   error (0, 0, "%s: PowerPC64 doesn't support REL relocs", dso->filename);
   return 1;
@@ -81,7 +81,7 @@ ppc64_adjust_rel (DSO *dso, GElf_Rel *rel, GElf_Addr start,
 
 static int
 ppc64_adjust_rela (DSO *dso, GElf_Rela *rela, GElf_Addr start,
-		  GElf_Addr adjust)
+		   GElf_Addr adjust)
 {
   if (GELF_R_TYPE (rela->r_info) == R_PPC64_RELATIVE)
     {
@@ -306,7 +306,7 @@ ppc64_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
 
 static int
 ppc64_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
-			  char *buf)
+			   char *buf, GElf_Addr dest_addr)
 {
   switch (GELF_R_TYPE (rela->r_info))
     {
@@ -439,7 +439,8 @@ ppc64_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
   int r_type;
 
   if (GELF_R_TYPE (rela->r_info) == R_PPC64_RELATIVE
-      || GELF_R_TYPE (rela->r_info) == R_PPC64_NONE)
+      || GELF_R_TYPE (rela->r_info) == R_PPC64_NONE
+      || info->dso == dso)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rela->r_info),
@@ -462,6 +463,12 @@ ppc64_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	  return 0;
 	}
       value = 0;
+    }
+  else if (conflict->ifunc)
+    {
+      error (0, 0, "%s: STT_GNU_IFUNC not handled on PowerPC64 yet",
+	     dso->filename);
+      return 1;
     }
   else
     {
@@ -771,13 +778,12 @@ ppc64_reloc_class (int reloc_type)
 {
   switch (reloc_type)
     {
-    case R_PPC64_COPY: return RTYPE_CLASS_COPY;
-    case R_PPC64_ADDR24: return RTYPE_CLASS_PLT;
+    case R_PPC64_COPY: return RTYPE_CLASS_COPY | RTYPE_CLASS_PLT;
     default:
       if (reloc_type >= R_PPC64_DTPMOD64
 	  && reloc_type <= R_PPC64_TPREL16_HIGHESTA)
 	return RTYPE_CLASS_TLS;
-      return RTYPE_CLASS_VALID;
+      return RTYPE_CLASS_PLT;
     }
 }
 
@@ -824,6 +830,7 @@ PL_ARCH(ppc64) = {
   .R_JMP_SLOT = R_PPC64_JMP_SLOT,
   .R_COPY = R_PPC64_COPY,
   .R_RELATIVE = R_PPC64_RELATIVE,
+  .rtype_class_valid = RTYPE_CLASS_PLT,
   .dynamic_linker = "/lib64/ld64.so.1",
   .adjust_section = ppc64_adjust_section,
   .adjust_dyn = ppc64_adjust_dyn,

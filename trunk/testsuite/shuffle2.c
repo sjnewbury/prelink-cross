@@ -19,9 +19,11 @@ int main()
 #ifdef __arm__
 asm (".section nonalloced,\"aw\",%nobits\n\t"
      ".globl testzero\n\t"
-     "testzero: .skip 16384");
+     "testzero: .skip 16384\n\t"
+     ".previous");
 #else
 asm (".section nonalloced,\"aw\",@nobits\n\t"
      ".globl testzero\n\t"
-     "testzero: .skip 16384");
+     "testzero: .skip 16384\n\t"
+     ".previous");
 #endif

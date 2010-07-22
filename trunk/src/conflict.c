@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2007, 2009 Red Hat, Inc.
    Copyright (C) 2008 CodeSourcery.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
    Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
@@ -36,8 +36,12 @@ prelink_conflict (struct prelink_info *info, GElf_Word r_sym,
   GElf_Word symoff = info->symtab_start + r_sym * info->symtab_entsize;
   struct prelink_conflict *conflict;
   int reloc_class = info->dso->arch->reloc_class (reloc_type);
+  size_t idx = 0;
 
-  for (conflict = info->curconflicts; conflict; conflict = conflict->next)
+  if (info->curconflicts->hash != &info->curconflicts->first)
+    idx = symoff % 251;
+  for (conflict = info->curconflicts->hash[idx]; conflict;
+       conflict = conflict->next)
     if (conflict->symoff == symoff && conflict->reloc_class == reloc_class)
       {
 	conflict->used = 1;
@@ -278,7 +282,7 @@ conflict_rela_cmp (const void *A, const void *B)
 
 int
 get_relocated_mem (struct prelink_info *info, DSO *dso, GElf_Addr addr,
-		   char *buf, GElf_Word size)
+		   char *buf, GElf_Word size, GElf_Addr dest_addr)
 {
   int sec = addr_to_sec (dso, addr), j;
   Elf_Scn *scn;
@@ -323,7 +327,7 @@ get_relocated_mem (struct prelink_info *info, DSO *dso, GElf_Addr addr,
 	 reloc offset.  */
       for (j = 0; j < info->conflict_rela_size; ++j)
 	{
-	  int reloc_type, reloc_size;
+	  int reloc_type, reloc_size, ret;
 	  off_t off;
 
 	  if (info->conflict_rela[j].r_offset >= addr + size)
@@ -345,8 +349,12 @@ get_relocated_mem (struct prelink_info *info, DSO *dso, GElf_Addr addr,
 	    return 2;
 	  /* Note that apply_conflict_rela shouldn't rely on R_SYM
 	     field of conflict to be 0.  */
-	  dso->arch->apply_conflict_rela (info, info->conflict_rela + j,
-					  buf + off);
+	  ret
+	    = dso->arch->apply_conflict_rela (info, info->conflict_rela + j,
+					      buf + off,
+					      dest_addr ? dest_addr + off : 0);
+	  if (ret)
+	    return ret;
 	}
     }
   else
@@ -469,15 +477,17 @@ prelink_build_conflicts (struct prelink_info *info)
 	}
     }
 
-  for (i = 1; i < ndeps; ++i)
+  for (i = 0; i < ndeps; ++i)
     {
+      int j, sec, first_conflict, maxidx;
+      struct prelink_conflict *conflict;
+
       dso = info->dsos[i];
-      ent = info->ent->depends[i - 1];
+      ent = i ? info->ent->depends[i - 1] : info->ent;
 
       /* Verify .gnu.liblist sections of all dependent libraries.  */
-      if (ent->ndepends > 0)
+      if (i && ent->ndepends > 0)
 	{
-	  int j;
 	  const char *name;
 	  int nliblist;
 	  Elf32_Lib *liblist;
@@ -541,83 +551,88 @@ prelink_build_conflicts (struct prelink_info *info)
 	    }
 	}
 
-      if (info->conflicts[i] || info->tls[i].modid)
+      info->curconflicts = &info->conflicts[i];
+      info->curtls = info->tls[i].modid ? info->tls + i : NULL;
+      first_conflict = info->conflict_rela_size;
+      sec = addr_to_sec (dso, dso->info[DT_SYMTAB]);
+      /* DT_SYMTAB should be found and should point to
+	 start of .dynsym section.  */
+      if (sec == -1 || dso->info[DT_SYMTAB] != dso->shdr[sec].sh_addr)
 	{
-	  int j, sec, first_conflict;
-	  struct prelink_conflict *conflict;
-
-	  info->curconflicts = info->conflicts[i];
-	  info->curtls = info->tls[i].modid ? info->tls + i : NULL;
-	  first_conflict = info->conflict_rela_size;
-	  sec = addr_to_sec (dso, dso->info[DT_SYMTAB]);
-	  /* DT_SYMTAB should be found and should point to
-	     start of .dynsym section.  */
-	  if (sec == -1
-	      || dso->info[DT_SYMTAB] != dso->shdr[sec].sh_addr)
+	  error (0, 0, "Bad symtab");
+	  goto error_out;
+	}
+      info->symtab_start = dso->shdr[sec].sh_addr - dso->base;
+      info->symtab_end = info->symtab_start + dso->shdr[sec].sh_size;
+      for (j = 0; j < dso->ehdr.e_shnum; ++j)
+	{
+	  if (! (dso->shdr[j].sh_flags & SHF_ALLOC))
+	    continue;
+	  switch (dso->shdr[j].sh_type)
 	    {
-	      error (0, 0, "Bad symtab");
-	      goto error_out;
+	    case SHT_REL:
+	      if (i == 0
+		  && strcmp (strptr (dso, dso->ehdr.e_shstrndx,
+				     dso->shdr[j].sh_name),
+			     ".gnu.conflict") == 0)
+		break;
+	      if (prelink_conflict_rel (dso, j, info))
+		goto error_out;
+	      break;
+	    case SHT_RELA:
+	      if (i == 0
+		  && strcmp (strptr (dso, dso->ehdr.e_shstrndx,
+				     dso->shdr[j].sh_name),
+			     ".gnu.conflict") == 0)
+		break;
+	      if (prelink_conflict_rela (dso, j, info))
+		goto error_out;
+	      break;
 	    }
-	  info->symtab_start = dso->shdr[sec].sh_addr - dso->base;
-	  info->symtab_end = info->symtab_start + dso->shdr[sec].sh_size;
-	  for (j = 0; j < dso->ehdr.e_shnum; ++j)
+	}
+
+      if (dso->arch->arch_prelink_conflict
+	  && dso->arch->arch_prelink_conflict (dso, info))
+	goto error_out;
+
+      maxidx = 1;
+      if (info->curconflicts->hash != &info->curconflicts->first)
+	maxidx = 251;
+      for (j = 0; j < maxidx; j++)
+	for (conflict = info->curconflicts->hash[j]; conflict;
+	     conflict = conflict->next)
+	  if (! conflict->used && (i || conflict->ifunc))
 	    {
-	      if (! (dso->shdr[j].sh_flags & SHF_ALLOC))
-		continue;
-	      switch (dso->shdr[j].sh_type)
-		{
-		case SHT_REL:
-		  if (prelink_conflict_rel (dso, j, info))
-		    goto error_out;
-		  break;
-		case SHT_RELA:
-		  if (prelink_conflict_rela (dso, j, info))
-		    goto error_out;
-		  break;
-		}
+	      error (0, 0, "%s: Conflict %08llx not found in any relocation",
+		     dso->filename, (unsigned long long) conflict->symoff);
+	      ret = 1;
 	    }
 
-	  if (dso->arch->arch_prelink_conflict
-	      && dso->arch->arch_prelink_conflict (dso, info))
-	    goto error_out;
+      /* Record library's position in search scope into R_SYM field.  */
+      for (j = first_conflict; j < info->conflict_rela_size; ++j)
+	info->conflict_rela[j].r_info
+	  = GELF_R_INFO (i, GELF_R_TYPE (info->conflict_rela[j].r_info));
 
-	  for (conflict = info->curconflicts; conflict;
-	       conflict = conflict->next)
-	    if (! conflict->used)
-	      {
-		error (0, 0, "%s: Conflict %08llx not found in any relocation",
-		       dso->filename, (unsigned long long) conflict->symoff);
-		ret = 1;
-	      }
+      if (dynamic_info_is_set (dso, DT_TEXTREL)
+	  && info->conflict_rela_size > first_conflict)
+	{
+	  /* We allow prelinking against non-PIC libraries, as long as
+	     no conflict is against read-only segment.  */
+	  int k;
 
-	  /* Record library's position in search scope into R_SYM field.  */
 	  for (j = first_conflict; j < info->conflict_rela_size; ++j)
-	    info->conflict_rela[j].r_info
-	      = reloc_r_info (dso, i,
-			      reloc_r_type (dso,
-					    info->conflict_rela[j].r_info));
-
-	  if (dynamic_info_is_set (dso, DT_TEXTREL)
-	      && info->conflict_rela_size > first_conflict)
-	    {
-	      /* We allow prelinking against non-PIC libraries, as long as
-		 no conflict is against read-only segment.  */
-	      int k;
-
-	      for (j = first_conflict; j < info->conflict_rela_size; ++j)
-		for (k = 0; k < dso->ehdr.e_phnum; ++k)
-		  if (dso->phdr[k].p_type == PT_LOAD
-		      && (dso->phdr[k].p_flags & PF_W) == 0
-		      && dso->phdr[k].p_vaddr
-			 <= info->conflict_rela[j].r_offset
-		      && dso->phdr[k].p_vaddr + dso->phdr[k].p_memsz
-			 > info->conflict_rela[j].r_offset)
-		    {
-		      error (0, 0, "%s: Cannot prelink against non-PIC shared library %s",
-			     info->dso->filename, dso->filename);
-		      goto error_out;
-		    }
-	    }
+	    for (k = 0; k < dso->ehdr.e_phnum; ++k)
+	      if (dso->phdr[k].p_type == PT_LOAD
+		  && (dso->phdr[k].p_flags & PF_W) == 0
+		  && dso->phdr[k].p_vaddr
+		     <= info->conflict_rela[j].r_offset
+		  && dso->phdr[k].p_vaddr + dso->phdr[k].p_memsz
+		     > info->conflict_rela[j].r_offset)
+		{
+		  error (0, 0, "%s: Cannot prelink against non-PIC shared library %s",
+			 info->dso->filename, dso->filename);
+		  goto error_out;
+		}
 	}
     }
 
@@ -755,11 +770,13 @@ prelink_build_conflicts (struct prelink_info *info)
 	  if (i < firstbss2)
 	    j = get_relocated_mem (info, ndso, s->u.ent->base + s->value,
 				   info->sdynbss + cr.rela[i].r_offset
-				   - info->sdynbss_base, cr.rela[i].r_addend);
+				   - info->sdynbss_base, cr.rela[i].r_addend,
+				   cr.rela[i].r_offset);
 	  else
 	    j = get_relocated_mem (info, ndso, s->u.ent->base + s->value,
 				   info->dynbss + cr.rela[i].r_offset
-				   - info->dynbss_base, cr.rela[i].r_addend);
+				   - info->dynbss_base, cr.rela[i].r_addend,
+				   cr.rela[i].r_offset);
 
 	  switch (j)
 	    {

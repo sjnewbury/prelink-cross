@@ -5,8 +5,8 @@ AUTOMAKE_OPTIONS = 1.4 gnu
 PKGVERSION = "\"@PKGVERSION@\""
 REPORT_BUGS_TO = "\"@REPORT_BUGS_TO@\""
 
-DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -Wall
-AM_CFLAGS = -Wall
+DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -Wall -Wno-pointer-sign
+AM_CFLAGS = -Wall -Wno-pointer-sign
 AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"' \
             -DEXECSTACK_PROG="\"`echo execstack | sed '$(transform)'`\"" \
             -DPRELINK_PROG="\"`echo prelink | sed '$(transform)'`\"" \

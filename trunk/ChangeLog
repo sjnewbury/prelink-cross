@@ -1,3 +1,283 @@
+2009-08-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* src/dwarf2.c (dwarf2_write_le64, dwarf2_write_be64): Shift by 56
+	not 58 for MSB.
+
+2009-07-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/conflict.c (prelink_build_conflicts): Don't call
+	prelink_conflict_rel{,a} on .gnu.conflict section in executables.
+
+2009-06-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/prelink.h (R_386_IRELATIVE, R_X86_64_IRELATIVE): Define
+	if not defined.
+	(struct PLArch): Add dest_addr argument to apply_conflict_rela
+	hook.
+	(struct prelink_conflict): Change used type from int to unsigned
+	char, add ifunc field.
+	(get_relocated_mem): Add dest_addr argument.
+	* src/get.c (prelink_record_relocations): Handle lookups resolving
+	to STT_GNU_IFUNC symbols.
+	* src/conflict.c (get_relocated_mem): Add dest_addr argument, pass
+	it through to the apply_conflict_rela hook.  Fail if
+	apply_conflict_rela hook failed.
+	(prelink_build_conflicts): Build conflicts even in the executable,
+	and for libraries even if no conflicts were reported by the dynamic
+	linker.  In the executable ignore any unused conflicts except for
+	ifunc conflicts.  Adjust get_relocated_mem callers.
+	* src/cxx.c (remove_redundant_cxx_conflicts): Adjust
+	get_relocated_mem callers.
+	* arch-alpha.c (alpha_apply_conflict_rela): Add dest_addr argument.
+	(alpha_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-arm.c (arm_apply_conflict_rela): Add dest_addr argument.
+	(arm_prelink_conflict_rel, arm_prelink_conflict_rela): Return early
+	if info->dso == dso.
+	* arch-cris.c (cris_apply_conflict_rela): Add dest_addr argument.
+	(cris_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-ia64.c (ia64_apply_conflict_rela): Add dest_addr argument.
+	(ia64_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-ppc.c (ppc_apply_conflict_rela): Add dest_addr argument.
+	(ppc_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-ppc64.c (ppc64_apply_conflict_rela): Add dest_addr argument.
+	(ppc64_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-s390.c (s390_apply_conflict_rela): Add dest_addr argument.
+	(s390_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-s390x.c (s390x_apply_conflict_rela): Add dest_addr argument.
+	(s390x_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-sh.c (sh_apply_conflict_rela): Add dest_addr argument.
+	(sh_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-sparc.c (sparc_apply_conflict_rela): Add dest_addr argument.
+	(sparc_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-sparc64.c (sparc64_apply_conflict_rela): Add dest_addr argument.
+	(sparc64_prelink_conflict_rela): Return early if info->dso == dso.
+	* arch-mips.c (mipz_apply_conflict_rela): Add dest_addr argument.
+	(mips_prelink_conflict_reloc, mips_arch_prelink_conflict): Return
+	early if info->dso == dso.
+	* arch-i386.c (i386_adjust_rel, i386_adjust_rela, i386_prelink_rel,
+	i386_prelink_rela, i386_rel_to_rela, i386_undo_prelink_rel,
+	i386_rela_to_rel): Handle R_386_IRELATIVE.
+	(i386_apply_conflict_rela): Add dest_addr argument, handle
+	R_386_IRELATIVE.
+	(i386_prelink_conflict_rel, i386_prelink_conflict_rela): Handle
+	R_386_IRELATIVE and conflict->ifunc conflicts.
+	* arch-x86_64.c (x86_64_adjust_rela, x86_64_prelink_rela,
+	x86_64_undo_prelink_rela): Handle R_X86_64_IRELATIVE.
+	(x86_64_apply_conflict_rela): Handle R_X86_64_IRELATIVE and
+	conflict->ifunc conflicts.
+	* testsuite/Makefile.am (TESTS): Add ifunc1.sh, ifunc2.sh and
+	ifunc3.sh.
+	* testsuite/Makefile.in: Regenerated.
+	* testsuite/ifunc1.sh: New test.
+	* testsuite/ifunc2.sh: New test.
+	* testsuite/ifunc3.sh: New test.
+	* testsuite/ifunc1.c: New file.
+	* testsuite/ifunc1lib1.c: New file.
+	* testsuite/ifunc1lib2.c: New file.
+	* testsuite/ifunc3.c: New file.
+	* testsuite/ifunc3lib1.c: New file.
+	* testsuite/ifunc.h: New file.
+	* testsuite/ifunctest.c: New file.
+
+	* src/Makefile.am (DEFS, AM_CFLAGS): Add -Wno-pointer-sign.
+	* src/Makefile.in: Regenerated.
+	* src/data.c (reopen_dso): Initialize data variable to avoid
+	warnings.
+
+	* src/dwarf2.h (DW_TAG_condition, DW_TAG_shared_type): Define.
+	(DW_OP_form_tls_address, DW_OP_call_frame_cfa, DW_OP_bit_piece,
+	DW_OP_implicit_value, DW_OP_stack_value, DW_OP_GNU_uninit,
+	DW_OP_GNU_encoded_addr): Define.
+	(DW_ATE_packed_decimal, DW_ATE_numeric_string, DW_ATE_edited,
+	DW_ATE_signed_fixed, DW_ATE_unsigned_fixed, DW_ATE_decimal_float):
+	Define.
+	(DW_CFA_val_offset, DW_CFA_val_offset_sf, DW_CFA_val_expression):
+	Define.
+	(DW_LANG_PLI, DW_LANG_ObjC, DW_LANG_ObjC_plus_plus, DW_LANG_UPC,
+	DW_LANG_D): Define.
+	* src/dwarf2.c (debug_sections): Add .debug_pubtypes.
+	(DEBUG_PUBTYPES): Define.
+	(DEBUG_MACINFO, DEBUG_LOC, DEBUG_STR, DEBUG_FRAME, DEBUG_RANGES):
+	Adjust.
+	(struct cu_data): Add cu_version field.
+	(read_abbrev): Adjust error messages not to be DWARF-2 specific.
+	(adjust_location_list): Likewise.  Fix up DW_OP_call_ref handling,
+	handle DW_OP_form_tls_address, DW_OP_call_frame_cfa,
+	DW_OP_GNU_uninit, DW_OP_bit_piece, DW_OP_stack_value and
+	DW_OP_implicit_value.
+	(adjust_attributes): For cu->cu_version == 2 skip ptr_size bytes
+	instead of just 4.  Adjust error messages not to be DWARF-2
+	specific.
+	(adjust_dwarf2_line): Handle version 3 of .debug_line.
+	(adjust_dwarf2_frame): Just that CIE version is 1 or 3, for
+	version 1 skip just one byte instead of uleb128 for return address
+	column.  Handle DW_CFA_val_offset, DW_CFA_val_offset_sf and
+	DW_CFA_val_expression.
+	(adjust_dwarf2): Handle version 3 of .debug_info, initialize
+	cu.cu_version.  Adjust error messages not to be DWARF-2 specific.
+	Note that .debug_pubtypes doesn't need adjustments.
+
+2009-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/prelink.h (PLArch): Add rtype_class_valid field.
+	* src/get.c (prelink_record_relocations): If not /4, or
+	dso->arch->rtype_class_valid instead of RTYPE_CLASS_VALID
+	into reloc_class.
+	* src/cxx.c (remove_redundant_cxx_conflicts): Use
+	info->dso->arch->rtype_class_valid instead of RTYPE_CLASS_VALID.
+	* src/arch-ppc64.c (ppc64_reloc_class): For R_PPC64_COPY return
+	RTYPE_CLASS_COPY | RTYPE_CLASS_PLT, for non-TLS relocs return
+	RTYPE_CLASS_PLT.
+	(PL_ARCH): Set rtype_class_valid to RTYPE_CLASS_PLT.
+	* src/arch-alpha.c (PL_ARCH): Set rtype_class_valid to
+	RTYPE_CLASS_VALID.
+	* src/arch-arm.c (PL_ARCH): Likewise.
+	* src/arch-cris.c (PL_ARCH): Likewise.
+	* src/arch-i386.c (PL_ARCH): Likewise.
+	* src/arch-ia64.c (PL_ARCH): Likewise.
+	* src/arch-mips.c (PL_ARCH): Likewise.
+	* src/arch-ppc.c (PL_ARCH): Likewise.
+	* src/arch-s390.c (PL_ARCH): Likewise.
+	* src/arch-s390x.c (PL_ARCH): Likewise.
+	* src/arch-sh.c (PL_ARCH): Likewise.
+	* src/arch-sparc.c (PL_ARCH): Likewise.
+	* src/arch-sparc64.c (PL_ARCH): Likewise.
+	* src/arch-x86_64.c (PL_ARCH): Likewise.
+
+2009-03-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* testsuite/reloc2.sh, testsuite/tls3.sh: Add ARM to architectures
+	requiring PIC shared libraries.
+
+2009-03-04  Daniel Jacobowitz  <dan@codesourcery.com>
+            Joseph Myers  <joseph@codesourcery.com>
+
+	* src/arch-arm.c (arm_prelink_rel, arm_prelink_rela,
+	arm_prelink_conflict_rel, arm_prelink_conflict_rela, arm_rel_to_rela,
+	arm_rela_to_rel, arm_need_rel_to_rela, arm_undo_prelink_rel,
+	arm_reloc_class): Handle TLS relocations.
+	* src/prelink.h (R_ARM_TLS_DTPMOD32, R_ARM_TLS_DTPOFF32,
+	R_ARM_TLS_TPOFF32): Define if R_ARM_TLS_DTPMOD32 not already
+	defined.
+
+2009-03-04  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* src/arch-arm.c (arm_adjust_dyn, arm_adjust_rel, arm_adjust_rela,
+	arm_prelink_rel, arm_prelink_rela, arm_apply_conflict_rela,
+	arm_apply_rel, arm_apply_rela, arm_prelink_conflict_rela,
+	arm_rel_to_rela, arm_rela_to_rel, arm_need_rel_to_rela,
+	arm_arch_prelink, arm_arch_undo_prelink, arm_undo_prelink_rel):
+	Use endian-neutral functions.
+
+2008-09-29 Joseph Myers  <joseph@codesourcery.com>
+
+	* src/arch-sparc64.c (sparc64_prelink_rela,
+	sparc64_prelink_conflict_rela, sparc64_undo_prelink_rela,
+	sparc64_reloc_class): Handle TLS relocations.
+	(PL_ARCH): Update mmap_base and mmap_end for TASK_UNMAPPED_BASE
+	change to 0xfffff80100000000.
+
+2007-12-04  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* src/gather.c (gather_object): Print an error if nftw64 fails.
+
+2007-10-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/cxx.c (remove_redundant_cxx_conflicts): Allow .sdata
+	section as well.
+
+	* src/prelink.h (struct prelink_conflict): Add next2 field.
+	(struct prelink_conflicts): Add hash2 field.
+	* src/get.c (prelink_record_relocations): Clear next2 fields.
+	* src/prelink.c (free_info): Also free hash2 table.
+	* src/cxx.c (remove_redundant_cxx_conflicts): Populate hash2
+	if not populated yet, use it to speed up pltref checking.
+
+	* src/prelink.h (struct prelink_conflicts): New type.
+	(struct prelink_info): Change type of conflicts and curconflicts
+	fields to struct prelink_conflicts *.
+	* src/get.c (conflict_hash_init): New function.
+	(prelink_record_relocations): Adjust initialization of conflicts
+	array.  If conflict linked lists has more than 15 entries, use
+	hash table with chains.
+	* src/prelink.c (free_info): Handle freeing conflict list using a hash
+	table.
+	* src/fptr.c (opd_init): Only walk corresponding hash chain if
+	conflict list is using a hash table.
+	* src/conflict.c (prelink_conflict): Likewise.
+	(prelink_build_conflicts): Handle conflict list using a hash table.
+	* src/cxx.c (remove_redundant_cxx_conflicts): Likewise.  Only walk
+	corresponding hash chain if conflict list is using a hash table.
+
+	* src/doit.c (find_ents): Clear e->u.tmp.
+	(clear_ent_marks, find_unlisted_dependency): Remove.
+	(prelink_ent): More efficient non-recursive check for
+	unlisted dependencies.
+
+	* src/cxx.c (find_cxx_sym): If fcs->lastndx != -1, search first
+	among symbols around it.
+
+2007-10-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/space.c (find_readonly_space): Disallow section insertion in
+	between adjacent SHT_NOTE sections.  When creating new PT_LOAD,
+	handle multiple consecutive SHT_NOTE sections with just one PT_NOTE
+	segment for them.
+	* testsuite/Makefile.am (TESTS): Add shuffle9.sh.
+	* testsuite/Makefile.in: Regenerated.
+	* testsuite/shuffle9.sh: New test.
+	* testsuite/shuffle9.c: New.
+
+	* testsuite/shuffle2.c: Add .previous at the end of __asm.
+	* testsuite/reloc5.c (main): Likewise.
+
+	* testsuite/tls3.sh: If libs aren't built with -fpic,
+	disable the test under SELinux in enforcing mode.
+
+	* src/cxx.c: Include alloca.h.
+	(specials): Moved out of remove_redundant_cxx_conflicts to toplevel.
+	Remove section fields.
+	(find_cxx_sym_valsize, find_cxx_sym_cache): New structs.
+	(struct find_cxx_sym): Add cache and lastndx fields.
+	(cachecmp, create_cache): New functions.
+	(find_cxx_sym): Add cache argument.  If cache[n] is NULL, call
+	create_cache.  Do a binary search in cache[n]->vals array instead
+	of always reading the whole symbol table.
+	(remove_redundant_cxx_conflicts): Adjust find_cxx_sym caller.
+	Check if secname is ".data" or ".data.rel.ro" instead of comparing
+	it against specials[k].secname.  Use binary search in binsymcache
+	when doing check_pltref checks.
+	* testsuite/Makefile.am (TESTS): Add cxx2.sh.
+	* testsuite/Makefile.in: Regenerated.
+	* testsuite/cxx1.sh: Check that some conflicts are optimized out
+	by C++ optimizations.
+	* testsuite/cxx2.sh: New test.
+	* testsuite/cxx2.C: New.
+
+2007-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/prelink.h (read_config): New prototype.
+	(gather_config, blacklist_from_config): Remove argument.
+	* src/gather.c (struct config_line): New type.
+	(config_lines, config_end): New variables.
+	(read_config): New function.
+	(gather_config, blacklist_from_config): Walk config_lines
+	chain instead of reading the config file.
+	* src/verify.c (prelink_verify): Call read_config.  Don't
+	pass any argument to gather_config.
+	* src/main.c (main): Likewise.  Also for blacklist_from_config.
+	* testsuite/quick2.sh: Use new -c etc/prelink.conf.d/*.conf
+	feature in prelink.conf and multiple config snippets.
+
+2007-06-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/reloc2.sh: If libs aren't built with -fpic,
+	disable the test under SELinux in enforcing mode.
+
+2007-03-02  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/prelink.8: Spelling and grammar fixes.
+
 2006-12-01  Jakub Jelinek  <jakub@redhat.com>
 
 	* src/verify.c (prelink_verify): Unlink ent->filename in case of

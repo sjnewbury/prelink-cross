@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2009 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -30,7 +30,7 @@
 
 static int
 sh_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
-		 GElf_Addr adjust)
+	       GElf_Addr adjust)
 {
   if (dyn->d_tag == DT_PLTGOT)
     {
@@ -67,7 +67,7 @@ sh_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
 
 static int
 sh_adjust_rel (DSO *dso, GElf_Rel *rel, GElf_Addr start,
-		 GElf_Addr adjust)
+	       GElf_Addr adjust)
 {
   error (0, 0, "%s: SH doesn't support REL relocs", dso->filename);
   return 1;
@@ -75,7 +75,7 @@ sh_adjust_rel (DSO *dso, GElf_Rel *rel, GElf_Addr start,
 
 static int
 sh_adjust_rela (DSO *dso, GElf_Rela *rela, GElf_Addr start,
-		  GElf_Addr adjust)
+		GElf_Addr adjust)
 {
   Elf32_Addr data;
 
@@ -107,7 +107,7 @@ sh_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
 
 static int
 sh_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
-		   GElf_Addr relaaddr)
+		 GElf_Addr relaaddr)
 {
   DSO *dso;
   GElf_Addr value;
@@ -151,7 +151,7 @@ sh_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
 
 static int
 sh_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
-			  char *buf)
+			char *buf, GElf_Addr dest_addr)
 {
   switch (GELF_R_TYPE (rela->r_info))
     {
@@ -206,7 +206,7 @@ sh_apply_rela (struct prelink_info *info, GElf_Rela *rela, char *buf)
 
 static int
 sh_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
-			   GElf_Addr reladdr)
+			 GElf_Addr reladdr)
 {
   error (0, 0, "%s: SH doesn't support REL relocs", dso->filename);
   return 1;
@@ -214,20 +214,27 @@ sh_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
 
 static int
 sh_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
-			    GElf_Rela *rela, GElf_Addr relaaddr)
+			  GElf_Rela *rela, GElf_Addr relaaddr)
 {
   GElf_Addr value;
   struct prelink_conflict *conflict;
   GElf_Rela *ret;
 
   if (GELF_R_TYPE (rela->r_info) == R_SH_RELATIVE
-      || GELF_R_TYPE (rela->r_info) == R_SH_NONE)
+      || GELF_R_TYPE (rela->r_info) == R_SH_NONE
+      || info->dso == dso)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rela->r_info),
 			       GELF_R_TYPE (rela->r_info));
   if (conflict == NULL)
     return 0;
+  else if (conflict->ifunc)
+    {
+      error (0, 0, "%s: STT_GNU_IFUNC not handled on SuperH yet",
+	     dso->filename);
+      return 1;
+    }
   value = conflict_lookup_value (conflict);
   ret = prelink_conflict_add_rela (info);
   if (ret == NULL)
@@ -414,6 +421,7 @@ PL_ARCH(sh) = {
   .R_JMP_SLOT = R_SH_JMP_SLOT,
   .R_COPY = R_SH_COPY,
   .R_RELATIVE = R_SH_RELATIVE,
+  .rtype_class_valid = RTYPE_CLASS_VALID,
   .dynamic_linker = "/lib/ld-linux.so.2",
   .adjust_dyn = sh_adjust_dyn,
   .adjust_rel = sh_adjust_rel,

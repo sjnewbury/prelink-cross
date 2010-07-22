@@ -1,4 +1,5 @@
-/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
+   Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
    Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
 
@@ -103,6 +104,20 @@ typedef uint8_t Elf64_Byte;
 #define RSS_UNDEF              0
 #endif
 
+#ifndef R_ARM_TLS_DTPMOD32
+#define R_ARM_TLS_DTPMOD32	17
+#define R_ARM_TLS_DTPOFF32	18
+#define R_ARM_TLS_TPOFF32	19
+#endif
+
+#ifndef R_386_IRELATIVE
+#define R_386_IRELATIVE		42
+#endif
+
+#ifndef R_X86_64_IRELATIVE
+#define R_X86_64_IRELATIVE	37
+#endif
+
 struct prelink_entry;
 struct prelink_info;
 struct PLArch;
@@ -180,6 +195,7 @@ struct PLArch
   int R_COPY;
   int R_JMP_SLOT;
   int R_RELATIVE;
+  int rtype_class_valid;
   int (*arch_adjust) (DSO *dso, GElf_Addr start, GElf_Addr adjust);
   int (*adjust_section) (DSO *dso, int n, GElf_Addr start, GElf_Addr adjust);
   int (*adjust_dyn) (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
@@ -198,7 +214,7 @@ struct PLArch
   				GElf_Rela *rela, GElf_Addr relaaddr);
   int (*arch_prelink_conflict) (DSO *dso, struct prelink_info *info);
   int (*apply_conflict_rela) (struct prelink_info *info, GElf_Rela *rela,
-			      char *buf);
+			      char *buf, GElf_Addr dest_addr);
   int (*apply_rel) (struct prelink_info *info, GElf_Rel *rel, char *buf);
   int (*apply_rela) (struct prelink_info *info, GElf_Rela *rela, char *buf);
   int (*rel_to_rela) (DSO *dso, GElf_Rel *rel, GElf_Rela *rela);
@@ -416,6 +432,7 @@ struct prelink_symbol
 struct prelink_conflict
 {
   struct prelink_conflict *next;
+  struct prelink_conflict *next2;
   /* Object which it was relocated to.  */
   union
     {
@@ -431,7 +448,16 @@ struct prelink_conflict
   /* Value it has in conflict.ent.  */
   GElf_Addr conflictval;
   int reloc_class;
-  int used;
+  unsigned char used;
+  unsigned char ifunc;
+};
+
+struct prelink_conflicts
+{
+  struct prelink_conflict *first;
+  struct prelink_conflict **hash;
+  struct prelink_conflict **hash2;
+  size_t count;
 };
 
 #define conflict_lookup_value(cfl)					  \
@@ -444,8 +470,8 @@ struct prelink_info
   DSO **dsos;
   struct prelink_entry *ent;
   struct prelink_symbol *symbols;
-  struct prelink_conflict **conflicts;
-  struct prelink_conflict *curconflicts;
+  struct prelink_conflicts *conflicts;
+  struct prelink_conflicts *curconflicts;
   struct prelink_tls *tls, *curtls;
   const char **sonames;
   char *dynbss, *sdynbss;
@@ -488,17 +514,18 @@ int prelink_undo (DSO *dso);
 int prelink_verify (const char *filename);
 
 int gather_object (const char *dir, int deref, int onefs);
-int gather_config (const char *config);
+int read_config (const char *config);
+int gather_config (void);
 int gather_check_libs (void);
 int add_to_blacklist (const char *name, int deref, int onefs);
-int blacklist_from_config (const char *config);
+int blacklist_from_config (void);
 
 FILE *execve_open (const char *path, char *const argv[], char *const envp[]);
 int execve_close (FILE *f);
 
 int remove_redundant_cxx_conflicts (struct prelink_info *info);
 int get_relocated_mem (struct prelink_info *info, DSO *dso, GElf_Addr addr,
-		       char *buf, GElf_Word size);
+		       char *buf, GElf_Word size, GElf_Addr dest_addr);
 
 int layout_libs (void);
 

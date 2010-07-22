@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2009 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -196,7 +196,7 @@ ia64_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
 
 static int
 ia64_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
-			  char *buf)
+			  char *buf, GElf_Addr dest_addr)
 {
   if ((GELF_R_TYPE (rela->r_info) & ~1) == R_IA64_IPLTMSB)
     {
@@ -312,13 +312,20 @@ ia64_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
   GElf_Rela *ret;
 
   if ((GELF_R_TYPE (rela->r_info) & ~3) == R_IA64_REL32MSB
-      || GELF_R_TYPE (rela->r_info) == R_IA64_NONE)
+      || GELF_R_TYPE (rela->r_info) == R_IA64_NONE
+      || info->dso == dso)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rela->r_info),
 			       GELF_R_TYPE (rela->r_info));
   if (conflict == NULL)
     return 0;
+  else if (conflict->ifunc)
+    {
+      error (0, 0, "%s: STT_GNU_IFUNC not handled on IA-64 yet",
+	     dso->filename);
+      return 1;
+    }
   value = conflict_lookup_value (conflict);
   ret = prelink_conflict_add_rela (info);
   if (ret == NULL)
@@ -493,6 +500,7 @@ PL_ARCH(ia64) = {
   .R_JMP_SLOT = R_IA64_IPLTLSB,
   .R_COPY = -1,
   .R_RELATIVE = R_IA64_REL64LSB,
+  .rtype_class_valid = RTYPE_CLASS_VALID,
   .dynamic_linker = "/lib/ld-linux-ia64.so.2",
   .adjust_dyn = ia64_adjust_dyn,
   .adjust_rel = ia64_adjust_rel,

@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2004 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2004, 2009 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -159,7 +159,7 @@ cris_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
 
 static int
 cris_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
-			  char *buf)
+			  char *buf, GElf_Addr dest_addr)
 {
   switch (GELF_R_TYPE (rela->r_info))
     {
@@ -247,13 +247,20 @@ cris_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
   GElf_Rela *ret;
 
   if (GELF_R_TYPE (rela->r_info) == R_CRIS_RELATIVE
-      || GELF_R_TYPE (rela->r_info) == R_CRIS_NONE)
+      || GELF_R_TYPE (rela->r_info) == R_CRIS_NONE
+      || info->dso == dso)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rela->r_info),
 			       GELF_R_TYPE (rela->r_info));
   if (conflict == NULL)
     return 0;
+  else if (conflict->ifunc)
+    {
+      error (0, 0, "%s: STT_GNU_IFUNC not handled on CRIS yet",
+	     dso->filename);
+      return 1;
+    }
   value = conflict_lookup_value (conflict);
   ret = prelink_conflict_add_rela (info);
   if (ret == NULL)
@@ -375,6 +382,7 @@ PL_ARCH(cris) = {
   .R_JUMP_SLOT = R_CRIS_JUMP_SLOT,
   .R_COPY = R_CRIS_COPY,
   .R_RELATIVE = R_CRIS_RELATIVE,
+  .rtype_class_valid = RTYPE_CLASS_VALID,
   .dynamic_linker = "/lib/ld.so.1",
   .adjust_dyn = cris_adjust_dyn,
   .adjust_rel = cris_adjust_rel,

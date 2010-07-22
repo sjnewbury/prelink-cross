@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -817,15 +817,37 @@ free_info (struct prelink_info *info)
     {
       for (i = 0; i < info->ent->ndepends + 1; ++i)
 	{
-	  struct prelink_conflict *c = info->conflicts[i];
-	  void *f;
-
-	  while (c != NULL)
+	  if (info->conflicts[i].hash == &info->conflicts[i].first)
 	    {
-	      f = c;
-	      c = c->next;
-	      free (f);
+	      struct prelink_conflict *c = info->conflicts[i].first;
+	      void *f;
+
+	      while (c != NULL)
+		{
+		  f = c;
+		  c = c->next;
+		  free (f);
+		}
 	    }
+	  else
+	    {
+	      int j;
+	      for (j = 0; j < 251; j++)
+	        {
+		  struct prelink_conflict *c = info->conflicts[i].hash[j];
+		  void *f;
+
+		  while (c != NULL)
+		    {
+		      f = c;
+		      c = c->next;
+		      free (f);
+		    }
+		}
+	      free (info->conflicts[i].hash);
+	    }
+	  if (info->conflicts[i].hash2 != NULL)
+	    free (info->conflicts[i].hash2);
 	}
       free (info->conflicts);
     }
