@@ -1,0 +1,17 @@
+This version of the prelinker has a number of patch that enable cross 
+prelinking.  Specific patches to address CPUs common to embedded 
+systems, that have not yet been merged upstream, also exist in this version.
+
+Please contact <mark.hatle@windriver.com> if you have a question about this
+version.  The original author, and open source maintainer is not responsible
+for the modified version!
+
+Compilation
+-----------
+
+In order to build this, you will likely need to regenerate many of the
+autotools files.  I suggest:
+libtoolize --copy --force
+aclocal -I m4
+autoconf
+automake
