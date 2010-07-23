@@ -180,8 +180,11 @@ reloc_type_class (int type, int machine)
 	  return ELF_RTYPE_CLASS_COPY;
 	case R_MIPS_JUMP_SLOT:
 	case R_MIPS_TLS_DTPMOD32:
+	case R_MIPS_TLS_DTPMOD64:
 	case R_MIPS_TLS_DTPREL32:
+	case R_MIPS_TLS_DTPREL64:
 	case R_MIPS_TLS_TPREL32:
+	case R_MIPS_TLS_TPREL64:
 	  return ELF_RTYPE_CLASS_PLT;
 	default:
 	  return 0;

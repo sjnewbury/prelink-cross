@@ -1,3 +1,6 @@
+2010-07-23  Mark Hatle <mark.hatle@windriver.com>
+	* src/ld-libs.c: Handle MIPS64 TLS PLT relocs
+
 2010-07-22  Mark Hatle <mark.hatle@windriver.com>
 	* src/dso.c: Add DSO_READONLY conditionals
 	* src/dso-readonly.c: remove
