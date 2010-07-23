@@ -1,3 +1,7 @@
+2010-07-22  Mark Hatle <mark.hatle@windriver.com>
+	* Merge to upstream r185
+	* Resync dso-readonly.c from dso.c
+
 2010-06-18  Mark Hatle <mark.hatle@windriver.com>
 
 	* Sync src/dso-readonly.c and ...
