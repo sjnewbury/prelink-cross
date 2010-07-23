@@ -1,4 +1,10 @@
 2010-07-22  Mark Hatle <mark.hatle@windriver.com>
+	* src/dso.c: Add DSO_READONLY conditionals
+	* src/dso-readonly.c: remove
+	* src/Makefile.am: switch RTLD dep to dso.c, pass DSO_READONLY
+	* configure.in: Add AM_PROG_CC_C_O
+
+2010-07-22  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r185
 	* Resync dso-readonly.c from dso.c
 

@@ -273,8 +273,10 @@ fdopen_dso (int fd, const char *name)
   GElf_Addr last_off;
   int i, j, k, last, *sections, *invsections;
   DSO *dso = NULL;
+#ifndef DSO_READONLY
   struct PLArch *plarch;
   extern struct PLArch __start_pl_arch[], __stop_pl_arch[];
+#endif /* DSO_READONLY */
 
   elf = elf_begin (fd, ELF_C_READ, NULL);
   if (elf == NULL)
@@ -402,6 +404,7 @@ fdopen_dso (int fd, const char *name)
       invsections[sections[i]] = i;
     }
 
+#ifndef DSO_READONLY
   if (j)
     {
       dso->move = init_section_move (dso);
@@ -410,6 +413,7 @@ fdopen_dso (int fd, const char *name)
       memcpy (dso->move->old_to_new, invsections, dso->ehdr.e_shnum * sizeof (int));
       memcpy (dso->move->new_to_old, sections, dso->ehdr.e_shnum * sizeof (int));
     }
+#endif /* DSO_READONLY */
 
   last_off = 0;
   for (i = 1; i < ehdr.e_shnum; ++i)
@@ -468,6 +472,7 @@ fdopen_dso (int fd, const char *name)
     }
   dso->ehdr.e_shstrndx = invsections[dso->ehdr.e_shstrndx];
 
+#ifndef DSO_READONLY
   for (plarch = __start_pl_arch; plarch < __stop_pl_arch; plarch++)
     if (plarch->class == ehdr.e_ident[EI_CLASS]
 	&& (plarch->machine == ehdr.e_machine
@@ -483,6 +488,9 @@ fdopen_dso (int fd, const char *name)
     }
 
   dso->arch = plarch;
+#else
+  dso->arch = NULL;
+#endif /* DSO_READONLY */
 
   dso->base = ~(GElf_Addr) 0;
   dso->align = 0;
@@ -522,6 +530,7 @@ fdopen_dso (int fd, const char *name)
 	dso->soname = (const char *) strdup (soname);
     }
 
+#ifndef DSO_READONLY
   if (dso->arch->machine == EM_ALPHA
       || dso->arch->machine == EM_MIPS)
     for (i = 1; i < ehdr.e_shnum; ++i)
@@ -538,6 +547,7 @@ fdopen_dso (int fd, const char *name)
 	    break;
 	  }
       }
+#endif /* DSO_READONLY */
 
   return dso;
 
@@ -560,6 +570,7 @@ error_out:
   return NULL;
 }
 
+#ifndef DSO_READONLY
 static int
 adjust_symtab_section_indices (DSO *dso, int n, int old_shnum, int *old_to_new)
 {
@@ -1086,6 +1097,7 @@ adjust_symtab (DSO *dso, int n, GElf_Addr start, GElf_Addr adjust)
   elf_flagscn (scn, ELF_C_SET, ELF_F_DIRTY);
   return 0;
 }
+#endif /* DSO_READONLY */
 
 int
 dso_is_rdwr (DSO *dso)
@@ -1093,6 +1105,7 @@ dso_is_rdwr (DSO *dso)
   return dso->elfro != NULL;
 }
 
+#ifndef DSO_READONLY
 GElf_Addr
 adjust_old_to_new (DSO *dso, GElf_Addr addr)
 {
@@ -1195,6 +1208,7 @@ adjust_dynamic (DSO *dso, int n, GElf_Addr start, GElf_Addr adjust)
   read_dynamic (dso);
   return 0;
 }
+#endif /* DSO_READONLY */
 
 int
 addr_to_sec (DSO *dso, GElf_Addr addr)
@@ -1216,6 +1230,7 @@ addr_to_sec (DSO *dso, GElf_Addr addr)
   return -1;
 }
 
+#ifndef DSO_READONLY
 static int
 adjust_rel (DSO *dso, int n, GElf_Addr start, GElf_Addr adjust)
 {
@@ -1620,6 +1635,7 @@ relocate_dso (DSO *dso, GElf_Addr base)
 
   return adjust_dso (dso, 0, base - dso->base);
 }
+#endif /* DSO_READONLY */
 
 static int
 close_dso_1 (DSO *dso)
@@ -1672,6 +1688,7 @@ close_dso (DSO *dso)
   return 0;
 }
 
+#ifndef DSO_READONLY
 int
 prepare_write_dso (DSO *dso)
 {
@@ -1740,7 +1757,7 @@ set_security_context (const char *temp_name, const char *name,
 	}
       freecon (scontext);
     }
-#endif
+#endif /* USE_SELINUX */
   return 0;
 }
 
@@ -1869,3 +1886,4 @@ update_dso (DSO *dso, const char *orig_name)
 
   return 0;
 }
+#endif /* DSO_READONLY */

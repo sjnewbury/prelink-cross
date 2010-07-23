@@ -14,4 +14,4 @@ autotools files.  I suggest:
 libtoolize --copy --force
 aclocal -I m4
 autoconf
-automake
+automake --add-missing

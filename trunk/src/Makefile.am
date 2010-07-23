@@ -38,10 +38,11 @@ execstack_SOURCES = execstack.c $(common_SOURCES) $(arch_SOURCES)
 execstack_LDADD = -liberty
 execstack_LDFLAGS =
 
-prelink_rtld_SOURCES = data.c dso-readonly.c ld-libs.c ld-lookup.c \
+prelink_rtld_SOURCES = data.c dso.c ld-libs.c ld-lookup.c \
 		       canonicalize.c wrap-file.c ld-lookup64.c \
                        reloc-info.c reloc-info.h
 prelink_rtld_LDADD = @LIBGELF@ -liberty
+prelink_rtld_CFLAGS = -DDSO_READONLY
 prelink_rtld_LDFLAGS =
 
 extra_DIST = makecrc.c
