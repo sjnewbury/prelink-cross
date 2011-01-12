@@ -1,3 +1,20 @@
+2010-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/dwarf2.h (DW_OP_GNU_implicit_pointer): Define.
+	* src/dwarf2.c (adjust_location_list): Add CU argument, fix
+	handling of DW_OP_call_ref, handle DW_OP_GNU_implicit_pointer.
+	(adjust_dwarf2_loc): Add CU argument, adjust adjust_location_list
+	caller.
+	(adjust_attributes): Adjust adjust_location_list and
+	adjust_dwarf2_loc callers.
+	(adjust_dwarf2_frame): Likewise.
+
+2010-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/dso.c: Include sys/xattr.h.
+	(copy_xattrs): New function.
+	(set_security_context): Call it.
+
 2010-07-14  Jakub Jelinek  <jakub@redhat.com>
 
 	* src/prelink.h (copy_fd_to_file): New prototype.
