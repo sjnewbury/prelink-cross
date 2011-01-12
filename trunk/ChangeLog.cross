@@ -1,3 +1,7 @@
+2011-01-12  Mark Hatle <mark.hatle@wwindriver.com>
+	* Merge to upstream r187
+	* Resolve merge conflict
+
 2010-07-23  Mark Hatle <mark.hatle@windriver.com>
 	* src/ld-libs.c: Handle MIPS64 TLS PLT relocs
 
