@@ -298,6 +298,7 @@ GElf_Addr adjust_old_to_new (DSO *dso, GElf_Addr addr);
 GElf_Addr adjust_new_to_old (DSO *dso, GElf_Addr addr);
 int strtabfind (DSO *dso, int strndx, const char *name);
 int shstrtabadd (DSO *dso, const char *name);
+int dso_has_bad_textrel (DSO *dso);
 
 /* data.c */
 
@@ -579,6 +580,8 @@ extern long long seed;
 extern GElf_Addr mmap_reg_start, mmap_reg_end;
 
 extern const char *sysroot;
+
+extern int allow_bad_textrel;
 
 int wrap_readlink (const char *path, char *buf, int len);
 int wrap_lstat64 (const char *file, struct stat64 *buf);

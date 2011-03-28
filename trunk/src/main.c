@@ -81,6 +81,7 @@ static char argp_doc[] = PRELINK_PROG " -- program to relocate and prelink ELF s
 #define OPT_COMPUTE_CHECKSUM	0x8b
 #define OPT_SYSROOT		0x8c
 #define OPT_RTLD		0x8d
+#define OPT_ALLOW_TEXTREL	0x8e
 
 static struct argp_option options[] = {
   {"all",		'a', 0, 0,  "Prelink all binaries" },
@@ -118,6 +119,7 @@ static struct argp_option options[] = {
   {"compute-checksum",	OPT_COMPUTE_CHECKSUM, 0, OPTION_HIDDEN, "" },
   {"rtld",		OPT_RTLD, "RTLD", OPTION_HIDDEN, "" },
   {"init",		'i', 0, 0,  "Do not re-execute init" },
+  {"allow-textrel",	OPT_ALLOW_TEXTREL, 0, 0, "Allow text relocations even on architectures where they may not work" },
   { 0 }
 };
 
@@ -237,6 +239,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'i':
       noreexecinit=1;
+      break;
+    case OPT_ALLOW_TEXTREL:
+      allow_bad_textrel = 1;
       break;
     default:
       return ARGP_ERR_UNKNOWN;

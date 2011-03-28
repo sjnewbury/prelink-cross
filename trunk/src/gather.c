@@ -597,6 +597,12 @@ make_unprelinkable:
       goto error_out;
     }
 
+  if (dso_has_bad_textrel (dso))
+    {
+      error (0, 0, "%s has text relocations", dso->filename);
+      goto make_unprelinkable;
+    }
+
   ent = prelink_find_entry (dso->filename, st, 1);
   if (ent == NULL)
     goto error_out;

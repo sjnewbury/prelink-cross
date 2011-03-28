@@ -225,6 +225,15 @@ check_dso (DSO *dso)
 	  || (dso->shdr[i].sh_type != SHT_NOBITS && dso->shdr[i].sh_size != 0))
 	last = i;
     }
+
+#ifndef DSO_READONLY
+  if (dso_has_bad_textrel (dso))
+    {
+      error (0, 0, "%s has text relocations", dso->filename);
+      return 1;
+    }
+#endif
+
   return 0;
 }
 
@@ -1970,5 +1979,30 @@ update_dso (DSO *dso, const char *orig_name)
     close_dso_1 (dso);
 
   return 0;
+}
+
+int allow_bad_textrel;
+
+int
+dso_has_bad_textrel (DSO *dso)
+{
+  if (allow_bad_textrel)
+    return 0;
+
+  switch (dso->arch->machine)
+    {
+    case EM_IA_64:
+    case EM_PPC:
+    case EM_PPC64:
+    case EM_X86_64:
+    case EM_ALPHA:
+    case EM_S390:
+    case EM_MIPS:
+    case EM_ARM:
+      return dynamic_info_is_set (dso, DT_TEXTREL);
+
+    default:
+      return 0;
+    }
 }
 #endif /* DSO_READONLY */

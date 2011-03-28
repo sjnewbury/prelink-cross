@@ -1,3 +1,15 @@
+2011-04-04  Mark Hatle <mark.hatle@windriver.com>
+	Integrate patch from:
+
+	2011-03-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* src/dso.c (allow_bad_textrel, dso_has_bad_textrel): New.
+	(check_dso): Check for text relocations.
+	* src/gather.c (gather_exec): Check for text relocations.
+	* src/main.c (options): Add --allow-textrel.
+	(parse_opt): Handle --allow-textrel.
+	* src/prelink.h (dso_has_bad_textrel, allow_bad_textrel): Declare.
+
 2011-04-01  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r188 (no conflicts)
 
