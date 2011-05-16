@@ -1137,7 +1137,7 @@ read_config (const char *config)
 	  glob_t g;
 	  p += 2 + strspn (p + 2, " \t");
 
-	  if (!glob (p, GLOB_BRACE, NULL, &g))
+	  if (!wrap_glob (p, GLOB_BRACE, NULL, &g))
 	    {
 	      size_t n;
 
@@ -1219,7 +1219,7 @@ gather_config (void)
 	{
 	  glob_t g;
 
-	  if (!glob (p, GLOB_BRACE, NULL, &g))
+	  if (!wrap_glob (p, GLOB_BRACE, NULL, &g))
 	    {
 	      size_t n;
 
@@ -1463,7 +1463,7 @@ blacklist_from_config (void)
 	{
 	  glob_t g;
 
-	  if (!glob (p, GLOB_BRACE | GLOB_PERIOD, NULL, &g))
+	  if (!wrap_glob (p, GLOB_BRACE | GLOB_PERIOD, NULL, &g))
 	    {
 	      size_t n;
 

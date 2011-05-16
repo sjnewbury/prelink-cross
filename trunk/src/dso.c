@@ -1739,7 +1739,7 @@ write_dso (DSO *dso)
 static int
 copy_xattrs (const char *temp_name, const char *name, int ignore_errors)
 {
-  ssize_t sz = listxattr (name, NULL, 0), valsz = 0;
+  ssize_t sz = wrap_listxattr (name, NULL, 0), valsz = 0;
   char *list = NULL, *end, *p, *val = NULL, *newval;
 
   if (sz < 0)
@@ -1751,7 +1751,7 @@ copy_xattrs (const char *temp_name, const char *name, int ignore_errors)
   list = malloc (sz + 1);
   if (list == NULL)
     goto read_err;
-  sz = listxattr (name, list, sz);
+  sz = wrap_listxattr (name, list, sz);
   if (sz < 0)
     goto read_err;
   end = list + sz;
@@ -1761,12 +1761,12 @@ copy_xattrs (const char *temp_name, const char *name, int ignore_errors)
       continue;
     else
       {
-	sz = getxattr (name, p, val, valsz);
+	sz = wrap_getxattr (name, p, val, valsz);
 	if (sz < 0)
 	  {
 	    if (errno != ERANGE)
 	      goto read_err;
-	    sz = getxattr (name, p, NULL, 0);
+	    sz = wrap_getxattr (name, p, NULL, 0);
 	    if (sz < 0)
 	      goto read_err;
 	  }
@@ -1779,11 +1779,11 @@ copy_xattrs (const char *temp_name, const char *name, int ignore_errors)
 	    if (newval == NULL)
 	      goto read_err;
 	    val = newval;
-	    sz = getxattr (name, p, val, valsz);
+	    sz = wrap_getxattr (name, p, val, valsz);
 	    if (sz < 0)
 	      goto read_err;
 	  }
-	if (setxattr (temp_name, p, val, sz, 0) < 0)
+	if (wrap_setxattr (temp_name, p, val, sz, 0) < 0)
 	  {
 	    if (errno == ENOSYS || errno == ENOTSUP)
 	      continue;
@@ -1794,7 +1794,7 @@ copy_xattrs (const char *temp_name, const char *name, int ignore_errors)
 
 		newval = malloc (sz);
 		if (newval == NULL
-		    || (newsz = getxattr (temp_name, p, newval, sz)) != sz
+		    || (newsz = wrap_getxattr (temp_name, p, newval, sz)) != sz
 		    || memcmp (val, newval, sz) != 0)
 		  {
 		    error (0, err, "Could not set extended attributes for %s",

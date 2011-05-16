@@ -21,11 +21,13 @@
 #include <error.h>
 #include <fcntl.h>
 #include <ftw.h>
+#include <glob.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/xattr.h>
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
@@ -315,3 +317,83 @@ wrap_readlink (const char *path, char *buf, int len)
   return ret;
 }
 
+int
+wrap_setxattr (const char *path, const char *name, const void *value,
+               size_t size, int flags)
+{
+  char *tmpname = sysroot_file_name (path, 0);
+  int ret;
+
+  if (tmpname == NULL)
+    return -1;
+
+  ret = setxattr (tmpname, name, value, size, flags);
+
+  if (tmpname != path)
+    free (tmpname);
+  return ret;
+}
+
+ssize_t
+wrap_getxattr (const char *path, const char *name, void *value,
+               size_t size)
+{
+  char *tmpname = sysroot_file_name (path, 0);
+  ssize_t ret;
+
+  if (tmpname == NULL)
+    return -1;
+
+  ret = getxattr (tmpname, name, value, size);
+
+  if (tmpname != path)
+    free (tmpname);
+  return ret;
+}
+
+ssize_t
+wrap_listxattr (const char *path, char *list, size_t size)
+{
+  char *tmpname = sysroot_file_name (path, 0);
+  ssize_t ret;
+
+  if (tmpname == NULL)
+    return -1;
+
+  ret = listxattr (tmpname, list, size);
+
+  if (tmpname != path)
+    free (tmpname);
+  return ret;
+}
+
+int
+wrap_glob (const char *pattern, int flags,
+           int (*errfunc) (const char *epath, int eerrno),
+           glob_t *pglob)
+{
+  char *tmp;
+  int ret;
+
+  if (!sysroot)
+    return glob (pattern, flags, errfunc, pglob);
+
+  asprintf (&tmp, "%s%s", sysroot, pattern);
+
+  ret = glob(tmp, flags, errfunc, pglob);
+  if (!ret)
+    {
+      size_t n;
+
+      for (n = 0; n < pglob->gl_pathc; ++n)
+        {
+          char *usname = unsysroot_file_name(pglob->gl_pathv[n]);
+          if (usname != pglob->gl_pathv[n])
+            free(pglob->gl_pathv[n]);
+          pglob->gl_pathv[n] = usname;
+        }
+    }
+
+  free(tmp);
+  return ret;
+}
