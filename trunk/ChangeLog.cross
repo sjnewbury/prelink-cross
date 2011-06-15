@@ -1,3 +1,11 @@
+2011-05-16  Akos PASZTORY <akos.pasztory@gmail.com>
+
+        * wrap-file.c (wrap_setxattr, wrap_getxattr, wrap_listxattr): New.
+          (wrap_glob): Likewise new.
+        * dso.c (copy_xattrs): use wrap_*xattr
+        * gather.c (read_config, gather_config, blacklist_from_config):
+          use wrap_glob
+
 2011-05-16  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r189 (no conflicts)
 
