@@ -1,3 +1,6 @@
+2011-08-18  Mark Hatle <mark.hatle@windriver.com>
+	* Resync src/elf.h to glibc 2.13
+
 2011-06-24  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r190
 
