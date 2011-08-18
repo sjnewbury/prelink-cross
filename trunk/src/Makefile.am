@@ -2,6 +2,8 @@
 
 AUTOMAKE_OPTIONS = 1.4 gnu
 
+SUBDIRS = rtld
+
 PKGVERSION = "\"@PKGVERSION@\""
 REPORT_BUGS_TO = "\"@REPORT_BUGS_TO@\""
 
@@ -17,7 +19,7 @@ AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"' \
 	    -DREPORT_BUGS_TO=$(REPORT_BUGS_TO)
 INCLUDES = @GELFINCLUDE@
 
-sbin_PROGRAMS = prelink prelink-rtld
+sbin_PROGRAMS = prelink
 bin_PROGRAMS = execstack
 
 arch_SOURCES = arch-i386.c arch-alpha.c arch-ppc.c arch-ppc64.c \
@@ -37,12 +39,5 @@ prelink_LDFLAGS =
 execstack_SOURCES = execstack.c $(common_SOURCES) $(arch_SOURCES)
 execstack_LDADD = -liberty
 execstack_LDFLAGS =
-
-prelink_rtld_SOURCES = data.c dso.c ld-libs.c ld-lookup.c \
-		       canonicalize.c wrap-file.c ld-lookup64.c \
-                       reloc-info.c reloc-info.h
-prelink_rtld_LDADD = @LIBGELF@ -liberty
-prelink_rtld_CFLAGS = -DDSO_READONLY
-prelink_rtld_LDFLAGS =
 
 extra_DIST = makecrc.c
