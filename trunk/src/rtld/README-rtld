@@ -1,0 +1,16 @@
+The rtld emulation is based on the system libc ld.so code.
+
+The original version of this code was written by Daniel Jacobowitz in
+2003.  It needed little modification/updating until recently (2011) when
+new constructs, such as STB_GNU_UNIQUE, were introduced into the dynamic
+linking.
+
+The 2011 work was done by Mark Hatle and based on eglibc-2.13.  I
+attempted to document all of the code that had origins in eglibc and where
+the code originated from.
+
+As eglibc continues to advance, similar resyncs will be needed over time.
+Hopefully not such a dramatic resync will be required in the future.
+
+Mark Hatle <mark.hatle@windriver.com>,
+August 2011

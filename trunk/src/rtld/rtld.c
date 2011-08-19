@@ -1,6 +1,9 @@
 /* Copyright (C) 2003 MontaVista Software, Inc.
    Written by Daniel Jacobowitz <drow@mvista.com>, 2003
 
+   Copyright (C) 2011 Wind River Systems, Inc.
+   Significantly updated by Mark Hatle <mark.hatle@windriver.com>, 2011
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2, or (at your option)
@@ -18,8 +21,8 @@
 #include <config.h>
 #include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <error.h>
+#include <errno.h>
 #include <argp.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -32,7 +35,15 @@
 #include "reloc.h"
 #include "reloc-info.h"
 
-#include "ld-libs.h"
+#include "rtld.h"
+
+unsigned int static_binary = 0;
+
+unsigned int _dl_debug_mask = 0;
+
+/* LD_DYNAMIC_WEAK option.  Default is off, changing to 1
+   is equivalent to setting LD_DYNAMIC_WEAK. */
+unsigned int _dl_dynamic_weak = 0;
 
 struct search_path
 {
@@ -81,16 +92,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
     }
   return 0;
 }
-
-#ifndef PT_TLS
-#define PT_TLS		7		/* Thread-local storage segment */
-#endif
-
-#ifndef R_ARM_TLS_DTPMOD32
-#define R_ARM_TLS_DTPMOD32      17      /* ID of module containing symbol */
-#define R_ARM_TLS_DTPOFF32      18      /* Offset in TLS block */
-#define R_ARM_TLS_TPOFF32       19      /* Offset in static TLS block */
-#endif
 
 /* This function returns the same constants expected by glibc's
    symbol lookup routines.  This is slightly different from the
@@ -242,24 +243,6 @@ is_ldso_soname (const char *soname)
     return 1;
   return 0;
 }
-
-
-struct needed_list
-{
-  struct dso_list *ent;
-  struct needed_list *next;
-};
-
-struct dso_list
-{
-  DSO *dso;
-  struct ldlibs_link_map *map;
-  struct dso_list *next, *prev;
-  struct needed_list *needed, *needed_tail;
-  const char *name;
-  struct dso_list *loader;
-  const char *canon_filename;
-};
 
 static int dso_open_error = 0;
 
@@ -549,6 +532,9 @@ load_dsos (DSO *dso, int host_paths)
   struct dso_list *dso_list, *dso_list_tail, *cur_dso_ent, *new_dso_ent;
   struct stat64 st;
 
+  /* Assume it's static unless we find DT_NEEDED entries */
+  static_binary = 1;
+
   dso_list = malloc (sizeof (struct dso_list));
   dso_list->dso = dso;
   dso_list->next = NULL;
@@ -594,6 +580,9 @@ load_dsos (DSO *dso, int host_paths)
 		break;
 	      if (dyn.d_tag == DT_NEEDED)
 		{
+		  /* Not static... */
+		  static_binary = 0;
+
 		  char *new_name=NULL, *new_canon_name=NULL;
 		  const char *soname = get_data (cur_dso,
 						 cur_dso->info[DT_STRTAB]
@@ -602,6 +591,10 @@ load_dsos (DSO *dso, int host_paths)
 		  new_dso_ent = in_dso_list (dso_list, soname, NULL);
 		  if (new_dso_ent == NULL)
 		    {
+		      if (__builtin_expect (GLRO_dl_debug_mask & DL_DEBUG_FILES, 0))
+			printf ("\tfile=%s [0];  needed by %s [0]\n",
+				soname, cur_dso->filename);
+
 		      int machine;
 		      int class = gelf_getclass (dso->elf);
 		      machine = (class == ELFCLASS32) ?
@@ -623,6 +616,7 @@ load_dsos (DSO *dso, int host_paths)
 			  dso_list_tail->name = soname;
 			  dso_list_tail->loader = NULL;
 			  dso_list_tail->canon_filename = soname;
+			  dso_list_tail->err_no = errno;
 
 			  continue;
 			}
@@ -651,6 +645,7 @@ load_dsos (DSO *dso, int host_paths)
 		      dso_list_tail->needed = NULL;
 		      dso_list_tail->loader = cur_dso_ent;
 		      dso_list_tail->canon_filename = new_canon_name;
+		      dso_list_tail->err_no = 0;
 
 		      if (is_ldso_soname (new_dso->soname))
 			dso_list_tail->name = new_dso->filename;
@@ -692,225 +687,6 @@ load_dsos (DSO *dso, int host_paths)
   return dso_list;
 }
 
-static void
-get_version_info (DSO *dso, struct ldlibs_link_map *map)
-{
-  int i;
-  Elf_Data *data;
-  int ndx_high;
-  const char *strtab = map->l_info[DT_STRTAB];
-
-  /* Fortunately, 32-bit and 64-bit ELF use the same Verneed and Verdef
-     structures, so this function will work for either.  */
-
-  Elf64_Verneed *verneed;
-  Elf64_Verdef *verdef;
-
-  map->l_versyms = NULL;
-
-  if (dso->info_set_mask & (1ULL << DT_VERNEED_BIT))
-    {
-      i = addr_to_sec (dso, dso->info_DT_VERNEED);
-      data = elf_getdata (dso->scn[i], NULL);
-      verneed = data->d_buf;
-    }
-  else
-    verneed = NULL;
-
-  if (dso->info_set_mask & (1ULL << DT_VERDEF_BIT))
-    {
-      i = addr_to_sec (dso, dso->info_DT_VERDEF);
-      data = elf_getdata (dso->scn[i], NULL);
-      verdef = data->d_buf;
-    }
-  else
-    verdef = NULL;
-
-  ndx_high = 0;
-  if (verneed)
-    {
-      Elf64_Verneed *ent = verneed;
-      Elf64_Vernaux *aux;
-      while (1)
-	{
-	  aux = (Elf64_Vernaux *) ((char *) ent + ent->vn_aux);
-	  while (1)
-	    {
-	      if ((unsigned int) (aux->vna_other & 0x7fff) > ndx_high)
-		ndx_high = aux->vna_other & 0x7fff;
-
-	      if (aux->vna_next == 0)
-		break;
-	      aux = (Elf64_Vernaux *) ((char *) aux + aux->vna_next);
-	    }
-
-	  if (ent->vn_next == 0)
-	    break;
-	  ent = (Elf64_Verneed *) ((char *) ent + ent->vn_next);
-	}
-    }
-
-  if (verdef)
-    {
-      Elf64_Verdef *ent = verdef;
-      while (1)
-	{
-	  if ((unsigned int) (ent->vd_ndx & 0x7fff) > ndx_high)
-	    ndx_high = ent->vd_ndx & 0x7fff;
-
-	  if (ent->vd_next == 0)
-	    break;
-	  ent = (Elf64_Verdef *) ((char *) ent + ent->vd_next);
-	}
-    }
-
-  if (ndx_high)
-    {
-      map->l_versions = (struct r_found_version *)
-	calloc (ndx_high + 1, sizeof (struct r_found_version));
-      map->l_nversions = ndx_high + 1;
-
-      i = addr_to_sec (dso, dso->info_DT_VERSYM);
-      data = elf_getdata (dso->scn[i], NULL);
-      map->l_versyms = data->d_buf;
-
-      if (verneed)
-	{
-	  Elf64_Verneed *ent = verneed;
-
-	  while (1)
-	    {
-	      Elf64_Vernaux *aux;
-	      aux = (Elf64_Vernaux *) ((char *) ent + ent->vn_aux);
-	      while (1)
-		{
-                  Elf64_Half ndx = aux->vna_other & 0x7fff;
-                  map->l_versions[ndx].hash = aux->vna_hash;
-                  map->l_versions[ndx].hidden = aux->vna_other & 0x8000;
-                  map->l_versions[ndx].name = &strtab[aux->vna_name];
-                  map->l_versions[ndx].filename = &strtab[ent->vn_file];
-
-		  if (aux->vna_next == 0)
-		    break;
-		  aux = (Elf64_Vernaux *) ((char *) aux + aux->vna_next);
-		}
-
-	      if (ent->vn_next == 0)
-		break;
-	      ent = (Elf64_Verneed *) ((char *) ent + ent->vn_next);
-	    }
-	}
-
-      if (verdef)
-	{
-	  Elf64_Verdef *ent = verdef;
-	  Elf64_Verdaux *aux;
-	  while (1)
-	    {
-	      aux = (Elf64_Verdaux *) ((char *) ent + ent->vd_aux);
-
-	      if ((ent->vd_flags & VER_FLG_BASE) == 0)
-		{
-		  /* The name of the base version should not be
-		     available for matching a versioned symbol.  */
-		  Elf64_Half ndx = ent->vd_ndx & 0x7fff;
-		  map->l_versions[ndx].hash = ent->vd_hash;
-		  map->l_versions[ndx].name = &strtab[aux->vda_name];
-		  map->l_versions[ndx].filename = NULL;
-		}
-
-	      if (ent->vd_next == 0)
-		break;
-	      ent = (Elf64_Verdef *) ((char *) ent + ent->vd_next);
-	    }
-	}
-    }
-}
-
-const char *rtld_progname;
-
-static Elf64_Addr load_addr = 0xdead0000;
-
-static void
-create_ldlibs_link_map (struct dso_list *cur_dso_ent)
-{
-  struct ldlibs_link_map *map = malloc (sizeof (struct ldlibs_link_map));
-  DSO *dso = cur_dso_ent->dso;
-  int i;
-  Elf_Data *data;
-  Elf_Symndx *hash;
-
-  memset (map, 0, sizeof (*map));
-  cur_dso_ent->map = map;
-
-  if (is_ldso_soname (cur_dso_ent->dso->soname))
-    {
-      map->l_name = dso->filename;
-      rtld_progname = dso->filename;
-    }
-  else
-    map->l_name = dso->soname;
-  map->l_soname = dso->soname;
-  map->filename = dso->filename;
-
-  if (dso->ehdr.e_type == ET_EXEC)
-    map->l_type = lt_executable;
-  else
-    map->l_type = lt_library;
-
-  /* FIXME: gelfify, endianness issues */
-  /* and leaks? */
-  i = addr_to_sec (dso, dso->info[DT_SYMTAB]);
-  data = elf_getdata (dso->scn[i], NULL);
-  map->l_info[DT_SYMTAB] = data->d_buf;
-
-  i = addr_to_sec (dso, dso->info[DT_STRTAB]);
-  data = elf_getdata (dso->scn[i], NULL);
-  map->l_info[DT_STRTAB] = data->d_buf;
-
-  map->l_gnu_hash = dynamic_info_is_set (dso, DT_GNU_HASH_BIT);
-  if (map->l_gnu_hash)
-    i = addr_to_sec (dso, dso->info_DT_GNU_HASH);
-  else
-  i = addr_to_sec (dso, dso->info[DT_HASH]);
-  data = elf_getdata (dso->scn[i], NULL);
-  hash = data->d_buf;
-  map->l_nbuckets = hash[0];
-  if (map->l_gnu_hash)
-    {
-      map->l_nmaskwords = hash[2];
-      map->l_maskword64 = gelf_getclass (dso->elf) == ELFCLASS64;
-      map->l_shift = hash[3];
-      map->l_maskwords = hash + 4;
-      map->l_buckets = hash + 4 + (map->l_nmaskwords << map->l_maskword64);
-      map->l_chain = map->l_buckets + map->l_nbuckets - hash[1];
-    }
-  else
-    {
-  map->l_buckets = hash + 2;
-      map->l_chain = map->l_buckets + map->l_nbuckets;
-    }
-
-  get_version_info (dso, map);
-
-  map->l_map_start = load_addr;
-  load_addr += 0x1000;
-
-  map->sym_base = dso->info[DT_SYMTAB] - dso->base;
-
-  for (i = 0; i < dso->ehdr.e_phnum; ++i)
-    if (dso->phdr[i].p_type == PT_TLS)
-      {
-	map->l_tls_blocksize = dso->phdr[i].p_memsz;
-	map->l_tls_align = dso->phdr[i].p_align;
-	if (map->l_tls_align == 0)
-	  map->l_tls_firstbyte_offset = 0;
-	else
-	  map->l_tls_firstbyte_offset = dso->phdr[i].p_vaddr & (map->l_tls_align - 1);
-	break;
-      }
-}
-
 struct
 {
   void *symptr;
@@ -918,7 +694,7 @@ struct
 } cache;
 
 void
-do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope,
+do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[],
 	  GElf_Word sym, GElf_Word type)
 {
   struct r_found_version *ver;
@@ -931,6 +707,10 @@ do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope,
     {
       int vernum = map->l_versyms[sym] & 0x7fff;
       ver = &map->l_versions[vernum];
+
+      /* Memory was allocated for the hash table, but it's empty! */
+      if (ver && (ver->name == NULL || ver->hash == 0))
+	ver = NULL;
     }
   else
     ver = NULL;
@@ -965,27 +745,23 @@ do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope,
 
   if (gelf_getclass (dso->elf) == ELFCLASS32)
     {
-      if (ver && ver->hash)
-	rtld_lookup_symbol_versioned (name, symptr, scope, ver, rtypeclass,
-				      map, dso->ehdr.e_machine);
-      else
-	rtld_lookup_symbol (name, symptr, scope, rtypeclass, map,
-			    dso->ehdr.e_machine);
+        const Elf32_Sym *sym32 = symptr;
+	rtld_lookup_symbol_x32 (name, map, &sym32, scope, ver, rtypeclass,
+				0, NULL);
+        symptr = (void *) sym32;
     }
   else
     {
-      if (ver && ver->hash)
-	rtld_lookup_symbol_versioned64 (name, symptr, scope, ver, rtypeclass,
-					map, dso->ehdr.e_machine);
-      else
-	rtld_lookup_symbol64 (name, symptr, scope, rtypeclass, map,
-			      dso->ehdr.e_machine);
+        const Elf64_Sym *sym64 = symptr;
+	rtld_lookup_symbol_x64 (name, map, &sym64, scope, ver, rtypeclass,
+				0, NULL);
+        symptr = (void *) sym64;
     }
 }
 
 void
 do_rel_section (DSO *dso, struct ldlibs_link_map *map, 
-		struct r_scope_elem *scope,
+		struct r_scope_elem *scope[],
 		int tag, int section)
 {
   Elf_Data *data;
@@ -1015,7 +791,7 @@ do_rel_section (DSO *dso, struct ldlibs_link_map *map,
 }
 
 void
-do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope, int tag)
+do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[], int tag)
 {
   GElf_Addr rel_start, rel_end;
   GElf_Addr pltrel_start, pltrel_end;
@@ -1054,7 +830,7 @@ do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope, in
 
 void
 do_mips_global_got_relocs (DSO *dso, struct ldlibs_link_map *map,
-			   struct r_scope_elem *scope)
+			   struct r_scope_elem *scope[])
 {
   GElf_Word i;
 
@@ -1065,8 +841,6 @@ do_mips_global_got_relocs (DSO *dso, struct ldlibs_link_map *map,
 void
 handle_relocs_in_entry (struct dso_list *entry, struct dso_list *dso_list)
 {
-  GElf_Word i;
-
   do_relocs (entry->dso, entry->map, dso_list->map->l_local_scope, DT_REL);
   do_relocs (entry->dso, entry->map, dso_list->map->l_local_scope, DT_RELA);
   if (entry->dso->ehdr.e_machine == EM_MIPS)
@@ -1104,16 +878,16 @@ handle_relocs (DSO *dso, struct dso_list *dso_list)
 }
 
 void
-add_to_scope (struct r_scope_elem *scope, struct dso_list *ent)
+add_to_scope (struct r_scope_elem *scope[], struct dso_list *ent)
 {
   struct needed_list *n;
   int i;
 
-  for (i = 0; i < scope->r_nlist; i++)
-    if (scope->r_list[i] == ent->map)
+  for (i = 0; i < scope[0]->r_nlist; i++)
+    if (scope[0]->r_list[i] == ent->map)
       return;
 
-  scope->r_list[scope->r_nlist++] = ent->map;
+  scope[0]->r_list[scope[0]->r_nlist++] = ent->map;
   n = ent->needed;
   while (n)
     {
@@ -1125,175 +899,10 @@ add_to_scope (struct r_scope_elem *scope, struct dso_list *ent)
 void
 build_local_scope (struct dso_list *ent, int max)
 {
-  ent->map->l_local_scope = malloc (sizeof (struct r_scope_elem));
-  ent->map->l_local_scope->r_list = malloc (sizeof (struct ldlibs_link_map *) * max);
-  ent->map->l_local_scope->r_nlist = 0;
+  ent->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
+  ent->map->l_local_scope[0]->r_list = malloc (sizeof (struct ldlibs_link_map *) * max);
+  ent->map->l_local_scope[0]->r_nlist = 0;
   add_to_scope (ent->map->l_local_scope, ent);
-}
-
-/* Assign TLS offsets for every loaded library.  This code is taken
-   almost directly from glibc!  */
-
-#define roundup(x, y)  ((((x) + ((y) - 1)) / (y)) * (y))
-
-static void
-determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
-{
-  uint64_t freetop = 0;
-  uint64_t freebottom = 0;
-  uint64_t offset;
-  uint64_t modid = 1;
-  int i;
-
-  /* This comes from each architecture's ABI.  If TLS_TCB_AT_TP, then
-     set offset to -1; if TLS_DTV_AT_TP, then set offset to
-     TLS_TCB_SIZE.  */
-  switch (e_machine)
-    {
-    case EM_X86_64:
-      offset = -1;
-      break;
-
-    case EM_386:
-      offset = -1;
-      break;
-
-    case EM_SH:
-      offset = 8;
-      break;
-
-    case EM_PPC:
-      offset = 0;
-      break;
-
-    case EM_PPC64:
-      offset = 0;
-      break;
-
-    case EM_ARM:
-      offset = 8;
-      break;
-
-    case EM_MIPS:
-      offset = 0;
-      break;
-
-    case EM_SPARC:
-    case EM_SPARC32PLUS:
-      offset = -1;
-      break;
-
-    case EM_SPARCV9:
-      offset = -1;
-      break;
-
-    default:
-      /* Hope there's no TLS!  */
-      for (i = 0; i < search_list->r_nlist; i++)
-	{
-	  struct ldlibs_link_map *map = search_list->r_list[i];
-
-	  if (map->l_tls_blocksize > 0)
-	    error (1, 0, "TLS encountered on an unsupported architecture");
-	}
-
-      return;
-    }
-
-  /* Loop over the loaded DSOs.  We use the symbol search order; this
-     should be the same as glibc's ordering, which traverses l_next.
-     It's somewhat important that we use both the same ordering to
-     assign module IDs and the same algorithm to assign offsets,
-     because the prelinker will resolve all relocations using these
-     offsets... and then glibc will recalculate them.  Future dynamic
-     relocations in any loaded modules will use glibc's values.  Also
-     if we take too much space here, glibc won't allocate enough
-     static TLS area to hold it.  */
-
-  if (offset == (uint64_t) -1)
-    {
-      /* We simply start with zero.  */
-      offset = 0;
-
-      for (i = 0; i < search_list->r_nlist; i++)
-	{
-	  struct ldlibs_link_map *map = search_list->r_list[i];
-	  uint64_t firstbyte = (-map->l_tls_firstbyte_offset
-				& (map->l_tls_align - 1));
-	  uint64_t off;
-
-	  if (map->l_tls_blocksize == 0)
-	    continue;
-	  map->l_tls_modid = modid++;
-
-	  if (freebottom - freetop >= map->l_tls_blocksize)
-	    {
-	      off = roundup (freetop + map->l_tls_blocksize
-			     - firstbyte, map->l_tls_align)
-		+ firstbyte;
-	      if (off <= freebottom)
-		{
-		  freetop = off;
-
-		  map->l_tls_offset = off;
-		  continue;
-		}
-	    }
-
-	  off = roundup (offset + map->l_tls_blocksize - firstbyte,
-			 map->l_tls_align) + firstbyte;
-	  if (off > offset + map->l_tls_blocksize
-	      + (freebottom - freetop))
-	    {
-	      freetop = offset;
-	      freebottom = off - map->l_tls_blocksize;
-	    }
-	  offset = off;
-
-	  map->l_tls_offset = off;
-	}
-    }
-  else
-    {
-      for (i = 0; i < search_list->r_nlist; i++)
-	{
-	  struct ldlibs_link_map *map = search_list->r_list[i];
-	  uint64_t firstbyte = (-map->l_tls_firstbyte_offset
-			      & (map->l_tls_align - 1));
-	  uint64_t off;
-
-	  if (map->l_tls_blocksize == 0)
-	    continue;
-	  map->l_tls_modid = modid++;
-
-	  if (map->l_tls_blocksize <= freetop - freebottom)
-	    {
-	      off = roundup (freebottom, map->l_tls_align);
-	      if (off - freebottom < firstbyte)
-		off += map->l_tls_align;
-	      if (off + map->l_tls_blocksize - firstbyte <= freetop)
-		{
-		  map->l_tls_offset = off - firstbyte;
-		  freebottom = (off + map->l_tls_blocksize
-				- firstbyte);
-		  continue;
-		}
-	    }
-
-	  off = roundup (offset, map->l_tls_align);
-	  if (off - offset < firstbyte)
-	    off += map->l_tls_align;
-
-	  map->l_tls_offset = off - firstbyte;
-	  if (off - firstbyte - offset > freetop - freebottom)
-	    {
-	      freebottom = offset;
-	      freetop = off - firstbyte;
-	    }
-
-	  offset = off + map->l_tls_blocksize - firstbyte;
-	}
-    }
 }
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
@@ -1308,6 +917,8 @@ main(int argc, char **argv)
   int remaining;
   int multiple = 0;
   host_paths = 1;
+
+  char * debug = NULL;
 
   sysroot = getenv ("PRELINK_SYSROOT");
 #ifdef DEFAULT_SYSROOT
@@ -1331,21 +942,51 @@ main(int argc, char **argv)
   if ((argc-remaining) >= 2)
     multiple = 1;
 
+  /* More simplistic then glibc, one option only... */
+  debug = getenv ("RTLD_DEBUG");
+  if (debug && (!strcmp(debug, "files") || !strcmp(debug, "all")))
+    _dl_debug_mask |= DL_DEBUG_FILES;
+
+  if (debug && (!strcmp(debug, "symbols") || !strcmp(debug, "all")))
+    _dl_debug_mask |= DL_DEBUG_SYMBOLS;
+
+  if (debug && (!strcmp(debug, "versions") || !strcmp(debug, "all")))
+    _dl_debug_mask |= DL_DEBUG_VERSIONS;
+
+  if (debug && (!strcmp(debug, "bindings") || !strcmp(debug, "all")))
+    _dl_debug_mask |= DL_DEBUG_BINDINGS;
+
   while (remaining < argc)
     {
       DSO *dso = NULL;
       int i, fd;
+
+      struct stat64 st;
 
       if (host_paths)
 	fd = open (argv[remaining], O_RDONLY);
       else
 	fd = wrap_open (argv[remaining], O_RDONLY);
 
+      if (fd >= 0 && fstat64(fd, &st) == 0)
+	if (!S_ISREG(st.st_mode))
+	  {
+	    error (0, 0, "%s: %s",
+		argv[remaining],
+		"not regular file");
+	    goto exit;
+	  }
+
       if (fd >= 0)
 	dso = fdopen_dso (fd, argv[remaining]);
 
       if (dso == NULL)
-	error (1, errno, "Could not open %s", argv[remaining]);
+	{
+	  error (0, 0, "%s: %s",
+		argv[remaining],
+		strerror(errno));
+	  goto exit;
+	}
 
       load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64, 
 		( dso->ehdr.e_machine == EM_MIPS) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ) );
@@ -1361,25 +1002,58 @@ main(int argc, char **argv)
       if (dso->ehdr.e_type == ET_EXEC && i == dso->ehdr.e_phnum)
 	printf ("\tnot a dynamic executable\n");
       else
-	process_one_dso (dso, host_paths);
+	{
+	  int j;
+	  Elf_Data *data;
+	  j = addr_to_sec (dso, dso->phdr[i].p_vaddr);
+	  if (j != -1)
+	    {
+	      data = elf_getdata (dso->scn[j], NULL);
+	      if (data != NULL)
+		{
+		  i = strnlen (data->d_buf, data->d_size);
+		  if (i == data->d_size)
+		    {
+		      rtld_signal_error (0, dso->filename, NULL, ".interp section not zero terminated", 0);
+		    }
+		  else
+		   {
+		      rtld_progname = strdup (data->d_buf);
+		   }
+		}
+	    }
+	  process_one_dso (dso, host_paths);
+	}
 
+exit:
       remaining++;
     }
 
   return 0;
 }
 
+/* If you run ldd /lib/ld.so you get:
+   \tstatically linked
+
+   The prelink-rtld does not do this, and returns blank...
+ */
 static void
 process_one_dso (DSO *dso, int host_paths)
 {
   struct dso_list *dso_list, *cur_dso_ent, *old_dso_ent;
-  const char *req = getenv ("RTLD_TRACE_PRELINKING");
+  const char *req;
   int i, flag;
-  int process_relocs = 0;
+  int ld_warn = 1;
+
+  if ((req = getenv ("RTLD_TRACE_PRELINKING")) != NULL)
+    _dl_debug_mask |= DL_DEBUG_PRELINK;
 
   /* Close enough.  Really it's if LD_WARN is "" and RTLD_TRACE_PRELINKING.  */
-  if (getenv ("LD_WARN") == 0 && req != NULL)
-    process_relocs = 1;
+  if (getenv ("RTLD_WARN") == NULL)
+    ld_warn = 0;
+
+  /* Initialize unique symtable list */
+  _ns_unique_sym_table = calloc(sizeof (struct unique_sym_table), 1);
 
   dso_list = load_dsos (dso, host_paths);
 
@@ -1389,39 +1063,53 @@ process_one_dso (DSO *dso, int host_paths)
     {
       if (cur_dso_ent->dso)
 	{
-	  create_ldlibs_link_map (cur_dso_ent);
-	  if (req && strcmp (req, cur_dso_ent->dso->filename) == 0)
+	  create_map_object_from_dso_ent (cur_dso_ent);
+	  if ((GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (req, cur_dso_ent->dso->filename) == 0)
 	    requested_map = cur_dso_ent->map;
 	  i++;
 	}
       cur_dso_ent = cur_dso_ent->next;
     }
-  dso_list->map->l_local_scope = malloc (sizeof (struct r_scope_elem));
-  dso_list->map->l_local_scope->r_list = malloc (sizeof (struct ldlibs_link_map *) * i);
-  dso_list->map->l_local_scope->r_nlist = i;
+  dso_list->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
+  dso_list->map->l_local_scope[0]->r_list = malloc (sizeof (struct ldlibs_link_map *) * i);
+  dso_list->map->l_local_scope[0]->r_nlist = i;
   cur_dso_ent = dso_list;
   i = 0;
   while (cur_dso_ent)
     {
       if (cur_dso_ent->dso)
 	{
-	  dso_list->map->l_local_scope->r_list[i] = cur_dso_ent->map;
+	  dso_list->map->l_local_scope[0]->r_list[i] = cur_dso_ent->map;
 	  if (cur_dso_ent != dso_list)
-	    build_local_scope (cur_dso_ent, dso_list->map->l_local_scope->r_nlist);
+	    build_local_scope (cur_dso_ent, dso_list->map->l_local_scope[0]->r_nlist);
 
 	  i++;
 	}
       cur_dso_ent = cur_dso_ent->next;
     }
 
-  determine_tlsoffsets (dso->ehdr.e_machine, dso_list->map->l_local_scope);
+  cur_dso_ent = dso_list;
+
+  for (i = 0; i < cur_dso_ent->map->l_local_scope[0]->r_nlist; ++i)
+    if (cur_dso_ent->map->l_local_scope[0]->r_list[i]->l_versions == NULL)
+      _dl_check_map_versions (cur_dso_ent->map->l_local_scope[0]->r_list[i], 0, 0);
+
+  rtld_determine_tlsoffsets (dso->ehdr.e_machine, dso_list->map->l_local_scope[0]);
 
   cur_dso_ent = dso_list;
+
   flag = 0;
   /* In ldd mode, do not show the application. Note that we do show it
      in list-loaded-objects RTLD_TRACE_PRELINK mode.  */
-  if (req == NULL && cur_dso_ent)
-    cur_dso_ent = cur_dso_ent->next;
+  if (!(GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && cur_dso_ent)
+    {
+      /* Based on the presence of DT_NEEDED, see load_dsos */
+      if (static_binary)
+	{
+	   printf ("\tstatically linked\n");
+	}
+      cur_dso_ent = cur_dso_ent->next;
+    }
   while (cur_dso_ent)
     {
       char *filename;
@@ -1444,48 +1132,50 @@ process_one_dso (DSO *dso, int host_paths)
       else
 	filename = NULL;
 
+      int size_pointer = 16;
+      if (cur_dso_ent && cur_dso_ent->dso && gelf_getclass (cur_dso_ent->dso->elf) == ELFCLASS32)
+        size_pointer = 8;
+
       /* The difference between the two numbers must be dso->base,
          and the first number must be unique.  */
-      if (cur_dso_ent->dso == NULL)
+      if (dso_open_error && ld_warn && (GLRO_dl_debug_mask & DL_DEBUG_PRELINK))
+        {
+	  if (cur_dso_ent->dso == NULL)
+	    rtld_signal_error(cur_dso_ent->err_no, cur_dso_ent->name, NULL, "cannot open shared object file", 0);
+	}
+      else if (cur_dso_ent->dso == NULL)
 	printf ("\t%s => not found\n", cur_dso_ent->name);
-      else if (gelf_getclass (cur_dso_ent->dso->elf) == ELFCLASS32)
-	{
-	  if (process_relocs)
-	    {
-	      printf ("\t%s => %s (0x%08x, 0x%08x)",
-		      cur_dso_ent->name, filename,
-		      (uint32_t) cur_dso_ent->map->l_map_start,
-		      (uint32_t) (cur_dso_ent->map->l_map_start - cur_dso_ent->dso->base));
-	      if (cur_dso_ent->map->l_tls_modid)
-		printf (" TLS(0x%x, 0x%08x)",
-			(uint32_t) cur_dso_ent->map->l_tls_modid,
-			(uint32_t) cur_dso_ent->map->l_tls_offset);
-	      printf ("\n");
-	    }
-	  else
-	    printf ("\t%s => %s (0x%08x)\n",
-		    cur_dso_ent->name, filename,
-		    (uint32_t) cur_dso_ent->map->l_map_start);
+      else if (GLRO_dl_debug_mask & DL_DEBUG_PRELINK)
+        {
+	   struct ldlibs_link_map * l = cur_dso_ent->map;
+           printf ("\t%s => %s (0x%0*Zx, 0x%0*Zx)",
+		   cur_dso_ent->name ? cur_dso_ent->name
+		   : rtld_progname ?: "<main program>",
+		   filename ? filename
+		   : rtld_progname ?: "<main program>",
+		   (int) size_pointer,
+		   (size_t) l->l_map_start,
+		   (int) size_pointer,
+		   (size_t) (l->l_map_start - cur_dso_ent->dso->base));
+
+	   if (l->l_tls_modid)
+	     printf (" TLS(0x%Zx, 0x%0*Zx)\n", l->l_tls_modid,
+		     (int) size_pointer,
+		     (size_t) l->l_tls_offset);
+	   else
+	     printf ("\n");
 	}
       else
 	{
-	  if (process_relocs)
-	    {
-	      printf ("\t%s => %s (0x%016" HOST_LONG_LONG_FORMAT
-		      "x, 0x%016" HOST_LONG_LONG_FORMAT "x)",
-		      cur_dso_ent->name, filename,
-		      (unsigned long long) cur_dso_ent->map->l_map_start,
-		      (unsigned long long) (cur_dso_ent->map->l_map_start - cur_dso_ent->dso->base));
-	      if (cur_dso_ent->map->l_tls_modid)
-		printf (" TLS(0x%x, 0x%016" HOST_LONG_LONG_FORMAT "x)",
-			(uint32_t) cur_dso_ent->map->l_tls_modid,
-			(unsigned long long) cur_dso_ent->map->l_tls_offset);
-	      printf ("\n");
-	    }
-	  else
-	    printf ("\t%s => %s (0x%08x)\n",
-		    cur_dso_ent->name, filename,
-		    (uint32_t) cur_dso_ent->map->l_map_start);
+	   struct ldlibs_link_map * l = cur_dso_ent->map;
+	   if (!(GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (cur_dso_ent->name, filename) == 0)
+	     printf ("\t%s (0x%0*Zx)\n", cur_dso_ent->name,
+		     (int) size_pointer,
+		     (size_t) l->l_map_start);
+	   else
+	     printf ("\t%s => %s (0x%0*Zx)\n", cur_dso_ent->name,
+		     filename, size_pointer,
+		     (size_t) l->l_map_start);
 	}
 
       if (filename)
@@ -1496,9 +1186,9 @@ process_one_dso (DSO *dso, int host_paths)
     }
 
   if (dso_open_error)
-    exit (1);
+    exit (127);
 
-  if (process_relocs)
+  if (!ld_warn && (GLRO_dl_debug_mask & DL_DEBUG_PRELINK))
     handle_relocs (dso_list->dso, dso_list);
 
   cur_dso_ent = dso_list;

@@ -22,8 +22,10 @@ sbin_PROGRAMS = prelink-rtld
 prelink_rtld_SOURCES = $(top_srcdir)/src/data.c $(top_srcdir)/src/dso.c \
 		       $(top_srcdir)/src/canonicalize.c $(top_srcdir)/src/wrap-file.c \
 		       $(top_srcdir)/src/reloc-info.c $(top_srcdir)/src/reloc-info.h \
-		       ld-libs.c ld-libs.h \
-		       ld-lookup.c ld-lookup64.c ld-do-lookup.h
+		       rtld.c ld-libs.h \
+		       dl-hash.h dl-load.c \
+		       dl-tls.c dl-version.c dl-misc.c \
+		       dl-lookup.c dl-lookupX.h
 
 prelink_rtld_LDADD = @LIBGELF@ -liberty
 prelink_rtld_CFLAGS = -DDSO_READONLY

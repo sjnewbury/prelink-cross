@@ -185,7 +185,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
       argv[i++] = ent_filename;
       argv[i] = NULL;
       envp[0] = "RTLD_TRACE_PRELINKING=1";
-      envp[1] = "LD_WARN=";
+      envp[1] = "RTLD_WARN=";
       path = alloca (sizeof "PATH=" + strlen (getenv ("PATH")));
       sprintf (path, "PATH=%s", getenv ("PATH"));
       envp[2] = path;
