@@ -175,6 +175,11 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
         l->l_info[DT_ADDRTAGIDX(DT_GNU_HASH) + DT_NUM
 		    + DT_THISPROCNUM + DT_VERSIONTAGNUM
 		    + DT_EXTRANUM + DT_VALNUM] = data->d_buf;
+
+	/* PPC64 workaround */
+	l->l_buckets_start = data->d_buf;
+	l->l_buckets_end = (char *)data->d_buf + data->d_size;
+	/* end workaround */
       }
    }
 

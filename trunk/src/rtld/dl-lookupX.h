@@ -244,6 +244,12 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 	    {
 	      Elf32_Word bucket = map->l_gnu_buckets[new_hash
 						     % map->l_nbuckets];
+
+/* PPC64 workaround */
+	      /* There is a bad hash entry and it's pointing beyond
+		 the end of the bucket list. */
+	      assert ((void *)&map->l_gnu_chain_zero[bucket] < map->l_buckets_end);
+/* END PPC64 workaround */
 	      if (bucket != 0)
 		{
 		  const Elf32_Word *hasharr = &map->l_gnu_chain_zero[bucket];

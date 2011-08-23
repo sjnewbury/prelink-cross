@@ -93,6 +93,10 @@ struct ldlibs_link_map
 
     /* Symbol hash table.  */
     Elf_Symndx l_nbuckets;
+    /* Begin PPC64 workaround */
+    void *l_buckets_start;
+    void *l_buckets_end;
+    /* end workaround */
     Elf32_Word l_gnu_bitmask_idxbits;
     Elf32_Word l_gnu_shift;
     void *l_gnu_bitmask;
