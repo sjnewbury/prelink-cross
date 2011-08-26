@@ -100,129 +100,90 @@ parse_opt (int key, char *arg, struct argp_state *state)
    be ignored: typically, this means any jump slot or TLS relocations,
    but not copy relocations.  Don't return the prelinker's
    RTYPE_CLASS_TLS.  */
+
+/* The following needs to be kept in sync with the 
+   sysdeps/.../dl-machine.h: elf_machine_type_class macro */
+
+# define i386_elf_machine_type_class(type) \
+  ((((type) == R_386_JMP_SLOT || (type) == R_386_TLS_DTPMOD32                 \
+     || (type) == R_386_TLS_DTPOFF32 || (type) == R_386_TLS_TPOFF32           \
+     || (type) == R_386_TLS_TPOFF || (type) == R_386_TLS_DESC)                \
+    * ELF_RTYPE_CLASS_PLT)                                                    \
+   | (((type) == R_386_COPY) * ELF_RTYPE_CLASS_COPY))
+
+# define x86_64_elf_machine_type_class(type)                                         \
+  ((((type) == R_X86_64_JUMP_SLOT                                             \
+     || (type) == R_X86_64_DTPMOD64                                           \
+     || (type) == R_X86_64_DTPOFF64                                           \
+     || (type) == R_X86_64_TPOFF64                                            \
+     || (type) == R_X86_64_TLSDESC)                                           \
+    * ELF_RTYPE_CLASS_PLT)                                                    \
+   | (((type) == R_X86_64_COPY) * ELF_RTYPE_CLASS_COPY))
+
+# define arm_elf_machine_type_class(type) \
+  ((((type) == R_ARM_JUMP_SLOT || (type) == R_ARM_TLS_DTPMOD32          \
+     || (type) == R_ARM_TLS_DTPOFF32 || (type) == R_ARM_TLS_TPOFF32)    \
+    * ELF_RTYPE_CLASS_PLT)                                              \
+   | (((type) == R_ARM_COPY) * ELF_RTYPE_CLASS_COPY))
+
+# define sh_elf_machine_type_class(type) \
+  ((((type) == R_SH_JMP_SLOT || (type) == R_SH_TLS_DTPMOD32                   \
+     || (type) == R_SH_TLS_DTPOFF32 || (type) == R_SH_TLS_TPOFF32)            \
+    * ELF_RTYPE_CLASS_PLT)                                                    \
+   | (((type) == R_SH_COPY) * ELF_RTYPE_CLASS_COPY))
+
+#define powerpc32_elf_machine_type_class(type)                    \
+  ((((type) == R_PPC_JMP_SLOT                           \
+    || (type) == R_PPC_REL24                            \
+    || ((type) >= R_PPC_DTPMOD32 /* contiguous TLS */   \
+        && (type) <= R_PPC_DTPREL32)                    \
+    || (type) == R_PPC_ADDR24) * ELF_RTYPE_CLASS_PLT)   \
+   | (((type) == R_PPC_COPY) * ELF_RTYPE_CLASS_COPY))
+
+#define powerpc64_elf_machine_type_class(type) \
+  (ELF_RTYPE_CLASS_PLT | (((type) == R_PPC64_COPY) * ELF_RTYPE_CLASS_COPY))
+
+#define ELF_MACHINE_JMP_SLOT		R_MIPS_JUMP_SLOT
+#define mips_elf_machine_type_class(type) \
+  ((((type) == ELF_MACHINE_JMP_SLOT) * ELF_RTYPE_CLASS_PLT)     \
+   | (((type) == R_MIPS_COPY) * ELF_RTYPE_CLASS_COPY))
+
+#define sparc_elf_machine_type_class(type) \
+  ((((type) == R_SPARC_JMP_SLOT                                               \
+     || ((type) >= R_SPARC_TLS_GD_HI22 && (type) <= R_SPARC_TLS_TPOFF64))     \
+    * ELF_RTYPE_CLASS_PLT)                                                    \
+   | (((type) == R_SPARC_COPY) * ELF_RTYPE_CLASS_COPY))
+
+# define sparc64_elf_machine_type_class(type) \
+  ((((type) == R_SPARC_JMP_SLOT                                               \
+     || ((type) >= R_SPARC_TLS_GD_HI22 && (type) <= R_SPARC_TLS_TPOFF64))     \
+    * ELF_RTYPE_CLASS_PLT)                                                    \
+   | (((type) == R_SPARC_COPY) * ELF_RTYPE_CLASS_COPY))
+
 int
 reloc_type_class (int type, int machine)
 {
   switch (machine)
     {
     case EM_386:
-      switch (type)
-	{
-	case R_386_COPY: return ELF_RTYPE_CLASS_COPY;
-	case R_386_JMP_SLOT:
-	case R_386_TLS_DTPMOD32:
-	case R_386_TLS_DTPOFF32:
-	case R_386_TLS_TPOFF32:
-	case R_386_TLS_TPOFF:
-	  return ELF_RTYPE_CLASS_PLT;
-	default: return 0;
-	}
-
+	return i386_elf_machine_type_class(type);
     case EM_X86_64:
-      switch (type)
-	{
-	case R_X86_64_COPY: return ELF_RTYPE_CLASS_COPY;
-	case R_X86_64_JUMP_SLOT:
-	case R_X86_64_DTPMOD64:
-	case R_X86_64_DTPOFF64:
-	case R_X86_64_TPOFF64:
-	case R_X86_64_DTPOFF32:
-	case R_X86_64_TPOFF32:
-	  return ELF_RTYPE_CLASS_PLT;
-	default: return 0;
-	}
-
+	return x86_64_elf_machine_type_class(type);
     case EM_ARM:
-      switch (type)
-	{
-	case R_ARM_COPY: return ELF_RTYPE_CLASS_COPY;
-	case R_ARM_JUMP_SLOT:
-	case R_ARM_TLS_DTPMOD32:
-	case R_ARM_TLS_DTPOFF32:
-	case R_ARM_TLS_TPOFF32:
-	  return ELF_RTYPE_CLASS_PLT;
-	default: return 0;
-	}
-
+	return arm_elf_machine_type_class(type);
     case EM_SH:
-      switch (type)
-	{
-	case R_SH_COPY: return ELF_RTYPE_CLASS_COPY;
-	case R_SH_JMP_SLOT: return ELF_RTYPE_CLASS_PLT;
-	default: return 0;
-	}
-
+	return sh_elf_machine_type_class(type);
     case EM_PPC:
-      switch (type)
-	{
-	case R_PPC_COPY: return ELF_RTYPE_CLASS_COPY;
-	case R_PPC_JMP_SLOT: return ELF_RTYPE_CLASS_PLT;
-	default:
-	  if (type >= R_PPC_DTPMOD32 && type <= R_PPC_DTPREL32)
-	    return ELF_RTYPE_CLASS_PLT;
-	  return 0;
-	}
-
+	return powerpc32_elf_machine_type_class(type);
     case EM_PPC64:
-      switch (type)
-	{
-	case R_PPC64_COPY: return ELF_RTYPE_CLASS_COPY;
-	case R_PPC64_ADDR24: return ELF_RTYPE_CLASS_PLT;
-	default:
-	  if (type >= R_PPC64_DTPMOD64 && type <= R_PPC64_TPREL16_HIGHESTA)
-	    return ELF_RTYPE_CLASS_PLT;
-	  return 0;
-	}
-
+	return powerpc64_elf_machine_type_class(type);
     case EM_MIPS:
-      switch (type)
-	{
-	case R_MIPS_COPY:
-	  return ELF_RTYPE_CLASS_COPY;
-	case R_MIPS_JUMP_SLOT:
-	case R_MIPS_TLS_DTPMOD32:
-	case R_MIPS_TLS_DTPMOD64:
-	case R_MIPS_TLS_DTPREL32:
-	case R_MIPS_TLS_DTPREL64:
-	case R_MIPS_TLS_TPREL32:
-	case R_MIPS_TLS_TPREL64:
-	  return ELF_RTYPE_CLASS_PLT;
-	default:
-	  return 0;
-	}
-
+	return mips_elf_machine_type_class(type);
     case EM_SPARC:
     case EM_SPARC32PLUS:
-      switch (type)
-	{
-	case R_SPARC_COPY:
-	  return ELF_RTYPE_CLASS_COPY;
-	case R_SPARC_JMP_SLOT:
-	case R_SPARC_TLS_DTPMOD32:
-	case R_SPARC_TLS_DTPOFF32:
-	case R_SPARC_TLS_TPOFF32:
-	case R_SPARC_TLS_LE_HIX22:
-	case R_SPARC_TLS_LE_LOX10:
-	  return ELF_RTYPE_CLASS_PLT;
-	default:
-	  return 0;
-	}
-
+	return sparc_elf_machine_type_class(type);
     case EM_SPARCV9:
-      switch (type)
-	{
-	case R_SPARC_COPY:
-	  return ELF_RTYPE_CLASS_COPY;
-	case R_SPARC_JMP_SLOT:
-	case R_SPARC_TLS_DTPMOD64:
-	case R_SPARC_TLS_DTPOFF64:
-	case R_SPARC_TLS_TPOFF64:
-	case R_SPARC_TLS_LE_HIX22:
-	case R_SPARC_TLS_LE_LOX10:
-	  return ELF_RTYPE_CLASS_PLT;
-	default:
-	  return 0;
-	}
+	return sparc64_elf_machine_type_class(type);
 
     default:
       printf ("Unknown architecture!\n");
