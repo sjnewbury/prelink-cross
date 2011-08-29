@@ -116,8 +116,29 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
       {
 	unsigned int stt = ELFW(ST_TYPE) (sym->st_info);
 	assert (ELF_RTYPE_CLASS_PLT == 1);
+/* from mips dl-lookup.c */
+	/* The semantics of zero/non-zero values of undefined symbols
+	   differs depending on whether the non-PIC ABI is in use.
+	   Under the non-PIC ABI, a non-zero value indicates that
+	   there is an address reference to the symbol and thus it
+	   must always be resolved (except when resolving a jump slot
+	   relocation) to the PLT entry whose address is provided as
+	   the symbol's value; a zero value indicates that this
+	   canonical-address behaviour is not required.  Yet under the
+	   classic MIPS psABI, a zero value indicates that there is an
+	   address reference to the function and the dynamic linker
+	   must resolve the symbol immediately upon loading.  To avoid
+	   conflict, symbols for which the dynamic linker must assume
+	   the non-PIC ABI semantics are marked with the STO_MIPS_PLT
+	   flag.  */
+/* end mips */
 	if (__builtin_expect ((sym->st_value == 0 /* No value.  */
 			       && stt != STT_TLS)
+/* from mips dl-lookup.c */
+			      || (map->machine == EM_MIPS
+			        && sym->st_shndx == SHN_UNDEF
+			        && !(sym->st_other & STO_MIPS_PLT))
+/* end mips */
 			      || (type_class & (sym->st_shndx == SHN_UNDEF)),
 			      0))
 	  return NULL;

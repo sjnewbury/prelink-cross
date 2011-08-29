@@ -235,5 +235,7 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
         break;
       }
 
+  l->machine = dso->ehdr.e_machine;
+
   cur_dso_ent->map = l;
 }

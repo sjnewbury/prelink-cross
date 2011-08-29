@@ -141,6 +141,8 @@ struct ldlibs_link_map
 
     Elf64_Addr sym_base;
     const char *filename;
+
+    Elf64_Half machine;
   };
 
 #define ELF_RTYPE_CLASS_COPY 2

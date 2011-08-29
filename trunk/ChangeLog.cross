@@ -1,6 +1,7 @@
 2011-08-26  Mark Hatle <mark.hatle@windriver.com>
 	* Rename ld-libs.c to rtld.c
 	* Sync to eglibc 2.13 ld.so code
+	  * mips specific items from ports
 
 2011-08-18  Mark Hatle <mark.hatle@windriver.com>
 	* Resync src/elf.h to glibc 2.13
