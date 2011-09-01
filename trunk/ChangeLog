@@ -1,3 +1,33 @@
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/cxx3.sh: Expect fewer conflicts.
+
+	* src/arch-arm.c (PL_ARCH): Change .dynamic_linker to
+	/lib/ld-linux.so.3.
+
+2011-08-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* src/gather.c (gather_func): When looking for PT_PHDR header,
+	skip any PT_LOPROC ... PR_HIPROC phdrs.
+
+	* testsuite/cxx1.sh: Don't check for any "Removing C++ conflict"
+	messages on arm.
+	* testsuite/cxx2.sh: Likewise.
+	* testsuite/cxx3.sh: New test.
+	* testsuite/cxx3.C: New file.
+	* testsuite/cxx3.h: New file.
+	* testsuite/cxx3lib1.C: New file.
+	* testsuite/cxx3lib2.C: New file.
+	* testsuite/Makefile.am (TESTS): Add cxx3.sh.
+	* testsuite/Makefile.in: Regenerated.
+
+2011-08-25  William Cohen  <wcohen@redhat.com>
+
+	* testsuite/shuffle2.c: Use %nobits instead of @nobits
+	to be arm assembler friendly.
+	* testsuite/shuffle9.c: Likewise.
+	* testsuite/reloc5.c (main): Likewise.
+
 2011-06-22  Jakub Jelinek  <jakub@redhat.com>
 
 	* src/dwarf2.h (DW_OP_GNU_parameter_ref): Define.

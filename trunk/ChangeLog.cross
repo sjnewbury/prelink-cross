@@ -1,3 +1,6 @@
+2011-08-30  Mark Hatle <mark.hatle@windriver.com>
+	* Merge to upstream r195
+
 2011-08-26  Mark Hatle <mark.hatle@windriver.com>
 	* Rename ld-libs.c to rtld.c
 	* Sync to eglibc 2.13 ld.so code
