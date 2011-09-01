@@ -8,7 +8,7 @@ if [ "x$CROSS" = "x" ]; then
 fi
 rm -f shuffle4 shuffle4.log
 BINS="shuffle4"
-$CCLINK -o shuffle4 $srcdir/shuffle2.c -Wl,--rpath-link,. shuffle3lib2.so
+$CCLINK -o shuffle4 $srcdir/shuffle2.c -Wl,--rpath-link,. shuffle3lib2.so shuffle3lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle4 > shuffle4.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle4 >> shuffle4.log 2>&1 || exit 1

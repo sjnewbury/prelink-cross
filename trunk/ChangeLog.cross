@@ -1,5 +1,6 @@
 2011-08-30  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r195
+	* Update testsuite to work with explicit intermedite objects
 
 2011-08-26  Mark Hatle <mark.hatle@windriver.com>
 	* Rename ld-libs.c to rtld.c

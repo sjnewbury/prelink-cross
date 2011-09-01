@@ -9,7 +9,7 @@ $CC -shared -O2 -nostdlib -fpic -o reloc10lib4.so $srcdir/reloc10lib4.c reloc10l
 $CC -shared -O2 -fpic -o reloc10lib5.so $srcdir/reloc10lib5.c reloc10lib2.so reloc10lib3.so reloc10lib4.so
 BINS="reloc10"
 LIBS="reloc10lib1.so reloc10lib2.so reloc10lib3.so reloc10lib4.so reloc10lib5.so"
-$CCLINK -o reloc10 $srcdir/reloc10.c -Wl,--rpath-link,. reloc10lib5.so
+$CCLINK -o reloc10 $srcdir/reloc10.c -Wl,--rpath-link,. reloc10lib5.so reloc10lib2.so reloc10lib3.so reloc10lib4.so reloc10lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc10 > reloc10.log
 $PRELINK ${PRELINK_OPTS--vm} ./reloc10 >> reloc10.log 2>&1 || exit 1
