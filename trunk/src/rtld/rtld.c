@@ -1120,7 +1120,7 @@ process_one_dso (DSO *dso, int host_paths)
 		   (size_t) (l->l_map_start - cur_dso_ent->dso->base));
 
 	   if (l->l_tls_modid)
-	     printf (" TLS(0x%Zx, 0x%0*Zx)\n", l->l_tls_modid,
+	     printf (" TLS(0x%Zx, 0x%0*Zx)\n", (size_t) l->l_tls_modid,
 		     (int) size_pointer,
 		     (size_t) l->l_tls_offset);
 	   else
