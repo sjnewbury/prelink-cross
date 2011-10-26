@@ -274,7 +274,8 @@ static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
 
 const char *prelink_rtld = NULL;
 
-#if (defined (__i386__) || defined (__x86_64__)) && defined (__GNUC__)
+/* Disable detection, this is not appropriate when cross prelinking. */
+#if 0 && (defined (__i386__) || defined (__x86_64__)) && defined (__GNUC__)
 static void
 set_default_layout_page_size (void)
 {

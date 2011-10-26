@@ -1,6 +1,11 @@
 2011-10-26  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r196
 	* Resolve merge conflicts with src/main.c
+	* Disable automatic detection of AMD Bulldozer for layout page size
+	  Unclear why the default size is 32768 on AMD Bulldozer, assume
+	  this is a performance issue.  I suggest if you are targeting
+	  that platform, you manually pass:
+		--layout-page-size=32768
 
 2011-09-13  Mark Hatle <mark.hatle@windriver.com>
 	* Fix printf problem causing prelink-rtld issues on x86 (32-bit) 
