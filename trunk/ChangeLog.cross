@@ -1,3 +1,8 @@
+2011-11-01  Mark Hatle <mark.hatle@windriver.com>
+	* Add experimental support for the new x86_64 x32 ABI
+	* See https://sites.google.com/site/x32abi/home for the ABI
+	  document.  All work based on version 0.6 -- August 13, 2011
+
 2011-10-26  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r196
 	* Resolve merge conflicts with src/main.c

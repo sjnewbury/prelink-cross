@@ -292,7 +292,7 @@ free_path (struct search_path *path)
 }
 
 void
-load_ld_so_conf (int use_64bit, int use_mipsn32)
+load_ld_so_conf (int machine, int use_64bit, int mipsn32)
 {
   int fd;
   FILE *conf;
@@ -302,19 +302,26 @@ load_ld_so_conf (int use_64bit, int use_mipsn32)
 
   /* Only use the correct machine, to prevent mismatches if we
      have both /lib/ld.so and /lib64/ld.so on x86-64.  */
-  if (use_64bit)
-    {
-      add_dir (&ld_dirs, "/lib64/tls", strlen ("/lib64/tls"));
-      add_dir (&ld_dirs, "/lib64", strlen ("/lib64"));
-      add_dir (&ld_dirs, "/usr/lib64/tls", strlen ("/usr/lib64/tls"));
-      add_dir (&ld_dirs, "/usr/lib64", strlen ("/usr/lib64"));
-    }
-  else if (use_mipsn32)
+  if (machine == EM_MIPS && mipsn32) /* MIPSn32 */
     {
       add_dir (&ld_dirs, "/lib32/tls", strlen ("/lib32/tls"));
       add_dir (&ld_dirs, "/lib32", strlen ("/lib32"));
       add_dir (&ld_dirs, "/usr/lib32/tls", strlen ("/usr/lib32/tls"));
       add_dir (&ld_dirs, "/usr/lib32", strlen ("/usr/lib32"));
+    }
+  else if (machine == EM_X86_64 && !use_64bit) /* x32 */
+    {
+      add_dir (&ld_dirs, "/libx32/tls", strlen ("/libx32/tls"));
+      add_dir (&ld_dirs, "/libx32", strlen ("/libx32"));
+      add_dir (&ld_dirs, "/usr/libx32/tls", strlen ("/usr/libx32/tls"));
+      add_dir (&ld_dirs, "/usr/libx32", strlen ("/usr/libx32"));
+    }
+  else if (use_64bit)
+    {
+      add_dir (&ld_dirs, "/lib64/tls", strlen ("/lib64/tls"));
+      add_dir (&ld_dirs, "/lib64", strlen ("/lib64"));
+      add_dir (&ld_dirs, "/usr/lib64/tls", strlen ("/usr/lib64/tls"));
+      add_dir (&ld_dirs, "/usr/lib64", strlen ("/usr/lib64"));
     }
   else
     {
@@ -949,8 +956,10 @@ main(int argc, char **argv)
 	  goto exit;
 	}
 
-      load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64, 
-		( dso->ehdr.e_machine == EM_MIPS) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ) );
+      load_ld_so_conf ((dso->ehdr.e_machine),
+		       (gelf_getclass (dso->elf) == ELFCLASS64),
+		       (( dso->ehdr.e_machine == EM_MIPS ) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ))
+		      );
 
       if (multiple)
 	printf ("%s:\n", argv[remaining]);
