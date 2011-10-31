@@ -1,4 +1,5 @@
 2011-12-21  Mark Hatle  <mark@hatle.net>
+	* src/arch-x86_64.c: Add support for x32 ABI
 	* Following code is based on work originally by
           Code Sourcery, LLC.  (Now part of Mentor Graphics)
 	* prelink.h: Change definition of PL_ARCH
