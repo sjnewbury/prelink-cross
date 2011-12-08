@@ -1,3 +1,8 @@
+2011-12-08  Mark Hatle <mark.hatle@windriver.com>
+	* rtld/rtld.c: Fix an issue where missing objects would trigger
+	  an assert in dl-version.c
+	* rtld/rtld.h: Add _dl_new_object prototype
+
 2011-10-26  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r196
 	* Resolve merge conflicts with src/main.c

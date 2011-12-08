@@ -182,6 +182,8 @@ extern struct ldlibs_link_map *requested_map;
 
 #define _dl_new_object rtld_new_object
 
+struct ldlibs_link_map * _dl_new_object (const char *realname, const char *libname, int type);
+
 /* dl-lookup.c */
 
 #define lookup_t struct ldlibs_link_map *

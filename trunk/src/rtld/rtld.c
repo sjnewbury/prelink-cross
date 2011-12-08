@@ -440,6 +440,7 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
   if (loader->dso->info[DT_RUNPATH] == 0)
     {
       /* Search DT_RPATH all the way up.  */
+      /* Note RPATH w/ $ORIGIN or other variable paths is not supported */
       struct dso_list *loader_p = loader;
       while (loader_p)
 	{
@@ -576,7 +577,7 @@ load_dsos (DSO *dso, int host_paths)
 			  dso_list_tail->needed = NULL;
 			  dso_list_tail->name = soname;
 			  dso_list_tail->loader = NULL;
-			  dso_list_tail->canon_filename = soname;
+			  dso_list_tail->canon_filename = strdup(soname);
 			  dso_list_tail->err_no = errno;
 
 			  continue;
@@ -1027,8 +1028,13 @@ process_one_dso (DSO *dso, int host_paths)
 	  create_map_object_from_dso_ent (cur_dso_ent);
 	  if ((GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (req, cur_dso_ent->dso->filename) == 0)
 	    requested_map = cur_dso_ent->map;
-	  i++;
 	}
+       else
+	{
+	  /* This is a dummy entry, we couldn't find the object */
+	  cur_dso_ent->map = _dl_new_object(cur_dso_ent->name, cur_dso_ent->canon_filename, lt_library);
+	}
+      i++;
       cur_dso_ent = cur_dso_ent->next;
     }
   dso_list->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
@@ -1038,7 +1044,7 @@ process_one_dso (DSO *dso, int host_paths)
   i = 0;
   while (cur_dso_ent)
     {
-      if (cur_dso_ent->dso)
+      if (cur_dso_ent->map)
 	{
 	  dso_list->map->l_local_scope[0]->r_list[i] = cur_dso_ent->map;
 	  if (cur_dso_ent != dso_list)
