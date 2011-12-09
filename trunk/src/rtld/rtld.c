@@ -30,6 +30,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "prelinktab.h"
 #include "reloc.h"
@@ -53,6 +54,11 @@ struct search_path
 
 struct search_path ld_dirs, ld_library_search_path;
 int host_paths;
+
+char * dst_ORIGIN;
+char * dst_PLATFORM = ""; /* undefined */
+char * dst_LIB = "lib";
+
 
 void string_to_path (struct search_path *path, const char *string);
 
@@ -304,6 +310,7 @@ load_ld_so_conf (int use_64bit, int use_mipsn32)
      have both /lib/ld.so and /lib64/ld.so on x86-64.  */
   if (use_64bit)
     {
+      dst_LIB = "lib64";
       add_dir (&ld_dirs, "/lib64/tls", strlen ("/lib64/tls"));
       add_dir (&ld_dirs, "/lib64", strlen ("/lib64"));
       add_dir (&ld_dirs, "/usr/lib64/tls", strlen ("/usr/lib64/tls"));
@@ -311,6 +318,7 @@ load_ld_so_conf (int use_64bit, int use_mipsn32)
     }
   else if (use_mipsn32)
     {
+      dst_LIB = "lib32";
       add_dir (&ld_dirs, "/lib32/tls", strlen ("/lib32/tls"));
       add_dir (&ld_dirs, "/lib32", strlen ("/lib32"));
       add_dir (&ld_dirs, "/usr/lib32/tls", strlen ("/usr/lib32/tls"));
@@ -318,6 +326,7 @@ load_ld_so_conf (int use_64bit, int use_mipsn32)
     }
   else
     {
+      dst_LIB = "lib";
       add_dir (&ld_dirs, "/lib/tls", strlen ("/lib/tls"));
       add_dir (&ld_dirs, "/lib", strlen ("/lib"));
       add_dir (&ld_dirs, "/usr/lib/tls", strlen ("/usr/lib/tls"));
@@ -377,7 +386,7 @@ char *
 find_lib_in_path (struct search_path *path, const char *soname,
 		  int elfclass, int machine)
 {
-  char *ret;
+  char *ret = NULL;
   int i;
   int alt_machine;
 
@@ -394,11 +403,60 @@ find_lib_in_path (struct search_path *path, const char *soname,
       break;
     }
 
-  ret = malloc (strlen (soname) + 2 + path->maxlen);
-
   for (i = 0; i < path->count; i++)
     {
-      sprintf (ret, "%s/%s", path->dirs[i], soname);
+      char * fixup_path, * path_string;
+
+      path_string = fixup_path = strdup(path->dirs[i]);
+
+      while ((path_string = strchr (path_string, '$')))
+        {
+          char * replace = NULL;
+          size_t len = 0;
+
+          if (strncmp("$ORIGIN", path_string, 7) == 0) {
+            replace = dst_ORIGIN;
+	    len = 7;
+          } else if (strncmp("${ORIGIN}", path_string, 9) == 0) {
+            replace = dst_ORIGIN;
+            len = 9;
+          } else if (strncmp("$PLATFORM", path_string, 9) == 0) {
+            replace = dst_PLATFORM;
+            len = 9;
+          } else if (strncmp("${PLATFORM}", path_string, 11) == 0) {
+            replace = dst_PLATFORM;
+            len = 11;
+          } else if (strncmp("$LIB", path_string, 4) == 0) {
+            replace = dst_LIB;
+            len = 4;
+          } else if (strncmp("${LIB}", path_string, 6) == 0) {
+            replace = dst_LIB;
+            len = 6;
+          } else {
+	    /* Not a defined item, so we skip to the next character */
+            path_string += 1;
+          }
+
+	  if (replace) {
+	    size_t new_path_len = strlen(fixup_path) - len + strlen(replace) + 1;
+	    char * new_path = malloc(new_path_len);
+
+	    /* Calculate the new path_string position based on the old position */
+	    size_t new_path_pos = (path_string - fixup_path) + strlen(replace);
+
+	    snprintf(new_path, new_path_len, "%.*s%s%s", (int)(path_string-fixup_path),
+		     fixup_path, replace, path_string + len);
+
+	    free(fixup_path);
+
+	    fixup_path = new_path;
+	    path_string = fixup_path + new_path_pos;
+	  }
+        }
+
+      ret = malloc (strlen (soname) + 2 + strlen(fixup_path));
+      sprintf (ret, "%s/%s", fixup_path, soname);
+
       if (wrap_access (ret, F_OK) == 0)
 	{
 	  DSO *dso = open_dso (ret);
@@ -440,7 +498,6 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
   if (loader->dso->info[DT_RUNPATH] == 0)
     {
       /* Search DT_RPATH all the way up.  */
-      /* Note RPATH w/ $ORIGIN or other variable paths is not supported */
       struct dso_list *loader_p = loader;
       while (loader_p)
 	{
@@ -939,8 +996,10 @@ main(int argc, char **argv)
 	    goto exit;
 	  }
 
-      if (fd >= 0)
+      if (fd >= 0) {
 	dso = fdopen_dso (fd, argv[remaining]);
+        dst_ORIGIN = dirname(strdup(dso->filename));
+      }
 
       if (dso == NULL)
 	{

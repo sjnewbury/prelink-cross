@@ -2,6 +2,8 @@
 	* rtld/rtld.c: Fix an issue where missing objects would trigger
 	  an assert in dl-version.c
 	* rtld/rtld.h: Add _dl_new_object prototype
+	* rtld/rtld.c: Add support for $ORIGIN, $PLATFORM and $LIB.
+	  Note: $PLATFORM = ""
 
 2011-10-26  Mark Hatle <mark.hatle@windriver.com>
 	* Merge to upstream r196
