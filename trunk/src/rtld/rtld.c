@@ -30,6 +30,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "prelinktab.h"
 #include "reloc.h"
@@ -53,6 +54,11 @@ struct search_path
 
 struct search_path ld_dirs, ld_library_search_path;
 int host_paths;
+
+char * dst_ORIGIN;
+char * dst_PLATFORM = ""; /* undefined */
+char * dst_LIB = "lib";
+
 
 void string_to_path (struct search_path *path, const char *string);
 
@@ -304,6 +310,7 @@ load_ld_so_conf (int machine, int use_64bit, int mipsn32)
      have both /lib/ld.so and /lib64/ld.so on x86-64.  */
   if (machine == EM_MIPS && mipsn32) /* MIPSn32 */
     {
+      dst_LIB = "lib32";
       add_dir (&ld_dirs, "/lib32/tls", strlen ("/lib32/tls"));
       add_dir (&ld_dirs, "/lib32", strlen ("/lib32"));
       add_dir (&ld_dirs, "/usr/lib32/tls", strlen ("/usr/lib32/tls"));
@@ -311,6 +318,7 @@ load_ld_so_conf (int machine, int use_64bit, int mipsn32)
     }
   else if (machine == EM_X86_64 && !use_64bit) /* x32 */
     {
+      dst_LIB = "libx32";
       add_dir (&ld_dirs, "/libx32/tls", strlen ("/libx32/tls"));
       add_dir (&ld_dirs, "/libx32", strlen ("/libx32"));
       add_dir (&ld_dirs, "/usr/libx32/tls", strlen ("/usr/libx32/tls"));
@@ -318,6 +326,7 @@ load_ld_so_conf (int machine, int use_64bit, int mipsn32)
     }
   else if (use_64bit)
     {
+      dst_LIB = "lib64";
       add_dir (&ld_dirs, "/lib64/tls", strlen ("/lib64/tls"));
       add_dir (&ld_dirs, "/lib64", strlen ("/lib64"));
       add_dir (&ld_dirs, "/usr/lib64/tls", strlen ("/usr/lib64/tls"));
@@ -325,6 +334,7 @@ load_ld_so_conf (int machine, int use_64bit, int mipsn32)
     }
   else
     {
+      dst_LIB = "lib";
       add_dir (&ld_dirs, "/lib/tls", strlen ("/lib/tls"));
       add_dir (&ld_dirs, "/lib", strlen ("/lib"));
       add_dir (&ld_dirs, "/usr/lib/tls", strlen ("/usr/lib/tls"));
@@ -384,7 +394,7 @@ char *
 find_lib_in_path (struct search_path *path, const char *soname,
 		  int elfclass, int machine)
 {
-  char *ret;
+  char *ret = NULL;
   int i;
   int alt_machine;
 
@@ -401,11 +411,60 @@ find_lib_in_path (struct search_path *path, const char *soname,
       break;
     }
 
-  ret = malloc (strlen (soname) + 2 + path->maxlen);
-
   for (i = 0; i < path->count; i++)
     {
-      sprintf (ret, "%s/%s", path->dirs[i], soname);
+      char * fixup_path, * path_string;
+
+      path_string = fixup_path = strdup(path->dirs[i]);
+
+      while ((path_string = strchr (path_string, '$')))
+        {
+          char * replace = NULL;
+          size_t len = 0;
+
+          if (strncmp("$ORIGIN", path_string, 7) == 0) {
+            replace = dst_ORIGIN;
+	    len = 7;
+          } else if (strncmp("${ORIGIN}", path_string, 9) == 0) {
+            replace = dst_ORIGIN;
+            len = 9;
+          } else if (strncmp("$PLATFORM", path_string, 9) == 0) {
+            replace = dst_PLATFORM;
+            len = 9;
+          } else if (strncmp("${PLATFORM}", path_string, 11) == 0) {
+            replace = dst_PLATFORM;
+            len = 11;
+          } else if (strncmp("$LIB", path_string, 4) == 0) {
+            replace = dst_LIB;
+            len = 4;
+          } else if (strncmp("${LIB}", path_string, 6) == 0) {
+            replace = dst_LIB;
+            len = 6;
+          } else {
+	    /* Not a defined item, so we skip to the next character */
+            path_string += 1;
+          }
+
+	  if (replace) {
+	    size_t new_path_len = strlen(fixup_path) - len + strlen(replace) + 1;
+	    char * new_path = malloc(new_path_len);
+
+	    /* Calculate the new path_string position based on the old position */
+	    size_t new_path_pos = (path_string - fixup_path) + strlen(replace);
+
+	    snprintf(new_path, new_path_len, "%.*s%s%s", (int)(path_string-fixup_path),
+		     fixup_path, replace, path_string + len);
+
+	    free(fixup_path);
+
+	    fixup_path = new_path;
+	    path_string = fixup_path + new_path_pos;
+	  }
+        }
+
+      ret = malloc (strlen (soname) + 2 + strlen(fixup_path));
+      sprintf (ret, "%s/%s", fixup_path, soname);
+
       if (wrap_access (ret, F_OK) == 0)
 	{
 	  DSO *dso = open_dso (ret);
@@ -583,7 +642,7 @@ load_dsos (DSO *dso, int host_paths)
 			  dso_list_tail->needed = NULL;
 			  dso_list_tail->name = soname;
 			  dso_list_tail->loader = NULL;
-			  dso_list_tail->canon_filename = soname;
+			  dso_list_tail->canon_filename = strdup(soname);
 			  dso_list_tail->err_no = errno;
 
 			  continue;
@@ -945,8 +1004,10 @@ main(int argc, char **argv)
 	    goto exit;
 	  }
 
-      if (fd >= 0)
+      if (fd >= 0) {
 	dso = fdopen_dso (fd, argv[remaining]);
+        dst_ORIGIN = dirname(strdup(dso->filename));
+      }
 
       if (dso == NULL)
 	{
@@ -1036,8 +1097,13 @@ process_one_dso (DSO *dso, int host_paths)
 	  create_map_object_from_dso_ent (cur_dso_ent);
 	  if ((GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (req, cur_dso_ent->dso->filename) == 0)
 	    requested_map = cur_dso_ent->map;
-	  i++;
 	}
+       else
+	{
+	  /* This is a dummy entry, we couldn't find the object */
+	  cur_dso_ent->map = _dl_new_object(cur_dso_ent->name, cur_dso_ent->canon_filename, lt_library);
+	}
+      i++;
       cur_dso_ent = cur_dso_ent->next;
     }
   dso_list->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
@@ -1047,7 +1113,7 @@ process_one_dso (DSO *dso, int host_paths)
   i = 0;
   while (cur_dso_ent)
     {
-      if (cur_dso_ent->dso)
+      if (cur_dso_ent->map)
 	{
 	  dso_list->map->l_local_scope[0]->r_list[i] = cur_dso_ent->map;
 	  if (cur_dso_ent != dso_list)

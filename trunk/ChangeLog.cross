@@ -1,3 +1,10 @@
+2011-12-08  Mark Hatle <mark.hatle@windriver.com>
+	* rtld/rtld.c: Fix an issue where missing objects would trigger
+	  an assert in dl-version.c
+	* rtld/rtld.h: Add _dl_new_object prototype
+	* rtld/rtld.c: Add support for $ORIGIN, $PLATFORM and $LIB.
+	  Note: $PLATFORM = ""
+
 2011-11-01  Mark Hatle <mark.hatle@windriver.com>
 	* Add experimental support for the new x86_64 x32 ABI
 	* See https://sites.google.com/site/x32abi/home for the ABI
