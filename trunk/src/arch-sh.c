@@ -413,7 +413,7 @@ sh_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(sh) = {
   .name = "SuperH",
   .class = ELFCLASS32,
   .machine = EM_SH,

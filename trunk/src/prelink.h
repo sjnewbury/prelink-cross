@@ -312,8 +312,8 @@ unsigned char *get_data_from_iterator (struct data_iterator *it,
 				       GElf_Addr size);
 int get_sym_from_iterator (struct data_iterator *it, GElf_Sym *sym);
 
-#define PL_ARCH \
-static struct PLArch plarch __attribute__((section("pl_arch"),used))
+#define PL_ARCH(F) \
+static struct PLArch plarch_##F __attribute__((section("pl_arch"),used))
 
 #define addr_adjust(addr, start, adjust)	\
   do {						\

@@ -1,3 +1,22 @@
+2011-12-21  Mark Hatle  <mark@hatle.net>
+	* Following code is based on work originally by
+          Code Sourcery, LLC.  (Now part of Mentor Graphics)
+	* prelink.h: Change definition of PL_ARCH
+	* src/arch-alpha.c: Rename PL_ARCH to PL_ARCH(alpha)
+	* src/arch-arm.c: Likewise
+	* src/arch-cris.c: Likewise
+	* src/arch-i386.c: Likewise
+	* src/arch-ia64.c: Likewise
+	* src/arch-mips.c: Likewise
+	* src/arch-ppc.c: Likewise
+	* src/arch-ppc64.c: Likewise
+	* src/arch-s390.c: Likewise
+	* src/arch-s390x.c: Likewise
+	* src/arch-sh.c: Likewise
+	* src/arch-sparc.c: Likewise
+	* src/arch-sparc64.c: Likewise
+	* src/arch-x86_64.c: Likewise
+
 2011-10-12  Jakub Jelinek  <jakub@redhat.com>
 
 	* src/main.c (layout_page_size): New variable.

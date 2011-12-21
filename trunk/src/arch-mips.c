@@ -995,7 +995,7 @@ mips_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
   return 0;
 }
 
-PL_ARCH = {
+PL_ARCH(mips) = {
   .name = "MIPS",
   .class = ELFCLASS32,
   .machine = EM_MIPS,

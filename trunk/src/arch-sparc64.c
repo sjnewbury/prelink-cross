@@ -806,7 +806,7 @@ sparc64_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(sparc64) = {
   .name = "SPARC",
   .class = ELFCLASS64,
   .machine = EM_SPARCV9,

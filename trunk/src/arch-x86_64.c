@@ -523,7 +523,7 @@ x86_64_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(x86_64) = {
   .name = "x86-64",
   .class = ELFCLASS64,
   .machine = EM_X86_64,
