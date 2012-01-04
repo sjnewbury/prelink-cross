@@ -1,3 +1,10 @@
+2012-01-04  Mark Hatle <mark.hatle@windriver.com>
+	* exec.c: Check that a section is larger then 0 bytes when
+	  determining the section to segment mapping.  This matches
+	  the behavior of elfutils - readelf.  Otherwise an empty
+	  PROGBITS section at the end of a segment will cause a
+	  failure.
+
 2011-12-08  Mark Hatle <mark.hatle@windriver.com>
 	* rtld/rtld.c: Fix an issue where missing objects would trigger
 	  an assert in dl-version.c
