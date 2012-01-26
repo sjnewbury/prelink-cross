@@ -109,6 +109,11 @@ read_dynamic (DSO *dso)
 		    dso->info_DT_GNU_HASH = dyn.d_un.d_val;
 		    dso->info_set_mask |= (1ULL << DT_GNU_HASH_BIT);
 		  }
+		else if (dyn.d_tag == DT_TLSDESC_PLT)
+		  {
+		    dso->info_DT_TLSDESC_PLT = dyn.d_un.d_val;
+		    dso->info_set_mask |= (1ULL << DT_TLSDESC_PLT_BIT);
+		  }
 		if (dso->ehdr.e_machine == EM_MIPS)
 		  {
 		    if (dyn.d_tag == DT_MIPS_LOCAL_GOTNO)

@@ -120,6 +120,7 @@ arm_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
 {
   DSO *dso;
   GElf_Addr value;
+  Elf32_Sword val;
 
   if (GELF_R_TYPE (rel->r_info) == R_ARM_RELATIVE
       || GELF_R_TYPE (rel->r_info) == R_ARM_NONE)
@@ -175,6 +176,24 @@ arm_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
 	error (0, 0, "%s: R_ARM_TLS_TPOFF32 relocs should not be present in "
 	       "prelinked ET_EXEC REL sections",
 	       dso->filename);
+      break;
+    case R_ARM_TLS_DESC:
+      if (!dso->info_DT_TLSDESC_PLT)
+        {
+          error (0, 0,
+		 "%s: Unsupported R_ARM_TLS_DESC relocation in non-lazily bound object.",
+                 dso->filename);
+          return 1;
+        }
+      val = read_une32 (dso, rel->r_offset + 4);
+      if (val != 0 && !dynamic_info_is_set (dso, DT_GNU_PRELINKED_BIT))
+        {
+          error (0, 0,
+		 "%s: Unexpected non-zero value (0x%x) in R_ARM_TLS_DESC?",
+                 dso->filename, val);
+          return 1;
+        }
+      write_ne32 (dso, rel->r_offset + 4, dso->info_DT_TLSDESC_PLT);
       break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
@@ -243,6 +262,24 @@ arm_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
       if (dso->ehdr.e_type == ET_EXEC && info->resolvetls)
         write_ne32 (dso, rela->r_offset,
                     value + rela->r_addend + info->resolvetls->offset);
+      break;
+    case R_ARM_TLS_DESC:
+      if (!dso->info_DT_TLSDESC_PLT)
+        {
+          error (0, 0,
+		 "%s: Unsupported R_ARM_TLS_DESC relocation in non-lazily bound object.",
+                 dso->filename);
+          return 1;
+        }
+      val = read_une32 (dso, rela->r_offset + 4);
+      if (val != 0 && !dynamic_info_is_set (dso, DT_GNU_PRELINKED_BIT))
+        {
+          error (0, 0,
+		 "%s: Unexpected non-zero value (0x%x) in R_ARM_TLS_DESC?",
+                 dso->filename, val);
+          return 1;
+        }
+      write_ne32 (dso, rela->r_offset + 4, dso->info_DT_TLSDESC_PLT);
       break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
@@ -449,6 +486,9 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
 	  break;
 	}
       break;
+    case R_ARM_TLS_DESC:
+      /* Nothing to do.  */
+      break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
 	     (int) GELF_R_TYPE (rel->r_info));
@@ -563,6 +603,9 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	  break;
 	}
       break;
+    case R_ARM_TLS_DESC:
+      /* Nothing to do.  */
+      break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
 	     (int) GELF_R_TYPE (rela->r_info));
@@ -594,6 +637,7 @@ arm_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
     case R_ARM_GLOB_DAT:
     case R_ARM_TLS_DTPMOD32:
     case R_ARM_TLS_DTPOFF32:
+    case R_ARM_TLS_DESC:
       rela->r_addend = 0;
       break;
     }
@@ -799,6 +843,9 @@ arm_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
       break;
     case R_ARM_TLS_TPOFF32:
       break;
+    case R_ARM_TLS_DESC:
+      write_ne32 (dso, rel->r_offset + 4, 0);
+      break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
 	     (int) GELF_R_TYPE (rel->r_info));
@@ -824,6 +871,7 @@ arm_reloc_class (int reloc_type)
     case R_ARM_TLS_DTPMOD32:
     case R_ARM_TLS_DTPOFF32:
     case R_ARM_TLS_TPOFF32:
+    case R_ARM_TLS_DESC:
       return RTYPE_CLASS_TLS;
     default: return RTYPE_CLASS_VALID;
     }

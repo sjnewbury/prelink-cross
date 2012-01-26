@@ -58,6 +58,10 @@ typedef uint8_t Elf64_Byte;
 #define SHT_GNU_HASH		0x6ffffff6
 #endif
 
+#ifndef DT_TLSDESC_PLT
+#define DT_TLSDESC_PLT		0x6ffffef6
+#endif
+
 #ifndef DT_MIPS_RLD_VERSION
 #define DT_MIPS_RLD_VERSION	0x70000001
 #define DT_MIPS_TIME_STAMP	0x70000002
@@ -107,6 +111,10 @@ typedef uint8_t Elf64_Byte;
 
 #ifndef RSS_UNDEF
 #define RSS_UNDEF              0
+#endif
+
+#ifndef R_ARM_TLS_DESC
+#define R_ARM_TLS_DESC		13
 #endif
 
 #ifndef R_ARM_TLS_DTPMOD32
@@ -164,6 +172,7 @@ typedef struct
   GElf_Addr info_DT_CHECKSUM;
   GElf_Addr info_DT_VERNEED, info_DT_VERDEF, info_DT_VERSYM;
   GElf_Addr info_DT_GNU_HASH;
+  GElf_Addr info_DT_TLSDESC_PLT;
   GElf_Addr info_DT_MIPS_LOCAL_GOTNO;
   GElf_Addr info_DT_MIPS_GOTSYM;
   GElf_Addr info_DT_MIPS_SYMTABNO;
@@ -177,6 +186,7 @@ typedef struct
 #define DT_AUXILIARY_BIT 56
 #define DT_LOPROC_BIT 57
 #define DT_GNU_HASH_BIT 58
+#define DT_TLSDESC_PLT_BIT 59
   uint64_t info_set_mask;
   int fd, fdro;
   int lastscn, dynamic;
