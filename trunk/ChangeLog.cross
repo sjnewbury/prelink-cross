@@ -16,6 +16,9 @@
 	(arm_reloc_class): Likewise.
 	* src/dso.c (read_dynamic): Handle DT_TLSDESC_PLT dynamic tag.
 
+	* src/prelink.h: add missing prototypes for wrap_listxattr,
+	wrap_getxattr, wrap_setxattr
+
 2012-01-04  Mark Hatle <mark.hatle@windriver.com>
 	* exec.c: Check that a section is larger then 0 bytes when
 	  determining the section to segment mapping.  This matches
