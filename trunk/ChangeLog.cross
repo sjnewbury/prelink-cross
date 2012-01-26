@@ -1,3 +1,6 @@
+2012-01-26  Mark Hatle <mark.hatle@windriver.com>
+	* elf.h, rtld/dl-lookupX.h, rtld/rtld.c: Sync to eglibc 2.15
+
 2012-01-04  Mark Hatle <mark.hatle@windriver.com>
 	* exec.c: Check that a section is larger then 0 bytes when
 	  determining the section to segment mapping.  This matches

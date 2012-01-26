@@ -1,6 +1,5 @@
 /* Look up a symbol in the loaded objects.
-   Copyright (C) 1995-2005, 2006, 2007, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1995-2007, 2009, 2010, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -18,7 +17,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-/* This file is from eglibc 2.13, libc/elf/dl-lookup.c
+/* This file is from eglibc 2.15, libc/elf/dl-lookup.c
    It has been split into two pieces dl-lookup.c and dl-lookupX.c,
    the purpose of the split is to enable both 32-bit and 64-bit ELF
    processing in the same application.  This file contains the ELF
@@ -48,7 +47,7 @@
 
 #define __ELF_NATIVE_CLASS RTLD_ELF_SIZE
 
-/* From eglibc 2.13 - elf/link.h */
+/* From eglibc 2.15 - elf/link.h */
 
 /* We use this macro to refer to ELF types independent of the native wordsize.
    `ElfW(TYPE)' is used in place of `Elf32_TYPE' or `Elf64_TYPE'.  */
@@ -199,7 +198,7 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 	       might exist in more than one form
 
 	       If the library does not provide symbol version information
-	       there is no problem at at: we simply use the symbol if it
+	       there is no problem at all: we simply use the symbol if it
 	       is defined.
 
 	       These two lookups need to be handled differently if the
@@ -323,34 +322,21 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 		 definition we have to use it.  */
 	      void enter (struct unique_sym *table, size_t size,
 			  unsigned int hash, const char *name,
-			  const ElfW(Sym) *sym, struct link_map *map)
+			  const ElfW(Sym) *sym, const struct link_map *map)
 	      {
 		size_t idx = hash % size;
 		size_t hash2 = 1 + hash % (size - 2);
-		while (1)
+		while (table[idx].name != NULL)
 		  {
-		    if (table[idx].name == NULL)
-		      {
-			table[idx].hashval = hash;
-			table[idx].name = name;
-			if ((type_class & ELF_RTYPE_CLASS_COPY) != 0)
-			  {
-			    table[idx].sym = ref;
-			    table[idx].map = (struct link_map *) undef_map;
-			  }
-			else
-			  {
-			    table[idx].sym = sym;
-			    table[idx].map = map;
-			  }
-
-			return;
-		      }
-
 		    idx += hash2;
 		    if (idx >= size)
 		      idx -= size;
 		  }
+
+		table[idx].hashval = hash;
+		table[idx].name = name;
+		table[idx].sym = sym;
+		table[idx].map = map;
 	      }
 
 	      struct unique_sym_table *tab
@@ -367,8 +353,19 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 		      if (entries[idx].hashval == new_hash
 			  && strcmp (entries[idx].name, undef_name) == 0)
 			{
-			  result->s = entries[idx].sym;
-		          result->m = (struct ldlibs_link_map *) entries[idx].map;
+			  if ((type_class & ELF_RTYPE_CLASS_COPY) != 0)
+			    {
+			      /* We possibly have to initialize the central
+				 copy from the copy addressed through the
+				 relocation.  */
+			      result->s = sym;
+			      result->m = (struct ldlibs_link_map *)map;
+			    }
+			  else
+			    {
+			      result->s = entries[idx].sym;
+			      result->m = (struct ldlibs_link_map *) entries[idx].map;
+			    }
 			  return 1;
 			}
 
@@ -379,22 +376,16 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 		      if (idx >= size)
 			idx -= size;
 		    }
+
 		  if (size * 3 <= tab->n_elements * 4)
 		    {
 		      /* Expand the table.  */
-		      size_t newsize;
-		      struct unique_sym *newentries;
-		      newsize = _dl_higher_prime_number (size + 1);
-		      newentries = calloc (sizeof (struct unique_sym), newsize);
+		      size_t newsize = _dl_higher_prime_number (size + 1);
+		      struct unique_sym *newentries
+			= calloc (sizeof (struct unique_sym), newsize);
 		      if (newentries == NULL)
 			{
 			nomem:
-			  /* this is a goto target, so we have to be
-			   * sure to initialize these values in case we
-			   * got here from somewhere else.
-			   */
-			  newentries = NULL;
-			  newsize = 0;
 			  _dl_fatal_printf ("out of memory\n");
 			}
 
@@ -435,8 +426,15 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 		  tab->free = free;
 		}
 
-	      enter (entries, size, new_hash, strtab + sym->st_name, sym,
-		     (struct link_map *) map);
+	      if ((type_class & ELF_RTYPE_CLASS_COPY) != 0)
+		enter (entries, size, new_hash, strtab + sym->st_name, ref,
+		     (struct link_map *) undef_map);
+	      else
+		{
+		  enter (entries, size, new_hash, strtab + sym->st_name, sym,
+			 (struct link_map *) map);
+		}
+
 	      ++tab->n_elements;
 
 	      goto success;
@@ -466,7 +464,6 @@ void
 _dl_setup_hash (struct ldlibs_link_map *map)
 {
   Elf_Symndx *hash;
-  Elf_Symndx nchain;
 
   if (__builtin_expect (map->l_info[DT_ADDRTAGIDX (DT_GNU_HASH) + DT_NUM
                                     + DT_THISPROCNUM + DT_VERSIONTAGNUM
@@ -498,7 +495,8 @@ _dl_setup_hash (struct ldlibs_link_map *map)
   hash = (void *) D_PTR (map, l_info[DT_HASH]);
 
   map->l_nbuckets = *hash++;
-  nchain = *hash++;
+  /* Skip nchain.  */
+  hash++;
   map->l_buckets = hash;
   hash += map->l_nbuckets;
   map->l_chain = hash;
@@ -542,9 +540,8 @@ _dl_lookup_symbol_x (const char *undef_name, struct ldlibs_link_map *undef_map,
     while ((*scope)->r_list[i] != skip_map)
       ++i;
 
-  size_t start;
-
   /* Search the relevant loaded objects for a definition.  */
+  size_t start;  /* requires C99 to put it into the loop */
   for (start = i; *scope != NULL; start = 0, ++scope)
     {
       int res = do_lookup_x (undef_name, new_hash, &old_hash, *ref,
@@ -642,7 +639,8 @@ _dl_lookup_symbol_x (const char *undef_name, struct ldlibs_link_map *undef_map,
       /* Don't do this for explicit lookups as opposed to implicit
 	 runtime lookups.  */
       && (flags & DL_LOOKUP_ADD_DEPENDENCY) != 0
-      )
+      /* Add UNDEF_MAP to the dependencies.  */
+      && add_dependency (undef_map, current_value.m, flags) < 0)
       /* Something went wrong.  Perhaps the object we tried to reference
 	 was just removed.  Try finding another definition.  */
       return _dl_lookup_symbol_x (undef_name, undef_map, ref,

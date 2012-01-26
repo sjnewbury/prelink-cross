@@ -1,5 +1,5 @@
 /* This file defines standard ELF types, structures, and macros.
-   Copyright (C) 1995-2003,2004,2005,2006,2007,2008,2009,2010
+   Copyright (C) 1995-2003,2004,2005,2006,2007,2008,2009,2010,2011
 	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -142,7 +142,8 @@ typedef struct
 #define ELFOSABI_SYSV		0	/* Alias.  */
 #define ELFOSABI_HPUX		1	/* HP-UX */
 #define ELFOSABI_NETBSD		2	/* NetBSD.  */
-#define ELFOSABI_LINUX		3	/* Linux.  */
+#define ELFOSABI_GNU		3	/* Object uses GNU ELF extensions.  */
+#define ELFOSABI_LINUX		ELFOSABI_GNU /* Compatibility alias.  */
 #define ELFOSABI_SOLARIS	6	/* Sun Solaris.  */
 #define ELFOSABI_AIX		7	/* IBM AIX.  */
 #define ELFOSABI_IRIX		8	/* SGI Irix.  */
@@ -1339,17 +1340,6 @@ typedef struct
 #define DT_SPARC_REGISTER 0x70000001
 #define DT_SPARC_NUM	2
 
-/* Bits present in AT_HWCAP on SPARC.  */
-
-#define HWCAP_SPARC_FLUSH	1	/* The CPU supports flush insn.  */
-#define HWCAP_SPARC_STBAR	2
-#define HWCAP_SPARC_SWAP	4
-#define HWCAP_SPARC_MULDIV	8
-#define HWCAP_SPARC_V9		16	/* The CPU is v9, so v8plus is ok.  */
-#define HWCAP_SPARC_ULTRA3	32
-#define HWCAP_SPARC_BLKINIT	64	/* Sun4v with block-init/load-twin.  */
-#define HWCAP_SPARC_N2		128
-
 /* MIPS R3000 specific definitions.  */
 
 /* Legal values for e_flags field of Elf32_Ehdr.  */
@@ -2318,7 +2308,8 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_ARM_THM_PC22		10
 #define R_ARM_THM_PC8		11
 #define R_ARM_AMP_VCALL9	12
-#define R_ARM_SWI24		13
+#define R_ARM_SWI24		13	/* Obsolete static relocation.  */
+#define R_ARM_TLS_DESC		13      /* Dynamic relocation.  */
 #define R_ARM_THM_SWI8		14
 #define R_ARM_XPC25		15
 #define R_ARM_THM_XPC22		16
@@ -2339,6 +2330,10 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_ARM_LDR_SBREL_11_0	35
 #define R_ARM_ALU_SBREL_19_12	36
 #define R_ARM_ALU_SBREL_27_20	37
+#define R_ARM_TLS_GOTDESC	90
+#define R_ARM_TLS_CALL		91
+#define R_ARM_TLS_DESCSEQ	92
+#define R_ARM_THM_TLS_CALL	93
 #define R_ARM_GNU_VTENTRY	100
 #define R_ARM_GNU_VTINHERIT	101
 #define R_ARM_THM_PC11		102	/* thumb unconditional branch */
@@ -2353,6 +2348,8 @@ typedef Elf32_Addr Elf32_Conflict;
 					   static TLS block offset */
 #define R_ARM_TLS_LE32		108	/* 32 bit offset relative to static
 					   TLS block */
+#define	R_ARM_THM_TLS_DESCSEQ	129
+#define R_ARM_IRELATIVE		160
 #define R_ARM_RXPC25		249
 #define R_ARM_RSBREL32		250
 #define R_ARM_THM_RPC22		251

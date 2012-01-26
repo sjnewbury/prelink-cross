@@ -126,9 +126,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_X86_64_COPY) * ELF_RTYPE_CLASS_COPY))
 
+/* From eglibc-2.15 ports/sysdepsa/arm/dl-machine.h */
 # define arm_elf_machine_type_class(type) \
   ((((type) == R_ARM_JUMP_SLOT || (type) == R_ARM_TLS_DTPMOD32          \
-     || (type) == R_ARM_TLS_DTPOFF32 || (type) == R_ARM_TLS_TPOFF32)    \
+     || (type) == R_ARM_TLS_DTPOFF32 || (type) == R_ARM_TLS_TPOFF32     \
+     || (type) == R_ARM_TLS_DESC)					\
     * ELF_RTYPE_CLASS_PLT)                                              \
    | (((type) == R_ARM_COPY) * ELF_RTYPE_CLASS_COPY))
 
