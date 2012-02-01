@@ -1,3 +1,6 @@
+2012-02-01  Mark Hatle <mark.hatle@windriver.com>
+	* configure.in: Fix enabling and disabling of SE Linux support
+
 2012-01-26  Mark Hatle <mark.hatle@windriver.com>
 	* elf.h, rtld/dl-lookupX.h, rtld/rtld.c: Sync to eglibc 2.15
 
