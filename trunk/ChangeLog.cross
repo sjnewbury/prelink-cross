@@ -1,3 +1,10 @@
+2012-02-02  Mark Hatle <mark.hatle@windriver.com>
+	Integrate dwarf2 signal frame patch:
+
+	2010-05-10  Paul Brook  <paul@codesourcery.com>
+
+	* src/dwarf2.c (adjust_dwarf2_frame): Skip 'S' augmentation.
+
 2012-02-01  Mark Hatle <mark.hatle@windriver.com>
 	* configure.in: Fix enabling and disabling of SE Linux support
 

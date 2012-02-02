@@ -951,6 +951,11 @@ adjust_dwarf2_frame (DSO *dso, GElf_Addr start, GElf_Addr adjust)
 		     dso->filename, version);
 	      return 1;
 	    }
+	  if (*ptr == 'S')
+	    {
+	      /* This is a signal frame.  We don't care.  */
+	      ptr++;
+	    }
 	  if (*ptr != '\0')
 	    {
 	      error (0, 0, "%s: .debug_frame unhandled augmentation \"%s\"",
