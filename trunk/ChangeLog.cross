@@ -1,3 +1,7 @@
+2012-03-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
+	* src/reloc.c (find_reloc_sections): Don't error due to a gap between
+	  sections.
+
 2011-12-21  Mark Hatle <mark.hatle@windriver.com>
 	* src/arch-x86_64.c: Add support for x32 ABI
 

@@ -29,7 +29,7 @@
 int
 find_reloc_sections (DSO *dso, struct reloc_info *rinfo)
 {
-  int first, last, rela, i;
+  int first, last, rela, i, pltfirst;
   GElf_Addr start, end, pltstart, pltend;
 
   memset (rinfo, 0, sizeof (*rinfo));
@@ -60,7 +60,7 @@ find_reloc_sections (DSO *dso, struct reloc_info *rinfo)
     {
       pltstart = dso->info[DT_JMPREL];
       pltend = dso->info[DT_JMPREL] + dso->info[DT_PLTRELSZ];
-      first = addr_to_sec (dso, pltstart);
+      pltfirst = first = addr_to_sec (dso, pltstart);
       last = addr_to_sec (dso, pltend - 1);
       if (first == -1
 	  || last == -1
@@ -91,6 +91,7 @@ find_reloc_sections (DSO *dso, struct reloc_info *rinfo)
     {
       pltstart = end;
       pltend = end;
+      pltfirst = 0;
     }
 
   if (start == 0 && end == 0)
@@ -128,7 +129,11 @@ find_reloc_sections (DSO *dso, struct reloc_info *rinfo)
 	  }
     }
 
-  if (pltstart != end && pltend != end)
+  if (pltstart != end && pltend != end
+      /* There is a gap between .rel(a).dyn and .rel(a).plt sections.
+	 The gap may be due to a linker optimization, in which case
+	 the sections are still adjacent, with a zero-filled gap in-between.  */
+      && last + 1 != pltfirst)
     {
       error (0, 0, "%s: DT_JMPREL tag not adjacent to DT_REL%s relocations",
 	     dso->filename, rela ? "A" : "");
