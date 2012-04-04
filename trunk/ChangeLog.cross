@@ -1,3 +1,9 @@
+2012-04-04  Mark Hatle <mark.hatle@windriver.com>
+	* testsuite/ifunc1.sh, ifunc2.sh, ifunc3.sh: Add cross compilation
+	  checks to a few of the test cases.
+	* testsuite/reloc4.sh, reloc5.sh: Fix linking problems with a linker
+	  that does not automatically including referenced libraries.
+
 2012-03-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
 	* src/reloc.c (find_reloc_sections): Don't error due to a gap between
 	  sections.
