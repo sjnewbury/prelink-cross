@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <utime.h>
+#include <glob.h>
 
 #ifndef HAVE_ELF64_BYTE
 typedef uint8_t Elf64_Byte;
@@ -610,6 +611,9 @@ ssize_t wrap_getxattr (const char *path, const char *name, void *value,
 		 size_t size);
 int wrap_setxattr (const char *path, const char *name, const void *value,
 		 size_t size, int flags);
+int wrap_glob (const char *pattern, int flags,
+	       int (*errfunc) (const char *epath, int eerrno),
+	       glob_t *pglob);
 
 char *sysroot_file_name (const char *name, int allow_last_link);
 
