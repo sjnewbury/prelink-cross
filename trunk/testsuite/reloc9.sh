@@ -15,19 +15,19 @@ NOCOPYRELOC=-Wl,-z,nocopyreloc
 case "`$RUN uname -m`" in
   x86_64|s390*|sparc*) if file reloc1lib1.so | grep -q 64-bit; then NOCOPYRELOC=; fi;;
 esac
-$CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib1.so $srcdir/reloc3lib1.c
-$CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib2.so $srcdir/reloc1lib2.c reloc9lib1.so
+$RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib1.so $srcdir/reloc3lib1.c
+$RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib2.so $srcdir/reloc1lib2.c reloc9lib1.so
 BINS="reloc9"
 LIBS="reloc9lib1.so reloc9lib2.so"
-$CCLINK -o reloc9 -Wl,-z,nocombreloc $NOCOPYRELOC $srcdir/reloc7.c -Wl,--rpath-link,. reloc9lib2.so reloc9lib1.so
+$RUN_HOST $CCLINK -o reloc9 -Wl,-z,nocombreloc $NOCOPYRELOC $srcdir/reloc7.c -Wl,--rpath-link,. reloc9lib2.so reloc9lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc9 > reloc9.log
-$PRELINK ${PRELINK_OPTS--vm} ./reloc9 >> reloc9.log 2>&1 || exit 1
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc9 >> reloc9.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc9.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=. ./reloc9 >> reloc9.log || exit 3
 fi
-$READELF -a ./reloc9 >> reloc9.log 2>&1 || exit 4
+$RUN_HOST $READELF -a ./reloc9 >> reloc9.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc9
 comparelibs >> reloc9.log 2>&1 || exit 5

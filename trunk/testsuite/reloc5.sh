@@ -7,16 +7,16 @@ rm -f prelink.cache
 $HOST_CC -O2 -o reloc5.tmp $srcdir/reloc5.c
 ./reloc5.tmp > reloc5.tmp.c
 BINS="reloc5"
-$CCLINK -o reloc5 reloc5.tmp.c -Wl,--rpath-link,. reloc4lib3.so reloc4lib2.so
+$RUN_HOST $CCLINK -o reloc5 reloc5.tmp.c -Wl,--rpath-link,. reloc4lib3.so reloc4lib2.so
 savelibs
 rm -f reloc5*.tmp reloc5*.tmp.c
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc5 > reloc5.log
-$PRELINK ${PRELINK_OPTS--vm} ./reloc5 >> reloc5.log 2>&1 || exit 1
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc5 >> reloc5.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc5.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=. ./reloc5 || exit 3
 fi
-$READELF -a ./reloc5 >> reloc5.log 2>&1 || exit 4
+$RUN_HOST $READELF -a ./reloc5 >> reloc5.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc5
 comparelibs >> reloc5.log 2>&1 || exit 5

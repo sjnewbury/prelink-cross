@@ -33,21 +33,21 @@ CCLINK=`echo $CCLINK \
 rm -rf quick2.tree
 rm -f quick2.log
 mkdir -p quick2.tree/{lib,etc,usr/lib,usr/bin}
-$CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib1.so $srcdir/reloc1lib1.c
-$CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib2.so $srcdir/reloc1lib2.c \
+$RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib1.so $srcdir/reloc1lib1.c
+$RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib2.so $srcdir/reloc1lib2.c \
     -L quick2.tree/usr/lib -l1
-$CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib3.so $srcdir/quick1lib1.c
-$CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib2.later.so \
+$RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib3.so $srcdir/quick1lib1.c
+$RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib2.later.so \
     $srcdir/quick1lib2.c -L quick2.tree/usr/lib -l1 -l3
-echo 'int foo;' | $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib4.so -xc -
-$CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib5.so $srcdir/quick1lib3.c \
+echo 'int foo;' | $RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib4.so -xc -
+$RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib5.so $srcdir/quick1lib3.c \
     -L quick2.tree/usr/lib -Wl,--rpath-link,quick2.tree/usr/lib -l2
-$CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib6.so $srcdir/quick1lib4.c \
+$RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib6.so $srcdir/quick1lib4.c \
     -L quick2.tree/usr/lib -Wl,--rpath-link,quick2.tree/usr/lib -l5
-echo 'int baz;' | $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib7.so -xc - \
+echo 'int baz;' | $RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib7.so -xc - \
     -L quick2.tree/usr/lib -Wl,--rpath-link,quick2.tree/usr/lib -l6 \
     -Wl,--spare-dynamic-tags=0
-echo 'int baz;' | $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib7.later.so \
+echo 'int baz;' | $RUN_HOST $CC -shared -O2 -fpic -o quick2.tree/usr/lib/lib7.later.so \
     -xc - -L quick2.tree/usr/lib -Wl,--rpath-link,quick2.tree/usr/lib -l2
 for lib in `cat syslib.list`; do
   cp -p $lib.orig quick2.tree/lib/$lib
@@ -56,22 +56,22 @@ done
 for lib in `cat syslnk.list`; do
   cp -dp $lib quick2.tree/lib
 done
-$CCLINK -o quick2.tree/usr/bin/bin1 $srcdir/reloc1.c \
+$RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin1 $srcdir/reloc1.c \
     -Wl,--rpath-link,quick2.tree/usr/lib -L quick2.tree/usr/lib -l2 -l1
 echo 'int main () { extern int foo; return foo; }' \
-  | $CCLINK -o quick2.tree/usr/bin/bin2 -xc - -xnone \
+  | $RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin2 -xc - -xnone \
     -L quick2.tree/usr/lib -l4
-$CCLINK -o quick2.tree/usr/bin/bin3 $srcdir/reloc1.c \
+$RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin3 $srcdir/reloc1.c \
     -Wl,--rpath-link,quick2.tree/usr/lib -L quick2.tree/usr/lib -l7 -l2 -l1
-$CCLINK -o quick2.tree/usr/bin/bin4 $srcdir/quick1.c \
+$RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin4 $srcdir/quick1.c \
     -Wl,--rpath-link,quick2.tree/usr/lib -L quick2.tree/usr/lib -l2 -l1
-$CCLINK -o quick2.tree/usr/bin/bin5 $srcdir/quick1.c \
+$RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin5 $srcdir/quick1.c \
     -Wl,--rpath-link,quick2.tree/usr/lib -L quick2.tree/usr/lib -l7 -l2 -l1
 echo 'int main () { return 0; }' \
-  | $CCLINK -o quick2.tree/usr/bin/bin6 -xc - -xnone \
+  | $RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin6 -xc - -xnone \
     -Wl,--rpath-link,quick2.tree/usr/lib -L quick2.tree/usr/lib -l6
 echo 'int main () { return 0; }' \
-  | $CCLINK -o quick2.tree/usr/bin/bin7 -static -xc - -xnone
+  | $RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin7 -static -xc - -xnone
 cat > quick2.tree/usr/bin/bin8 <<EOF
 #!/bin/sh
 echo This is a sample shell script
@@ -122,7 +122,7 @@ EOF
 chmod 0755 quick2.tree/usr/bin/bin12
 else
  echo 'int main () { return 0; }' \
-  | $CCLINK -o quick2.tree/usr/bin/bin12 -pie -fPIE -xc - -xnone
+  | $RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin12 -pie -fPIE -xc - -xnone
 fi
 cat > quick2.tree/etc/prelink.conf <<EOF
 -b *.sh
@@ -157,7 +157,7 @@ cp -p quick2.tree/usr/lib/lib2.later.so{,.orig}
 touch quick2.tree/usr/lib/lib7.later.so
 cp -p quick2.tree/usr/lib/lib7.later.so{,.orig}
 echo $PRELINK ${PRELINK_OPTS--vm} -avvvvv > quick2.log
-$PRELINK ${PRELINK_OPTS--vm} -avvvvv > quick2.tree/etc/log1 2>&1 || exit 1
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -avvvvv > quick2.tree/etc/log1 2>&1 || exit 1
 cat quick2.tree/etc/log1 >> quick2.log
 grep -q 'lib7.so: Not enough room to add .dynamic entry' \
   quick2.tree/etc/log1 || exit 60
@@ -166,7 +166,7 @@ grep -q 'Could not prelink .*bin3 because its dependency .*lib7.so could not be 
 grep -q 'Could not prelink .*bin5 because its dependency .*lib7.so could not be prelinked' \
   quick2.tree/etc/log1 || exit 62
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log2 2>&1 || exit 2
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log2 2>&1 || exit 2
 cat quick2.tree/etc/log2 >> quick2.log
 stat quick2.tree/usr/lib/lib2.so >> quick2.log
 echo chmod 644 quick2.tree/usr/lib/lib2.so >> quick2.log
@@ -176,7 +176,7 @@ echo chmod 755 quick2.tree/usr/lib/lib2.so >> quick2.log
 chmod 755 quick2.tree/usr/lib/lib2.so
 stat quick2.tree/usr/lib/lib2.so >> quick2.log
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log3 2>&1 || exit 3
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log3 2>&1 || exit 3
 cat quick2.tree/etc/log3 >> quick2.log
 grep -q 'lib7.so: Not enough room to add .dynamic entry' \
   quick2.tree/etc/log3 || exit 63
@@ -185,7 +185,7 @@ grep -q 'Could not prelink .*bin3 because its dependency .*lib7.so could not be 
 grep -q 'Could not prelink .*bin5 because its dependency .*lib7.so could not be prelinked' \
   quick2.tree/etc/log3 || exit 65
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log4 2>&1 || exit 4
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log4 2>&1 || exit 4
 cat quick2.tree/etc/log4 >> quick2.log
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 5
@@ -205,11 +205,11 @@ fi
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 10
 fi
-$READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 11
-$READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 12
-$READELF -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 13
-$READELF -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 14
-$READELF -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 15
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 11
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 12
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 13
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 14
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 15
 BINS="quick2.tree/usr/bin/bin1 quick2.tree/usr/bin/bin4"
 BINS="$BINS quick2.tree/usr/bin/bin6"
 LIBS="quick2.tree/usr/lib/lib2.so"
@@ -225,7 +225,7 @@ for b in 1 3 4 5 6; do
   chmod 644 quick2.tree/usr/bin/bin$b.old
 done
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log5 2>&1 || exit 17
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log5 2>&1 || exit 17
 cat quick2.tree/etc/log5 >> quick2.log
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 18
@@ -245,11 +245,11 @@ fi
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 23
 fi
-$READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 24
-$READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 25
-$READELF -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 26
-$READELF -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 27
-$READELF -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 28
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 24
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 25
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 26
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 27
+$RUN_HOST $READELF -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 28
 # In both etc/log1 and etc/log3 there should be one
 # "Not enough room" and two "Could not prelink" warnings.
 [ $(grep ^`echo $PRELINK | sed 's/ .*$/: /'` quick2.log | wc -l) -eq 6 ] || exit 29
@@ -283,7 +283,7 @@ for i in $BINS; do
   chmod 644 $i.prelinked
 done
 echo $PRELINK -uavvvvvv >> quick2.log
-$PRELINK -uavvvvvv >> quick2.log 2>&1 || exit 31
+$RUN_HOST $PRELINK -uavvvvvv >> quick2.log 2>&1 || exit 31
 for i in $BINS $SL $L1 $L2 $L3 $L4 $L5 $L6 $L7; do
   cmp -s $i.orig $i || exit 32
   mv -f $i.prelinked $i

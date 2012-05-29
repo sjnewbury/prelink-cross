@@ -2,10 +2,10 @@
 . `dirname $0`/functions.sh
 # This script copies needed C and C++ libraries into the test directory
 echo 'int main() { }' > movelibs.C
-$CXX -o movelibs movelibs.C
+$RUN_HOST $CXX -o movelibs movelibs.C
 > syslib.list
 > syslnk.list
-for i in `RTLD_TRACE_PRELINKING=1 RTLD_WARN= $LDD ./movelibs \
+for i in `$RUN_HOST RTLD_TRACE_PRELINKING=1 RTLD_WARN= $LDD ./movelibs \
 	  | awk '$1 !~ /^\.\/movelibs/ { print $3 } '`; do
   k=`basename $i`
   if [ -L $i ]; then
@@ -27,8 +27,8 @@ done
 rm -f movelibs.C movelibs
 pwd > prelink.conf
 for i in `cat syslib.list`; do
-  if $READELF -WS $i 2>/dev/null | grep -q .gnu.prelink_undo; then
-    $PRELINK -u $i > /dev/null 2>&1 || exit 1
+  if $RUN_HOST $READELF -WS $i 2>/dev/null | grep -q .gnu.prelink_undo; then
+    $RUN_HOST $PRELINK -u $i > /dev/null 2>&1 || exit 1
   fi
   cp -p $i $i.orig
 done

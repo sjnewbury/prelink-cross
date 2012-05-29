@@ -16,21 +16,21 @@ case "`$RUN uname -m`" in
   mips*) extra=-mxgot ;;
   *) extra= ;;
 esac
-$CC -shared -fpic $extra -o reloc4lib1.so reloc4lib1.tmp.c
-$CC -shared -fpic $extra -o reloc4lib2.so reloc4lib2.tmp.c reloc4lib1.so
-$CC -shared -fpic $extra -o reloc4lib3.so reloc4lib3.tmp.c reloc4lib2.so
+$RUN_HOST $CC -shared -fpic $extra -o reloc4lib1.so reloc4lib1.tmp.c
+$RUN_HOST $CC -shared -fpic $extra -o reloc4lib2.so reloc4lib2.tmp.c reloc4lib1.so
+$RUN_HOST $CC -shared -fpic $extra -o reloc4lib3.so reloc4lib3.tmp.c reloc4lib2.so
 BINS="reloc4"
 LIBS="reloc4lib1.so reloc4lib2.so reloc4lib3.so"
-$CCLINK $extra -o reloc4 reloc4.tmp.c -Wl,--rpath-link,. reloc4lib3.so reloc4lib2.so
+$RUN_HOST $CCLINK $extra -o reloc4 reloc4.tmp.c -Wl,--rpath-link,. reloc4lib3.so reloc4lib2.so
 savelibs
 rm -f reloc4*.tmp reloc4*.tmp.c
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc4 > reloc4.log
-$PRELINK ${PRELINK_OPTS--vm} ./reloc4 >> reloc4.log 2>&1 || exit 1
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc4 >> reloc4.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc4.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=. ./reloc4 || exit 3
 fi
-$READELF -a ./reloc4 >> reloc4.log 2>&1 || exit 4
+$RUN_HOST $READELF -a ./reloc4 >> reloc4.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc4
 comparelibs >> reloc4.log 2>&1 || exit 5

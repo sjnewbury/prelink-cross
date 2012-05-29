@@ -9,6 +9,7 @@ STRIP=${STRIP:-strip}
 HOST_CC=${HOST_CC:-$CC}
 READELF=${READELF:-readelf}
 RUN=${RUN:-env}
+RUN_HOST=${RUN_HOST:-env}
 srcdir=${srcdir:-`dirname $0`}
 savelibs() {
   for i in $LIBS $BINS; do cp -p $i $i.orig; done
@@ -17,11 +18,11 @@ comparelibs() {
   for i in $LIBS $BINS; do
     cp -p $i $i.new
     echo $PRELINK -u $i.new
-    $PRELINK -u $i.new || exit
+    $RUN_HOST $PRELINK -u $i.new || exit
     cmp -s $i.orig $i.new || exit
     rm -f $i.new
     echo $PRELINK -y $i \> $i.new
-    $PRELINK -y $i > $i.new || exit
+    $RUN_HOST $PRELINK -y $i > $i.new || exit
     cmp -s $i.orig $i.new || exit
     rm -f $i.new
   done

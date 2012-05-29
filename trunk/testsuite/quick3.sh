@@ -32,8 +32,8 @@ CCLINK=`echo $CCLINK \
 rm -rf quick3.tree
 rm -f quick3.log
 mkdir -p quick3.tree/{lib,etc,usr/lib,usr/bin}
-$CC -shared -O2 -fpic -o quick3.tree/usr/lib/lib1.so $srcdir/reloc1lib1.c
-$CC -shared -O2 -fpic -o quick3.tree/usr/lib/lib2.so $srcdir/reloc1lib2.c \
+$RUN_HOST $CC -shared -O2 -fpic -o quick3.tree/usr/lib/lib1.so $srcdir/reloc1lib1.c
+$RUN_HOST $CC -shared -O2 -fpic -o quick3.tree/usr/lib/lib2.so $srcdir/reloc1lib2.c \
     -L quick3.tree/usr/lib -l1 -Wl,-soname,lib2.so
 for lib in `cat syslib.list`; do
   cp -p $lib.orig quick3.tree/lib/$lib
@@ -42,7 +42,7 @@ done
 for lib in `cat syslnk.list`; do
   cp -dp $lib quick3.tree/lib
 done
-$CCLINK -o quick3.tree/usr/bin/bin1 $srcdir/reloc1.c \
+$RUN_HOST $CCLINK -o quick3.tree/usr/bin/bin1 $srcdir/reloc1.c \
     -Wl,--rpath-link,quick3.tree/usr/lib -L quick3.tree/usr/lib -l2 -l1
 cat > quick3.tree/etc/prelink.conf <<EOF
 quick3.tree/usr/bin
@@ -58,26 +58,26 @@ chmod 644 `ls $BINS | sed 's|$|.orig|'`
 # than mtimes
 sleep 3s
 echo $PRELINK ${PRELINK_OPTS--vm} -avvvvv > quick3.log
-$PRELINK ${PRELINK_OPTS--vm} -avvvvv > quick3.tree/etc/log1 2>&1 || exit 1
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -avvvvv > quick3.tree/etc/log1 2>&1 || exit 1
 cat quick3.tree/etc/log1 >> quick3.log
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick3.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log2 2>&1 || exit 2
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log2 2>&1 || exit 2
 cat quick3.tree/etc/log2 >> quick3.log
-$CC -shared -O2 -fpic -o quick3.tree/usr/lib/lib2.so.0 $srcdir/reloc1lib2.c \
+$RUN_HOST $CC -shared -O2 -fpic -o quick3.tree/usr/lib/lib2.so.0 $srcdir/reloc1lib2.c \
     -L quick3.tree/usr/lib -l1 -Wl,-soname,lib2.so
 rm -f quick3.tree/usr/lib/lib2.so{,.orig}
 cp -p quick3.tree/usr/lib/lib2.so.0{,.orig}
 ln -sf lib2.so.0 quick3.tree/usr/lib/lib2.so
 sleep 3s
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick3.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log3 2>&1 || exit 3
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log3 2>&1 || exit 3
 cat quick3.tree/etc/log3 >> quick3.log
 if [ "x$CROSS" = "x" ]; then
  $RUN LD_LIBRARY_PATH=quick3.tree/lib:quick3.tree/usr/lib quick3.tree/usr/bin/bin1 || exit 4
 fi
 LIBS="quick3.tree/usr/lib/lib1.so quick3.tree/usr/lib/lib2.so.0"
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick3.log
-$PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log4 2>&1 || exit 5
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log4 2>&1 || exit 5
 cat quick3.tree/etc/log4 >> quick3.log
 comparelibs >> quick3.log 2>&1 || exit 6
 [ -L quick3.tree/usr/lib/lib2.so ] || exit 7
@@ -101,7 +101,7 @@ for i in $B1; do
   chmod 644 $i.prelinked
 done
 echo $PRELINK -uavvvvvv >> quick3.log
-$PRELINK -uavvvvvv >> quick3.log 2>&1 || exit 31
+$RUN_HOST $PRELINK -uavvvvvv >> quick3.log 2>&1 || exit 31
 for i in $B1 $SL $L1 $L3; do
   cmp -s $i.orig $i || exit 32
   mv -f $i.prelinked $i
