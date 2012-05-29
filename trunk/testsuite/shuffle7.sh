@@ -17,7 +17,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 > shuffle7.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle7.log && exit 2
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./shuffle7 || exit 3
+ $RUN LD_LIBRARY_PATH=. ./shuffle7 || exit 3
 fi
 $READELF -a ./shuffle7 >> shuffle7.log 2>&1 || exit 4
 comparelibs >> shuffle7.log 2>&1 || exit 5
@@ -30,7 +30,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log 2>&1 || exit 6
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle7.log && exit 7
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./shuffle7 || exit 8
+ $RUN LD_LIBRARY_PATH=. ./shuffle7 || exit 8
 fi
 $READELF -a ./shuffle7 >> shuffle7.log 2>&1 || exit 9
 comparelibs >> shuffle7.log 2>&1 || exit 10
@@ -41,7 +41,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle7 >> shuffle7.log 2>&1 || exit 11
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle7.log && exit 12
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./shuffle7 || exit 13
+ $RUN LD_LIBRARY_PATH=. ./shuffle7 || exit 13
 fi
 $READELF -a ./shuffle7 >> shuffle7.log 2>&1 || exit 14
 comparelibs >> shuffle7.log 2>&1 || exit 15

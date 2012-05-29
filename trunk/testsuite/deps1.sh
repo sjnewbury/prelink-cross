@@ -42,7 +42,7 @@ echo $PRELINK ${PRELINK_OPTS--v} -avvvvv > deps1.log
 $PRELINK ${PRELINK_OPTS--v} -avvvvv > deps1.tree/etc/log1 2>&1 || exit 1
 cat deps1.tree/etc/log1 >> deps1.log
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=deps1.tree/lib deps1.tree/usr/bin/bin1 || exit 2
+ $RUN LD_LIBRARY_PATH=deps1.tree/lib deps1.tree/usr/bin/bin1 || exit 2
 fi
 $READELF -d deps1.tree/{usr,opt}/lib/lib1.so 2>&1 | grep CHECKSUM >> deps1.log || exit 3
 $READELF -A deps1.tree/usr/lib/lib1.so >> deps1.log 2>&1 || exit 4

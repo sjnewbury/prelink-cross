@@ -10,25 +10,25 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./reloc6 > reloc6.log
 $PRELINK ${PRELINK_OPTS--vm} ./reloc6 >> reloc6.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc6.log && exit 2
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./reloc6 >> reloc6.log || exit 3
+ $RUN LD_LIBRARY_PATH=. ./reloc6 >> reloc6.log || exit 3
 fi
 $READELF -a ./reloc6 >> reloc6.log 2>&1 || exit 4
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./reloc6.nop >> reloc6.log || exit 5
+ $RUN LD_LIBRARY_PATH=. ./reloc6.nop >> reloc6.log || exit 5
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. LD_BIND_NOW=1 ./reloc6.nop >> reloc6.log || exit 6
+ $RUN LD_LIBRARY_PATH=. LD_BIND_NOW=1 ./reloc6.nop >> reloc6.log || exit 6
 fi
 mv -f reloc6lib2.so reloc6lib2.so.p
 $CC -shared -O2 -fpic -o reloc6lib2.so $srcdir/reloc1lib2.c reloc6lib1.so
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./reloc6 >> reloc6.log || exit 7
+ $RUN LD_LIBRARY_PATH=. ./reloc6 >> reloc6.log || exit 7
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./reloc6.nop >> reloc6.log || exit 8
+ $RUN LD_LIBRARY_PATH=. ./reloc6.nop >> reloc6.log || exit 8
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. LD_BIND_NOW=1 ./reloc6.nop >> reloc6.log || exit 9
+ $RUN LD_LIBRARY_PATH=. LD_BIND_NOW=1 ./reloc6.nop >> reloc6.log || exit 9
 fi
 mv -f reloc6lib2.so reloc6lib2.so.nop
 mv -f reloc6lib2.so.p reloc6lib2.so

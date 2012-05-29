@@ -73,7 +73,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick3.log
 $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick3.tree/etc/log3 2>&1 || exit 3
 cat quick3.tree/etc/log3 >> quick3.log
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick3.tree/lib:quick3.tree/usr/lib quick3.tree/usr/bin/bin1 || exit 4
+ $RUN LD_LIBRARY_PATH=quick3.tree/lib:quick3.tree/usr/lib quick3.tree/usr/bin/bin1 || exit 4
 fi
 LIBS="quick3.tree/usr/lib/lib1.so quick3.tree/usr/lib/lib2.so.0"
 echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick3.log

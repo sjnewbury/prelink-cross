@@ -12,7 +12,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./reloc7 > reloc7.log
 $PRELINK ${PRELINK_OPTS--vm} ./reloc7 >> reloc7.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc7.log && exit 2
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./reloc7 >> reloc7.log || exit 3
+ $RUN LD_LIBRARY_PATH=. ./reloc7 >> reloc7.log || exit 3
 fi
 $READELF -a ./reloc7 >> reloc7.log 2>&1 || exit 4
 # So that it is not prelinked again

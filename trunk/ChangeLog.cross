@@ -4,6 +4,7 @@
 	2012-05-25  Joseph Myers  <joseph@codesourcery.com>
 
 	* testsuite: Introduce $READELF
+	* testsuite: Introduce $RUN
 
 2012-04-10  Maxim Kuvyrkov  <maxim@codesourcery.com>
 	* src/rtld/rtld.c (find_lib_by_soname): Follow ld.so's behavior of

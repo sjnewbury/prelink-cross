@@ -22,7 +22,7 @@ grep -v 'has a dependency cycle' cycle2.log \
 grep -q "^`echo $PRELINK | sed 's/ .*$/: .*has a dependency cycle/'`" \
   cycle2.log || exit 3
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./cycle2 || exit 4
+ $RUN LD_LIBRARY_PATH=. ./cycle2 || exit 4
 fi
 # So that it is not prelinked again
 chmod -x ./cycle2

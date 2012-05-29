@@ -188,22 +188,22 @@ echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
 $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log4 2>&1 || exit 4
 cat quick2.tree/etc/log4 >> quick2.log
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 5
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 5
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 6
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 6
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 7
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 7
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 8
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 8
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 9
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 9
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 10
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 10
 fi
 $READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 11
 $READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 12
@@ -228,22 +228,22 @@ echo $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv >> quick2.log
 $PRELINK ${PRELINK_OPTS--vm} -aqvvvvv > quick2.tree/etc/log5 2>&1 || exit 17
 cat quick2.tree/etc/log5 >> quick2.log
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 18
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin1 || exit 18
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 19
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin2 || exit 19
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 20
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin3 || exit 20
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 21
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin4 || exit 21
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 22
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin5 || exit 22
 fi
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 23
+ $RUN LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 23
 fi
 $READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 24
 $READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 25

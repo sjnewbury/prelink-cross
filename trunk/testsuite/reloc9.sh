@@ -12,7 +12,7 @@ fi
 rm -f reloc9 reloc9lib*.so reloc9.log
 rm -f prelink.cache
 NOCOPYRELOC=-Wl,-z,nocopyreloc
-case "`uname -m`" in
+case "`$RUN uname -m`" in
   x86_64|s390*|sparc*) if file reloc1lib1.so | grep -q 64-bit; then NOCOPYRELOC=; fi;;
 esac
 $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib1.so $srcdir/reloc3lib1.c
@@ -25,7 +25,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./reloc9 > reloc9.log
 $PRELINK ${PRELINK_OPTS--vm} ./reloc9 >> reloc9.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc9.log && exit 2
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./reloc9 >> reloc9.log || exit 3
+ $RUN LD_LIBRARY_PATH=. ./reloc9 >> reloc9.log || exit 3
 fi
 $READELF -a ./reloc9 >> reloc9.log 2>&1 || exit 4
 # So that it is not prelinked again

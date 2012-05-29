@@ -16,7 +16,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle6 > shuffle6.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle6 >> shuffle6.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle6.log && exit 2
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./shuffle6 || exit 3
+ $RUN LD_LIBRARY_PATH=. ./shuffle6 || exit 3
 fi
 $READELF -a ./shuffle6 >> shuffle6.log 2>&1 || exit 4
 comparelibs >> shuffle6.log 2>&1 || exit 5
@@ -29,7 +29,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle6 >> shuffle6.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle6 >> shuffle6.log 2>&1 || exit 6
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle6.log && exit 7
 if [ "x$CROSS" = "x" ]; then
- LD_LIBRARY_PATH=. ./shuffle6 || exit 8
+ $RUN LD_LIBRARY_PATH=. ./shuffle6 || exit 8
 fi
 $READELF -a ./shuffle6 >> shuffle6.log 2>&1 || exit 9
 # So that it is not prelinked again
