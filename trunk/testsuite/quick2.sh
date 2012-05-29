@@ -112,18 +112,8 @@ echo is present in prelink.conf.
 exit 0
 EOF
 chmod 755 quick2.tree/usr/bin/bin11.script
-if [ `$CC -dumpmachine | sed "s/-.*-.*-.*//"` = "arm" ]; then
- cat > quick2.tree/usr/bin/bin12 << EOF
-#!/bin/sh
-echo -pie -fPIE is not supported on our ARM architectures
-echo this script will serve to disable that part of the test.
-exit 0
-EOF
-chmod 0755 quick2.tree/usr/bin/bin12
-else
- echo 'int main () { return 0; }' \
+echo 'int main () { return 0; }' \
   | $RUN_HOST $CCLINK -o quick2.tree/usr/bin/bin12 -pie -fPIE -xc - -xnone
-fi
 cat > quick2.tree/etc/prelink.conf <<EOF
 -b *.sh
 -c quick2.tree/etc/prelink.conf.d/*.conf

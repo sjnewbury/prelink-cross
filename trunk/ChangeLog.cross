@@ -6,6 +6,7 @@
 	* testsuite: Introduce $READELF
 	* testsuite: Introduce $RUN
 	* testsuite: Introduce $RUN_HOST
+	* testsuite/quick2.sh: Enable PIE test for ARM
 
 2012-04-10  Maxim Kuvyrkov  <maxim@codesourcery.com>
 	* src/rtld/rtld.c (find_lib_by_soname): Follow ld.so's behavior of
