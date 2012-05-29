@@ -497,6 +497,34 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
   if (strchr (soname, '/'))
     return strdup (soname);
 
+  if (is_ldso_soname (soname))
+    /* For dynamic linker, pull the path out of PT_INTERP header.
+       When loading an executable the dynamic linker creates an entry for
+       itself under the name stored in PT_INTERP, and the name that we
+       record in .gnu.liblist should match that exactly.  */
+    {
+      struct dso_list *loader_p = loader;
+
+      while (loader_p)
+	{
+	  if (loader_p->dso->ehdr.e_type == ET_EXEC)
+	    {
+	      int i;
+
+	      for (i = 0; i < loader_p->dso->ehdr.e_phnum; ++i)
+		if (loader_p->dso->phdr[i].p_type == PT_INTERP)
+		  {
+		    const char *interp;
+		    interp = get_data (loader_p->dso,
+				       loader_p->dso->phdr[i].p_vaddr,
+				       NULL, NULL);
+		    return strdup (interp);
+		  }
+	    }
+	  loader_p = loader_p->loader;
+	}
+    }
+
   if (loader->dso->info[DT_RUNPATH] == 0)
     {
       /* Search DT_RPATH all the way up.  */
