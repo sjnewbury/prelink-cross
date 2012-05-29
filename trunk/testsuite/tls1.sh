@@ -3,7 +3,7 @@
 # First check if __thread is supported by ld.so/gcc/ld/as:
 rm -f tlstest
 #echo '__thread int a; int main (void) { return a; }' \
-#  | $RUN_HOST $CC -xc - -o tlstest > /dev/null 2>&1 || exit 77
+#  | $RUN_HOST $CCLINK -xc - -o tlstest > /dev/null 2>&1 || exit 77
 #( $RUN LD_LIBRARY_PATH=. ./tlstest || { rm -f tlstest; exit 77; } ) 2>/dev/null || exit 77
 rm -f tls1 tls1lib*.so tls1.log
 rm -f prelink.cache
