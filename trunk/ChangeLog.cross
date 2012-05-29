@@ -1,3 +1,6 @@
+2012-05-29  Mark Hatle <mark.hatle@windriver.com>
+	* arch-x86_64.c: Fix R_X86_64_64 relocation
+
 2012-05-25  Mark Hatle <mark.hatle@windriver.com>
 	* Fix testsuite execution
 
