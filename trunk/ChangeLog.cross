@@ -1,4 +1,7 @@
 2012-05-29  Mark Hatle <mark.hatle@windriver.com>
+	* testsuite/tls*.sh: Update TLS __thread check
+
+2012-05-29  Mark Hatle <mark.hatle@windriver.com>
 	Integrate testsuite patches:
 
 	2012-05-25  Joseph Myers  <joseph@codesourcery.com>

@@ -2,9 +2,11 @@
 . `dirname $0`/functions.sh
 # First check if __thread is supported by ld.so/gcc/ld/as:
 rm -f tlstest
-#echo '__thread int a; int main (void) { return a; }' \
-#  | $RUN_HOST $CCLINK -xc - -o tlstest > /dev/null 2>&1 || exit 77
-#( $RUN LD_LIBRARY_PATH=. ./tlstest || { rm -f tlstest; exit 77; } ) 2>/dev/null || exit 77
+echo '__thread int a; int main (void) { return a; }' \
+  | $RUN_HOST $CCLINK -xc - -o tlstest > /dev/null 2>&1 || exit 77
+if [ "x$CROSS" = "x" ]; then
+ ( $RUN LD_LIBRARY_PATH=. ./tlstest || { rm -f tlstest; exit 77; } ) 2>/dev/null || exit 77
+fi
 SHFLAGS=
 case "`$RUN uname -m`" in
   ia64|ppc*|x86_64|alpha*|s390*|mips*|arm*) SHFLAGS=-fpic;; # Does not support non-pic shared libs
