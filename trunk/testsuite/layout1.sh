@@ -18,7 +18,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` layout1.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./layout1 || exit 3
 fi
-readelf -a ./layout1 >> layout1.log 2>&1 || exit 4
+$READELF -a ./layout1 >> layout1.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./layout1
 comparelibs >> layout1.log 2>&1 || exit 5

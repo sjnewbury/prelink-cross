@@ -27,7 +27,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc9.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./reloc9 >> reloc9.log || exit 3
 fi
-readelf -a ./reloc9 >> reloc9.log 2>&1 || exit 4
+$READELF -a ./reloc9 >> reloc9.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc9
 comparelibs >> reloc9.log 2>&1 || exit 5

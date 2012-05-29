@@ -44,12 +44,12 @@ cat deps2.tree/etc/log1 >> deps2.log
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=deps2.tree/lib deps2.tree/usr/bin/bin1 || exit 2
 fi
-readelf -d deps2.tree/{usr,opt}/lib/lib1.so 2>&1 | grep CHECKSUM >> deps2.log || exit 3
-readelf -A deps2.tree/usr/lib/lib1.so >> deps2.log 2>&1 || exit 4
-readelf -A deps2.tree/opt/lib/lib1.so >> deps2.log 2>&1 || exit 5
-readelf -A deps2.tree/usr/lib/lib2.so >> deps2.log 2>&1 || exit 6
-readelf -A deps2.tree/usr/lib/lib3.so >> deps2.log 2>&1 || exit 7
-readelf -A deps2.tree/usr/bin/bin1 >> deps2.log 2>&1 || exit 8
+$READELF -d deps2.tree/{usr,opt}/lib/lib1.so 2>&1 | grep CHECKSUM >> deps2.log || exit 3
+$READELF -A deps2.tree/usr/lib/lib1.so >> deps2.log 2>&1 || exit 4
+$READELF -A deps2.tree/opt/lib/lib1.so >> deps2.log 2>&1 || exit 5
+$READELF -A deps2.tree/usr/lib/lib2.so >> deps2.log 2>&1 || exit 6
+$READELF -A deps2.tree/usr/lib/lib3.so >> deps2.log 2>&1 || exit 7
+$READELF -A deps2.tree/usr/bin/bin1 >> deps2.log 2>&1 || exit 8
 LIBS="deps2.tree/usr/lib/lib1.so deps2.tree/usr/lib/lib2.so"
 LIBS="$LIBS deps2.tree/opt/lib/lib1.so"
 BINS=

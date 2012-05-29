@@ -18,7 +18,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle6.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./shuffle6 || exit 3
 fi
-readelf -a ./shuffle6 >> shuffle6.log 2>&1 || exit 4
+$READELF -a ./shuffle6 >> shuffle6.log 2>&1 || exit 4
 comparelibs >> shuffle6.log 2>&1 || exit 5
 for l in shuffle6lib{1,2}.so{,.orig}; do mv -f $l $l.first; done
 cp -p shuffle6 shuffle6.first
@@ -31,7 +31,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle6.log && exit 7
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./shuffle6 || exit 8
 fi
-readelf -a ./shuffle6 >> shuffle6.log 2>&1 || exit 9
+$READELF -a ./shuffle6 >> shuffle6.log 2>&1 || exit 9
 # So that it is not prelinked again
 chmod -x ./shuffle6
 comparelibs >> shuffle6.log 2>&1 || exit 10

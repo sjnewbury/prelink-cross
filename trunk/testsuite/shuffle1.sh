@@ -18,7 +18,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle1.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./shuffle1 || exit 3
 fi
-readelf -a ./shuffle1 >> shuffle1.log 2>&1 || exit 4
+$READELF -a ./shuffle1 >> shuffle1.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./shuffle1
 comparelibs >> shuffle1.log 2>&1 || exit 5

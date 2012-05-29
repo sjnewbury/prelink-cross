@@ -205,11 +205,11 @@ fi
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 10
 fi
-readelf -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 11
-readelf -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 12
-readelf -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 13
-readelf -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 14
-readelf -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 15
+$READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 11
+$READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 12
+$READELF -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 13
+$READELF -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 14
+$READELF -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 15
 BINS="quick2.tree/usr/bin/bin1 quick2.tree/usr/bin/bin4"
 BINS="$BINS quick2.tree/usr/bin/bin6"
 LIBS="quick2.tree/usr/lib/lib2.so"
@@ -245,11 +245,11 @@ fi
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=quick2.tree/lib:quick2.tree/usr/lib quick2.tree/usr/bin/bin6 || exit 23
 fi
-readelf -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 24
-readelf -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 25
-readelf -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 26
-readelf -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 27
-readelf -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 28
+$READELF -a quick2.tree/usr/bin/bin1 >> quick2.log 2>&1 || exit 24
+$READELF -a quick2.tree/usr/bin/bin3 >> quick2.log 2>&1 || exit 25
+$READELF -a quick2.tree/usr/bin/bin4 >> quick2.log 2>&1 || exit 26
+$READELF -a quick2.tree/usr/bin/bin5 >> quick2.log 2>&1 || exit 27
+$READELF -a quick2.tree/usr/bin/bin6 >> quick2.log 2>&1 || exit 28
 # In both etc/log1 and etc/log3 there should be one
 # "Not enough room" and two "Could not prelink" warnings.
 [ $(grep ^`echo $PRELINK | sed 's/ .*$/: /'` quick2.log | wc -l) -eq 6 ] || exit 29

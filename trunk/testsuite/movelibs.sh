@@ -27,7 +27,7 @@ done
 rm -f movelibs.C movelibs
 pwd > prelink.conf
 for i in `cat syslib.list`; do
-  if readelf -WS $i 2>/dev/null | grep -q .gnu.prelink_undo; then
+  if $READELF -WS $i 2>/dev/null | grep -q .gnu.prelink_undo; then
     $PRELINK -u $i > /dev/null 2>&1 || exit 1
   fi
   cp -p $i $i.orig

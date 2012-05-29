@@ -18,7 +18,7 @@ esac
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./cxx1 || exit 4
 fi
-readelf -a ./cxx1 >> cxx1.log 2>&1 || exit 5
+$READELF -a ./cxx1 >> cxx1.log 2>&1 || exit 5
 # So that it is not prelinked again
 chmod -x ./cxx1
 comparelibs >> cxx1.log 2>&1 || exit 6

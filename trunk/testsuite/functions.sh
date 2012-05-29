@@ -7,6 +7,7 @@ PRELINK=${PRELINK:-../src/prelink -c ./prelink.conf -C ./prelink.cache --ld-libr
 LDD=${LDD:-../src/rtld/prelink-rtld}
 STRIP=${STRIP:-strip}
 HOST_CC=${HOST_CC:-$CC}
+READELF=${READELF:-readelf}
 srcdir=${srcdir:-`dirname $0`}
 savelibs() {
   for i in $LIBS $BINS; do cp -p $i $i.orig; done

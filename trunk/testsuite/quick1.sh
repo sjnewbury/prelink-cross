@@ -129,11 +129,11 @@ fi
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=quick1.tree/lib:quick1.tree/usr/lib quick1.tree/usr/bin/bin6 || exit 10
 fi
-readelf -a quick1.tree/usr/bin/bin1 >> quick1.log 2>&1 || exit 11
-readelf -a quick1.tree/usr/bin/bin3 >> quick1.log 2>&1 || exit 12
-readelf -a quick1.tree/usr/bin/bin4 >> quick1.log 2>&1 || exit 13
-readelf -a quick1.tree/usr/bin/bin5 >> quick1.log 2>&1 || exit 14
-readelf -a quick1.tree/usr/bin/bin6 >> quick1.log 2>&1 || exit 15
+$READELF -a quick1.tree/usr/bin/bin1 >> quick1.log 2>&1 || exit 11
+$READELF -a quick1.tree/usr/bin/bin3 >> quick1.log 2>&1 || exit 12
+$READELF -a quick1.tree/usr/bin/bin4 >> quick1.log 2>&1 || exit 13
+$READELF -a quick1.tree/usr/bin/bin5 >> quick1.log 2>&1 || exit 14
+$READELF -a quick1.tree/usr/bin/bin6 >> quick1.log 2>&1 || exit 15
 BINS="quick1.tree/usr/bin/bin1 quick1.tree/usr/bin/bin3"
 BINS="$BINS quick1.tree/usr/bin/bin4 quick1.tree/usr/bin/bin5"
 BINS="$BINS quick1.tree/usr/bin/bin6"
@@ -170,11 +170,11 @@ fi
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=quick1.tree/lib:quick1.tree/usr/lib quick1.tree/usr/bin/bin6 || exit 23
 fi
-readelf -a quick1.tree/usr/bin/bin1 >> quick1.log 2>&1 || exit 24
-readelf -a quick1.tree/usr/bin/bin3 >> quick1.log 2>&1 || exit 25
-readelf -a quick1.tree/usr/bin/bin4 >> quick1.log 2>&1 || exit 26
-readelf -a quick1.tree/usr/bin/bin5 >> quick1.log 2>&1 || exit 27
-readelf -a quick1.tree/usr/bin/bin6 >> quick1.log 2>&1 || exit 28
+$READELF -a quick1.tree/usr/bin/bin1 >> quick1.log 2>&1 || exit 24
+$READELF -a quick1.tree/usr/bin/bin3 >> quick1.log 2>&1 || exit 25
+$READELF -a quick1.tree/usr/bin/bin4 >> quick1.log 2>&1 || exit 26
+$READELF -a quick1.tree/usr/bin/bin5 >> quick1.log 2>&1 || exit 27
+$READELF -a quick1.tree/usr/bin/bin6 >> quick1.log 2>&1 || exit 28
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` quick1.log && exit 29
 L=quick1.tree/usr/lib/lib
 L1=${L}1.so; L2=${L}2.so; L3=${L}3.so; L4=${L}4.so

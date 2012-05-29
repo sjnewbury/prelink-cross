@@ -17,7 +17,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` ifunc3.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./ifunc3 || exit 3
 fi
-readelf -a ./ifunc3 >> ifunc3.log 2>&1 || exit 4
+$READELF -a ./ifunc3 >> ifunc3.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./ifunc3
 comparelibs >> ifunc3.log 2>&1 || exit 5

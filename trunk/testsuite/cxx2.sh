@@ -16,7 +16,7 @@ case "`uname -m`" in
   *) [ $( grep ^`echo $PRELINK | sed 's/ .*$/: /'` cxx2.log | grep 'Removing C++ conflict' | wc -l ) -ge 9 ] || exit 3;;
 esac
 LD_LIBRARY_PATH=. ./cxx2 || exit 4
-readelf -a ./cxx2 >> cxx2.log 2>&1 || exit 5
+$READELF -a ./cxx2 >> cxx2.log 2>&1 || exit 5
 # So that it is not prelinked again
 chmod -x ./cxx2
 comparelibs >> cxx2.log 2>&1 || exit 6

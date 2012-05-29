@@ -12,7 +12,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc6.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./reloc6 >> reloc6.log || exit 3
 fi
-readelf -a ./reloc6 >> reloc6.log 2>&1 || exit 4
+$READELF -a ./reloc6 >> reloc6.log 2>&1 || exit 4
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./reloc6.nop >> reloc6.log || exit 5
 fi

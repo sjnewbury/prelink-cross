@@ -19,7 +19,7 @@ grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` tls1.log && exit 2
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./tls1 || exit 3
 fi
-readelf -a ./tls1 >> tls1.log 2>&1 || exit 4
+$READELF -a ./tls1 >> tls1.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./tls1
 comparelibs >> tls1.log 2>&1 || exit 5

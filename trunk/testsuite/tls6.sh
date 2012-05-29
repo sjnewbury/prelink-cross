@@ -30,7 +30,7 @@ grep -v 'has undefined non-weak symbols' tls6.log \
 if [ "x$CROSS" = "x" ]; then
  LD_LIBRARY_PATH=. ./tls6 || exit 7
 fi
-readelf -a ./tls6 >> tls6.log 2>&1 || exit 8
+$READELF -a ./tls6 >> tls6.log 2>&1 || exit 8
 # So that it is not prelinked again
 chmod -x ./tls6
 comparelibs >> tls6.log 2>&1 || exit 9

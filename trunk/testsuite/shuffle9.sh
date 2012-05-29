@@ -12,7 +12,7 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle9 > shuffle9.log
 $PRELINK ${PRELINK_OPTS--vm} ./shuffle9 >> shuffle9.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` shuffle9.log && exit 2
 LD_LIBRARY_PATH=. ./shuffle9 || exit 3
-readelf -a ./shuffle9 >> shuffle9.log 2>&1 || exit 4
+$READELF -a ./shuffle9 >> shuffle9.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./shuffle9
 comparelibs >> shuffle9.log 2>&1 || exit 5
