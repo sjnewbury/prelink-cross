@@ -1,5 +1,6 @@
 2012-05-29  Mark Hatle <mark.hatle@windriver.com>
 	* testsuite/tls*.sh: Update TLS __thread check
+	* README.cross: change instructions to use autoreconf -if
 
 2012-05-29  Mark Hatle <mark.hatle@windriver.com>
 	Integrate testsuite patches:
