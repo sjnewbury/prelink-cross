@@ -1,3 +1,6 @@
+2012-05-28  Joseph Myers  <joseph@codesourcery.com>
+	* m4/libelf.m4: Add unistd.h
+
 2012-05-29  Mark Hatle <mark.hatle@windriver.com>
 	* testsuite/tls*.sh: Update TLS __thread check
 	* README.cross: change instructions to use autoreconf -if
