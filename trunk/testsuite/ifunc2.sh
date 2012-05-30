@@ -2,7 +2,9 @@
 . `dirname $0`/functions.sh
 # First check if __thread is supported by ld.so/gcc/ld/as:
 $RUN_HOST $CCLINK -o ifunctest $srcdir/ifunctest.c -Wl,--rpath-link,. > /dev/null 2>&1 || exit 77
-( $RUN LD_LIBRARY_PATH=. ./ifunctest || { rm -f ifunctest; exit 77; } ) 2>/dev/null || exit 77
+if [ "x$CROSS" = "x" ]; then
+ ( $RUN LD_LIBRARY_PATH=. ./ifunctest || { rm -f ifunctest; exit 77; } ) 2>/dev/null || exit 77
+fi
 rm -f ifunctest ifunc2 ifunc2lib*.so ifunc2.log
 rm -f prelink.cache
 $RUN_HOST $CC -shared -O2 -fpic -o ifunc2lib1.so $srcdir/ifunc1lib1.c -DPICKNO=2

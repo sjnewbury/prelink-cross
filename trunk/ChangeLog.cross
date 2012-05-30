@@ -1,5 +1,6 @@
 2012-05-30  Mark Hatle <mark.hatle@windriver.com>
 	* configure.in: Change the default bug report address to me
+	* testsuite/ifunc*.sh: Update a test to only run when !CROSS
 
 2012-05-22  Joseph Myers  <joseph@codesourcery.com>
 	* src/prelink.h: Add missing wrap_glob declaration
