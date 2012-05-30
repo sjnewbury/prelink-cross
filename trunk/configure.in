@@ -120,7 +120,7 @@ AC_ARG_WITH(bugurl,
     no)  REPORT_BUGS_TO="" ;;
     *)   REPORT_BUGS_TO="<URL:$withval>" ;;
    esac],
-   REPORT_BUGS_TO="<jakub@redhat.com>"
+   REPORT_BUGS_TO="<mark.hatle@windriver.com>"
 )
 AC_SUBST(REPORT_BUGS_TO)
 
