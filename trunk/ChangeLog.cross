@@ -1,3 +1,6 @@
+2012-09-08  Joseph Myers  <joseph@codesourcery.com>
+	* src/arch-arm.c: Fix ARM_TLS_DTPOFF32 addends
+
 2012-06-14  Joseph Myers  <joseph@codesourcery.com>
 	* src/exec.c: Fix issue for Power related to empty PROGBITS
 	  change

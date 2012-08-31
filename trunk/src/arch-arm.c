@@ -478,7 +478,7 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
 	  ret->r_addend = tls->modid;
 	  break;
 	case R_ARM_TLS_DTPOFF32:
-	  ret->r_addend = value;
+	  ret->r_addend = value + read_une32 (dso, rel->r_offset);
 	  break;
 	case R_ARM_TLS_TPOFF32:
 	  ret->r_addend = (value + read_une32 (dso, rel->r_offset)
@@ -596,7 +596,7 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	  ret->r_addend = tls->modid;
 	  break;
 	case R_ARM_TLS_DTPOFF32:
-	  ret->r_addend = value;
+	  ret->r_addend = value + rela->r_addend;
 	  break;
 	case R_ARM_TLS_TPOFF32:
 	  ret->r_addend = value + rela->r_addend + tls->offset;
@@ -627,6 +627,7 @@ arm_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
     case R_ARM_RELATIVE:
     case R_ARM_ABS32:
     case R_ARM_TLS_TPOFF32:
+    case R_ARM_TLS_DTPOFF32:
       rela->r_addend = (Elf32_Sword) read_une32 (dso, rel->r_offset);
       break;
     case R_ARM_PC24:
@@ -636,7 +637,6 @@ arm_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
     case R_ARM_COPY:
     case R_ARM_GLOB_DAT:
     case R_ARM_TLS_DTPMOD32:
-    case R_ARM_TLS_DTPOFF32:
     case R_ARM_TLS_DESC:
       rela->r_addend = 0;
       break;
@@ -658,6 +658,7 @@ arm_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
     case R_ARM_RELATIVE:
     case R_ARM_ABS32:
     case R_ARM_TLS_TPOFF32:
+    case R_ARM_TLS_DTPOFF32:
       write_ne32 (dso, rela->r_offset, rela->r_addend);
       break;
     case R_ARM_PC24:
@@ -667,7 +668,6 @@ arm_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
       break;
     case R_ARM_GLOB_DAT:
     case R_ARM_TLS_DTPMOD32:
-    case R_ARM_TLS_DTPOFF32:
       write_ne32 (dso, rela->r_offset, 0);
       break;
     }
@@ -709,7 +709,11 @@ arm_need_rel_to_rela (DSO *dso, int first, int last)
 		   original addend.  */
 		if (dso->ehdr.e_type == ET_EXEC)
 		  return 1;
-
+	      case R_ARM_TLS_DTPOFF32:
+		/* We can prelink these fields, and the addend is relative
+		   to the symbol value.  A RELA entry is needed.  */
+		return 1;
+  
 		break;
 	      }
 	}
