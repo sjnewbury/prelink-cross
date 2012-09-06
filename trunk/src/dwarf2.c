@@ -650,7 +650,12 @@ adjust_attributes (DSO *dso, unsigned char *ptr, struct abbrev_tag *t,
 		  if (addr == 0)
 		    break;
 		}
-	      if (addr >= start && addr_to_sec (dso, addr) != -1)
+	      if (addr >= start
+		  && addr_to_sec (dso,
+				  ((t->attr[i].attr == DW_AT_high_pc
+				    && addr > start)
+				   ? addr - 1
+				   : addr)) != -1)
 		write_ptr (ptr - ptr_size, addr + adjust);
 	      break;
 	    case DW_FORM_flag_present:
