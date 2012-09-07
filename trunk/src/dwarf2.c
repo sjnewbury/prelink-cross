@@ -578,7 +578,7 @@ adjust_dwarf2_loc (DSO *dso, struct cu_data *cu, GElf_Addr offset,
 static unsigned char *
 adjust_attributes (DSO *dso, unsigned char *ptr, struct abbrev_tag *t,
 		   struct cu_data *cu,
-		   GElf_Addr start, GElf_Addr adjust)
+		   GElf_Addr start, GElf_Addr adjust, htab_t offset_hash)
 {
   int i;
   GElf_Addr addr;
@@ -630,8 +630,26 @@ adjust_attributes (DSO *dso, unsigned char *ptr, struct abbrev_tag *t,
 		  }
 		else
 		  {
-		    if (adjust_dwarf2_loc (dso, cu, addr, base, start, adjust))
+		    GElf_Addr *offsetp = malloc (sizeof (addr));
+		    void **slot;
+		    if (offsetp == NULL)
 		      return NULL;
+		    *offsetp = addr;
+		    slot = htab_find_slot (offset_hash, offsetp, INSERT);
+		    if (slot == NULL)
+		      {
+			free (offsetp);
+			return NULL;
+		      }
+		    if (*slot == NULL)
+		      {
+			*slot = offsetp;
+			if (adjust_dwarf2_loc (dso, cu, addr, base,
+					       start, adjust))
+			  return NULL;
+		      }
+		    else
+		      free (offsetp);
 		  }
 	      }
 	      break;
@@ -1088,6 +1106,29 @@ adjust_dwarf2_frame (DSO *dso, GElf_Addr start, GElf_Addr adjust)
   return 0;
 }
 
+static hashval_t
+loclistoffset_hash (const void *p)
+{
+  GElf_Addr *offset = (GElf_Addr *)p;
+
+  return *offset;
+}
+
+static int
+loclistoffset_eq (const void *p, const void *q)
+{
+  GElf_Addr *offset1 = (GElf_Addr *)p;
+  GElf_Addr *offset2 = (GElf_Addr *)q;
+
+  return *offset1 = *offset2;
+}
+
+static void
+loclistoffset_del (void *p)
+{
+  free (p);
+}
+
 static int
 adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
 {
@@ -1096,6 +1137,15 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
   htab_t abbrev;
   struct abbrev_tag tag, *t;
   struct cu_data cu;
+  htab_t offset_hash = htab_try_create (50, loclistoffset_hash,
+					loclistoffset_eq, loclistoffset_del);
+
+  if (offset_hash == NULL)
+    {
+      error (0, ENOMEM, "%s: Could not create hash for attributes",
+	     dso->filename);
+      return 1;
+    }
 
   memset (&cu, 0, sizeof(cu));
   ptr = debug_sections[type].data;
@@ -1105,6 +1155,7 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
       if (ptr + 11 > endsec)
 	{
 	  error (0, 0, "%s: .debug_info CU header too small", dso->filename);
+	  htab_delete (offset_hash);
 	  return 1;
 	}
 
@@ -1113,12 +1164,14 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
       if (endcu == ptr + 0xffffffff)
 	{
 	  error (0, 0, "%s: 64-bit DWARF not supported", dso->filename);
+	  htab_delete (offset_hash);
 	  return 1;
 	}
 
       if (endcu > endsec)
 	{
 	  error (0, 0, "%s: .debug_info too small", dso->filename);
+	  htab_delete (offset_hash);
 	  return 1;
 	}
 
@@ -1126,6 +1179,7 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
       if (value != 2 && value != 3 && value != 4)
 	{
 	  error (0, 0, "%s: DWARF version %d unhandled", dso->filename, value);
+	  htab_delete (offset_hash);
 	  return 1;
 	}
       cu.cu_version = value;
@@ -1138,6 +1192,7 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
 	  else
 	    error (0, 0, "%s: DWARF CU abbrev offset too large",
 		   dso->filename);
+	  htab_delete (offset_hash);
 	  return 1;
 	}
 
@@ -1158,6 +1213,7 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
 	    {
 	      error (0, 0, "%s: Invalid DWARF pointer size %d",
 		     dso->filename, ptr_size);
+	      htab_delete (offset_hash);
 	      return 1;
 	    }
 	}
@@ -1165,12 +1221,16 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
 	{
 	  error (0, 0, "%s: DWARF pointer size differs between CUs",
 		 dso->filename);
+	  htab_delete (offset_hash);
 	  return 1;
 	}
 
       abbrev = read_abbrev (dso, debug_sections[DEBUG_ABBREV].data + value);
       if (abbrev == NULL)
-	return 1;
+	{
+	  htab_delete (offset_hash);
+	  return 1;
+	}
 
       cu.cu_entry_pc = ~ (GElf_Addr) 0;
       cu.cu_low_pc = ~ (GElf_Addr) 0;
@@ -1192,19 +1252,23 @@ adjust_dwarf2_info (DSO *dso, GElf_Addr start, GElf_Addr adjust, int type)
 	      error (0, 0, "%s: Could not find DWARF abbreviation %d",
 		     dso->filename, tag.entry);
 	      htab_delete (abbrev);
+	      htab_delete (offset_hash);
 	      return 1;
 	    }
 
-	  ptr = adjust_attributes (dso, ptr, t, &cu, start, adjust);
+	  ptr = adjust_attributes (dso, ptr, t, &cu, start, adjust,
+				   offset_hash);
 	  if (ptr == NULL)
 	    {
 	      htab_delete (abbrev);
+	      htab_delete (offset_hash);
 	      return 1;
 	    }
 	}
 
       htab_delete (abbrev);
     }
+  htab_delete (offset_hash);
   return 0;
 }
 

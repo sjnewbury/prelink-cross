@@ -1,6 +1,7 @@
 2012-09-08  Joseph Myers  <joseph@codesourcery.com>
 	* src/arch-arm.c: Fix ARM_TLS_DTPOFF32 addends
 	* src/dwarf2.c: Fix address range handling related to DW_AT_high_pc
+	* src/dwarf2.c: Fix address range handling when dup data addr
 
 2012-06-14  Joseph Myers  <joseph@codesourcery.com>
 	* src/exec.c: Fix issue for Power related to empty PROGBITS
