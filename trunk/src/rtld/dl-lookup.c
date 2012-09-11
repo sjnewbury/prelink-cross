@@ -41,6 +41,8 @@
 
 #include <elf.h>
 
+#include <inttypes.h>
+
 #include "prelinktab.h"
 #include "reloc.h"
 

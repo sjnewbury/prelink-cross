@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include <libgen.h>
 
+#include <inttypes.h>
+
 #include "prelinktab.h"
 #include "reloc.h"
 #include "reloc-info.h"
@@ -1204,20 +1206,32 @@ process_one_dso (DSO *dso, int host_paths)
       else if (GLRO_dl_debug_mask & DL_DEBUG_PRELINK)
         {
 	   struct ldlibs_link_map * l = cur_dso_ent->map;
-           printf ("\t%s => %s (0x%0*Zx, 0x%0*Zx)",
-		   cur_dso_ent->name ? cur_dso_ent->name
-		   : rtld_progname ?: "<main program>",
-		   filename ? filename
-		   : rtld_progname ?: "<main program>",
-		   (int) size_pointer,
-		   (size_t) l->l_map_start,
-		   (int) size_pointer,
-		   (size_t) (l->l_map_start - cur_dso_ent->dso->base));
+	   if (size_pointer == 16)
+	     printf ("\t%s => %s (0x%016"PRIx64", 0x%016"PRIx64")",
+		     cur_dso_ent->name ? cur_dso_ent->name
+		     : rtld_progname ?: "<main program>",
+		     filename ? filename
+		     : rtld_progname ?: "<main program>",
+		     (uint64_t) l->l_map_start,
+		     (uint64_t) (l->l_map_start - cur_dso_ent->dso->base));
+	   else
+	     printf ("\t%s => %s (0x%08"PRIx32", 0x%08"PRIx32")",
+		     cur_dso_ent->name ? cur_dso_ent->name
+		     : rtld_progname ?: "<main program>",
+		     filename ? filename
+		     : rtld_progname ?: "<main program>",
+		     (uint32_t) l->l_map_start,
+		     (uint32_t) (l->l_map_start - cur_dso_ent->dso->base));
 
 	   if (l->l_tls_modid)
-	     printf (" TLS(0x%Zx, 0x%0*Zx)\n", (size_t) l->l_tls_modid,
-		     (int) size_pointer,
-		     (size_t) l->l_tls_offset);
+	     if (size_pointer == 16)
+	       printf (" TLS(0x%"PRIx64", 0x%016"PRIx64")\n",
+		       (uint64_t) l->l_tls_modid,
+		       (uint64_t) l->l_tls_offset);
+	   else
+	       printf (" TLS(0x%"PRIx32", 0x%08"PRIx32")\n",
+		       (uint32_t) l->l_tls_modid,
+		       (uint32_t) l->l_tls_offset);
 	   else
 	     printf ("\n");
 	}
@@ -1225,13 +1239,21 @@ process_one_dso (DSO *dso, int host_paths)
 	{
 	   struct ldlibs_link_map * l = cur_dso_ent->map;
 	   if (!(GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (cur_dso_ent->name, filename) == 0)
-	     printf ("\t%s (0x%0*Zx)\n", cur_dso_ent->name,
-		     (int) size_pointer,
-		     (size_t) l->l_map_start);
+	     if (size_pointer == 16)
+	       printf ("\t%s (0x%016"PRIx64")\n", cur_dso_ent->name,
+		       (uint64_t) l->l_map_start);
+	     else
+	       printf ("\t%s (0x%08"PRIx32")\n", cur_dso_ent->name,
+		       (uint32_t) l->l_map_start);
 	   else
-	     printf ("\t%s => %s (0x%0*Zx)\n", cur_dso_ent->name,
-		     filename, size_pointer,
-		     (size_t) l->l_map_start);
+	     if (size_pointer == 16)
+	       printf ("\t%s => %s (0x%016"PRIx64")\n", cur_dso_ent->name,
+		       filename,
+		       (uint64_t) l->l_map_start);
+	   else
+	       printf ("\t%s => %s (0x%08"PRIx32")\n", cur_dso_ent->name,
+		       filename,
+		       (uint32_t) l->l_map_start);
 	}
 
       if (filename)

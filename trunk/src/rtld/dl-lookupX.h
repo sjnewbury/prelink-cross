@@ -32,6 +32,8 @@
   #define _dl_setup_hash rtld_setup_hash32
   #define _dl_debug_bindings rtld_debug_bindings32
   #define _dl_lookup_symbol_x rtld_lookup_symbol_x32
+  #define rtld_size_t uint32_t
+  #define rtld_size_fmtx PRIx32
 
 #elif RTLD_ELF_SIZE == 64
   #define sym_val sym_val64
@@ -40,6 +42,8 @@
   #define _dl_setup_hash rtld_setup_hash64
   #define _dl_debug_bindings rtld_debug_bindings64
   #define _dl_lookup_symbol_x rtld_lookup_symbol_x64
+  #define rtld_size_t uint64_t
+  #define rtld_size_fmtx PRIx64
 
 #else
   #error "You must declare RTLD_ELF_SIZE to be either 32 or 64"
@@ -751,23 +755,23 @@ _dl_debug_bindings (const char *undef_name, struct ldlibs_link_map *undef_map,
 	  || GLRO(dl_trace_prelink_map) == NULL
 	  || type_class >= 4)
 	{
-	  printf ("%s 0x%0*Zx 0x%0*Zx -> 0x%0*Zx 0x%0*Zx ",
+	  printf ("%s 0x%0*"rtld_size_fmtx" 0x%0*"rtld_size_fmtx" -> 0x%0*"rtld_size_fmtx" 0x%0*"rtld_size_fmtx" ",
 		      conflict ? "conflict" : "lookup",
 		      (int) sizeof (ElfW(Addr)) * 2,
-		      (size_t) undef_map->l_map_start,
+		      (rtld_size_t) undef_map->l_map_start,
 		      (int) sizeof (ElfW(Addr)) * 2,
-		      (size_t) (((char *)*ref) - ((char *)undef_map->l_info[DT_SYMTAB]) + (char *)undef_map->sym_base),
+		      (rtld_size_t) (((char *)*ref) - ((char *)undef_map->l_info[DT_SYMTAB]) + (char *)undef_map->sym_base),
 		      (int) sizeof (ElfW(Addr)) * 2,
-		      (size_t) (value->s ? value->m->l_map_start : 0),
+		      (rtld_size_t) (value->s ? value->m->l_map_start : 0),
 		      (int) sizeof (ElfW(Addr)) * 2,
-		      (size_t) (value->s ? value->s->st_value : 0));
+		      (rtld_size_t) (value->s ? value->s->st_value : 0));
 
 	  if (conflict)
-	    printf ("x 0x%0*Zx 0x%0*Zx ",
+	    printf ("x 0x%0*"rtld_size_fmtx" 0x%0*"rtld_size_fmtx" ",
 			(int) sizeof (ElfW(Addr)) * 2,
-			(size_t) (val.s ? val.m->l_map_start : 0),
+			(rtld_size_t) (val.s ? val.m->l_map_start : 0),
 			(int) sizeof (ElfW(Addr)) * 2,
-			(size_t) (val.s ? val.s->st_value : 0));
+			(rtld_size_t) (val.s ? val.s->st_value : 0));
 
 	  printf ("/%x %s\n", type_class, undef_name);
 	}
@@ -781,3 +785,5 @@ _dl_debug_bindings (const char *undef_name, struct ldlibs_link_map *undef_map,
 #define _dl_setup_hash rtld_setup_hash
 #undef _dl_debug_bindings
 #undef _dl_lookup_symbol_x
+#undef rtld_size_t
+#undef rtld_size_fmtx

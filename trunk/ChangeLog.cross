@@ -1,3 +1,7 @@
+2012-09-12  Joseph Myers  <joseph@codesourcery.com>
+        * src/rtld/dl-lookup.c: Fix variable copy reloc when host/target
+	  byte size is different
+
 2012-09-08  Joseph Myers  <joseph@codesourcery.com>
 	* src/arch-arm.c: Fix ARM_TLS_DTPOFF32 addends
 	* src/dwarf2.c: Fix address range handling related to DW_AT_high_pc
