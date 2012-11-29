@@ -1,3 +1,9 @@
+2014-12-09  Jon Masters <jcm@jonmasters.org>
+	    Mark Hatle  <mark.hatle@windriver.com>
+	* src/arch-arm.c: Remove support for OABI arm ld-linux.so.2
+			  Add support for hard float ld-linux-armhf.so.3
+	* src/rtld/rtld.c: Add ld-linux-armhf.so.3 as a ldso name
+
 2014-08-13  Kyle McMartin  <kmcmartin@redhat.com>
 	    Jakub Jelinek  <jakub@redhat.com>
 	    Julian Brown   <julian@codesourcery.com>
