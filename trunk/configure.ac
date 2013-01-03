@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script. -*-m4-*-
 AC_INIT(src/prelink.c)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AC_PREREQ(2.50)			dnl Minimum Autoconf version required.
 AC_CANONICAL_SYSTEM
 AC_ARG_PROGRAM

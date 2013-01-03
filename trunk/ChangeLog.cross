@@ -1,3 +1,7 @@
+2013-01-03  Marko Lindqvist  <cazfi74@gmail.com>
+        * configure.in -> configure.ac: Rename
+        * Replace AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+
 2012-09-12  Joseph Myers  <joseph@codesourcery.com>
         * src/rtld/dl-lookup.c: Fix variable copy reloc when host/target
 	  byte size is different
