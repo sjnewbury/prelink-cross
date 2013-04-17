@@ -6,7 +6,7 @@ $RUN_HOST $CC -shared -O2 -fpic -o reloc3lib1.so $srcdir/reloc3lib1.c
 $RUN_HOST $CC -shared -O2 -fpic -o reloc3lib2.so $srcdir/reloc1lib2.c reloc3lib1.so
 BINS="reloc3"
 LIBS="reloc3lib1.so reloc3lib2.so"
-$RUN_HOST $CCLINK -o reloc3 $srcdir/reloc3.c -Wl,--rpath-link,. reloc3lib2.so reloc3lib1.so
+$RUN_HOST $CCLINK -o reloc3 $srcdir/reloc3.c -Wl,--rpath-link,. reloc3lib2.so -lc reloc3lib1.so
 $RUN_HOST $STRIP -g $BINS $LIBS
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc3 > reloc3.log

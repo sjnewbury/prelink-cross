@@ -6,7 +6,7 @@ $RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc7lib1.so $srcdir/relo
 $RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc7lib2.so $srcdir/reloc1lib2.c reloc7lib1.so
 BINS="reloc7"
 LIBS="reloc7lib1.so reloc7lib2.so"
-$RUN_HOST $CCLINK -o reloc7 -Wl,-z,nocombreloc $srcdir/reloc7.c -Wl,--rpath-link,. reloc7lib2.so reloc7lib1.so
+$RUN_HOST $CCLINK -o reloc7 -Wl,-z,nocombreloc $srcdir/reloc7.c -Wl,--rpath-link,. reloc7lib2.so -lc reloc7lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc7 > reloc7.log
 $RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc7 >> reloc7.log 2>&1 || exit 1

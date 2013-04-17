@@ -11,7 +11,7 @@ $RUN_HOST $CC -shared -O2 -fpic -o ifunc3lib1.so $srcdir/ifunc3lib1.c
 $RUN_HOST $CC -shared -O2 -fpic -o ifunc3lib2.so $srcdir/ifunc1lib2.c ifunc3lib1.so
 BINS="ifunc3"
 LIBS="ifunc3lib1.so ifunc3lib2.so"
-$RUN_HOST $CCLINK -o ifunc3 $srcdir/ifunc3.c -Wl,--rpath-link,. ifunc3lib2.so ifunc3lib1.so
+$RUN_HOST $CCLINK -o ifunc3 $srcdir/ifunc3.c -Wl,--rpath-link,. ifunc3lib2.so -lc ifunc3lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./ifunc3 >> ifunc3.log
 $RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./ifunc3 >> ifunc3.log 2>&1 || exit 1

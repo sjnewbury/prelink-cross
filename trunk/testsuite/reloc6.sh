@@ -4,8 +4,8 @@ rm -f reloc6 reloc6lib*.so reloc6.log
 rm -f prelink.cache
 $RUN_HOST $CC -shared -O2 -fpic -o reloc6lib1.so $srcdir/reloc3lib1.c
 $RUN_HOST $CC -shared -O2 -fpic -o reloc6lib2.so $srcdir/reloc1lib2.c reloc6lib1.so
-$RUN_HOST $CCLINK -o reloc6 $srcdir/reloc3.c -Wl,--rpath-link,. reloc6lib2.so reloc6lib1.so
-$RUN_HOST $CCLINK -o reloc6.nop $srcdir/reloc3.c -Wl,--rpath-link,. reloc6lib2.so reloc6lib1.so
+$RUN_HOST $CCLINK -o reloc6 $srcdir/reloc3.c -Wl,--rpath-link,. reloc6lib2.so -lc reloc6lib1.so
+$RUN_HOST $CCLINK -o reloc6.nop $srcdir/reloc3.c -Wl,--rpath-link,. reloc6lib2.so -lc reloc6lib1.so
 echo $PRELINK ${PRELINK_OPTS--vm} ./reloc6 > reloc6.log
 $RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc6 >> reloc6.log 2>&1 || exit 1
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc6.log && exit 2

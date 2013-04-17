@@ -11,10 +11,10 @@ $RUN_HOST $CC -shared -O2 -fpic -o shuffle2lib1.so $srcdir/reloc1lib1.c
 $RUN_HOST $CC -shared -O2 -fpic -o shuffle2lib2.so $srcdir/reloc1lib2.c shuffle2lib1.so
 BINS="shuffle2"
 LIBS="shuffle2lib1.so shuffle2lib2.so"
-$RUN_HOST $CCLINK -o shuffle2 $srcdir/shuffle2.c -Wl,--rpath-link,. shuffle2lib2.so shuffle2lib1.so \
+$RUN_HOST $CCLINK -o shuffle2 $srcdir/shuffle2.c -Wl,--rpath-link,. shuffle2lib2.so -lc shuffle2lib1.so \
   -Wl,--verbose 2>&1 | sed -e '/^=========/,/^=========/!d;/^=========/d' \
   -e 's/0x08048000/0x08000000/;s/SIZEOF_HEADERS.*$/& . += 56;/' > shuffle2.lds
-$RUN_HOST $CCLINK -o shuffle2 $srcdir/shuffle2.c -Wl,--rpath-link,. shuffle2lib2.so shuffle2lib1.so \
+$RUN_HOST $CCLINK -o shuffle2 $srcdir/shuffle2.c -Wl,--rpath-link,. shuffle2lib2.so -lc shuffle2lib1.so \
   -Wl,-T,shuffle2.lds
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle2 > shuffle2.log

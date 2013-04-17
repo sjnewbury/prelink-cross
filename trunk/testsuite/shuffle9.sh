@@ -6,7 +6,7 @@ case "`$RUN uname -r`" in
 esac
 rm -f shuffle9 shuffle9.log
 BINS="shuffle9"
-$RUN_HOST $CCLINK -o shuffle9 $srcdir/shuffle9.c -Wl,--rpath-link,. shuffle3lib2.so shuffle3lib1.so
+$RUN_HOST $CCLINK -o shuffle9 $srcdir/shuffle9.c -Wl,--rpath-link,. shuffle3lib2.so -lc shuffle3lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./shuffle9 > shuffle9.log
 $RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./shuffle9 >> shuffle9.log 2>&1 || exit 1

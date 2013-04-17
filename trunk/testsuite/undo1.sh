@@ -6,7 +6,7 @@ $RUN_HOST $CC -shared -O2 -fpic -o undo1lib1.so $srcdir/reloc1lib1.c
 $RUN_HOST $CC -shared -O2 -fpic -o undo1lib2.so $srcdir/reloc1lib2.c undo1lib1.so
 BINS="undo1"
 LIBS="undo1lib1.so undo1lib2.so"
-$RUN_HOST $CCLINK -o undo1 $srcdir/reloc1.c -Wl,--rpath-link,. undo1lib2.so undo1lib1.so
+$RUN_HOST $CCLINK -o undo1 $srcdir/reloc1.c -Wl,--rpath-link,. undo1lib2.so -lc undo1lib1.so
 savelibs
 echo $PRELINK ${PRELINK_OPTS--vm} ./undo1 > undo1.log
 $RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./undo1 >> undo1.log 2>&1 || exit 1
