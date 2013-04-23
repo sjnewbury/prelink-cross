@@ -1,3 +1,7 @@
+2013-04-19  Tom de Vries  <tom@codesourcery.com>
+	* src/arch-mips.c (PL_ARCH(mips64)): Set rtype_class_valid field to
+	RTYPE_CLASS_VALID.
+
 2013-01-03  Marko Lindqvist  <cazfi74@gmail.com>
         * configure.in -> configure.ac: Rename
         * Replace AM_CONFIG_HEADER with AC_CONFIG_HEADERS
