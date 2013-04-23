@@ -1,3 +1,7 @@
+2013-04-23  Mark Hatle <mark.hatle@windriver.com>
+        * README.cross: Add patch submission information based on a
+          suggestion from Tom de Vries.
+
 2013-04-19  Tom de Vries  <tom@codesourcery.com>
 	* README.cross: Fix typo.
 

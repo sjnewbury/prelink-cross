@@ -11,3 +11,18 @@ Compilation
 
 In order to build this, you will need to regenerate the autotools files:
 autoreconf -if
+
+Patch submission
+----------------
+
+When submitting patches to the cross-prelink project, please do the
+following:
+
+To: mark.hatle@windriver.com
+Cc: yocto@yoctoproject.org
+
+Subject: [prelink-cross] ....
+
+If the patch affects the upstream prelinker project, you should also consider
+sending it to the prelink@sourceware.org list as well.
+
