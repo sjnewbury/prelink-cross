@@ -1,4 +1,4 @@
-This version of the prelinker has a number of patch that enable cross 
+This version of the prelinker has a number of patches that enable cross 
 prelinking.  Specific patches to address CPUs common to embedded 
 systems, that have not yet been merged upstream, also exist in this version.
 

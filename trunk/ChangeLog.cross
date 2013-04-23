@@ -1,4 +1,7 @@
 2013-04-19  Tom de Vries  <tom@codesourcery.com>
+	* README.cross: Fix typo.
+
+2013-04-19  Tom de Vries  <tom@codesourcery.com>
 	* src/arch-mips.c (PL_ARCH(mips64)): Set rtype_class_valid field to
 	RTYPE_CLASS_VALID.
 
