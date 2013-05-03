@@ -1,5 +1,5 @@
-/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011
-   Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011,
+   2013 Red Hat, Inc.
    Copyright (C) 2008 CodeSourcery.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
    Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
@@ -139,6 +139,10 @@ typedef uint8_t Elf64_Byte;
 #ifndef R_PPC64_JMP_IREL
 #define R_PPC64_JMP_IREL	247
 #define R_PPC64_IRELATIVE	248
+#endif
+
+#ifndef R_390_IRELATIVE
+#define R_390_IRELATIVE		61
 #endif
 
 struct prelink_entry;
