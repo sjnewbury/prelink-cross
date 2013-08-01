@@ -9,11 +9,11 @@ CCLINK=`echo $CCLINK \
 rm -rf unprel1.tree
 rm -f unprel1.log
 mkdir -p unprel1.tree/{lib,etc,opt,bin}
-$CC -shared -O2 -fpic -o unprel1.tree/lib/lib1.so $srcdir/unprel1lib1.c
+$RUN_HOST $CC -shared -O2 -fpic -o unprel1.tree/lib/lib1.so $srcdir/unprel1lib1.c
 cp -a unprel1.tree/{lib,opt}/lib1.so
-$CC -shared -O2 -fpic -o unprel1.tree/lib/lib2.so $srcdir/unprel1lib2.c \
+$RUN_HOST $CC -shared -O2 -fpic -o unprel1.tree/lib/lib2.so $srcdir/unprel1lib2.c \
     -L unprel1.tree/lib -l1
-$CCLINK -o unprel1.tree/bin/bin1 $srcdir/unprel1.c \
+$RUN_HOST $CCLINK -o unprel1.tree/bin/bin1 $srcdir/unprel1.c \
     -Wl,-rpath,unprel1.tree/lib -L unprel1.tree/lib -l2
 cat > unprel1.tree/etc/prelink.conf <<EOF
 unprel1.tree/bin
@@ -32,7 +32,7 @@ BINS="unprel1.tree/bin/bin1"
 savelibs
 chmod -x unprel1.tree/bin/bin1.orig
 echo $PRELINK ${PRELINK_OPTS--vm} unprel1.tree/{bin,lib} > unprel1.log
-$PRELINK ${PRELINK_OPTS--vm} unprel1.tree/{bin,lib} >> unprel1.log 2>&1 || exit 1
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} unprel1.tree/{bin,lib} >> unprel1.log 2>&1 || exit 1
 grep -v 'opt/lib1.so is not present in any config file directories' unprel1.log \
   | grep -v 'lib/lib2.so because its dependency unprel1.tree/opt/lib1.so could not be prelinked' \
   | grep -v 'bin/bin1 because its dependency unprel1.tree/lib/lib2.so could not be prelinked' \

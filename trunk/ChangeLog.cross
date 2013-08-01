@@ -1,3 +1,6 @@
+2013-08-01  Mark Hatle <mark.hatle@windriver.com>
+        * testsuite/unprel1.sh: Enable RUN_HOST for new test.
+
 2013-04-23  Mark Hatle <mark.hatle@windriver.com>
         * README.cross: Add patch submission information based on a
           suggestion from Tom de Vries.
