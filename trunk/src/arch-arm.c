@@ -416,7 +416,9 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
 	case R_ARM_TLS_DTPMOD32:
 	case R_ARM_TLS_TPOFF32:
 	  break;
-
+	/* Likewise TLS_DESC.  */
+	case R_ARM_TLS_DESC:
+	  break;
 	default:
 	  return 0;
 	}
@@ -526,7 +528,9 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	case R_ARM_TLS_DTPMOD32:
 	case R_ARM_TLS_TPOFF32:
 	  break;
-
+	/* Likewise TLS_DESC.  */
+	case R_ARM_TLS_DESC:
+	  break;
 	default:
 	  return 0;
 	}
