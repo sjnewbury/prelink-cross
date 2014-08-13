@@ -51,6 +51,25 @@ asm (".text\n"						\
     "\t.align 4\n"					\
   "2:\t.long " fn "@GOTOFF\n"				\
   "3:\t.long _GLOBAL_OFFSET_TABLE_-1b\n"
+elif defined __arm__
+# ifdef __thumb__
+#  define PIPE_OFFSET "4"
+# else
+#  define PIPE_OFFSET "8"
+# endif
+# define IFUNC_ASM(fn)					\
+     "\tldr r0, .L" fn "\n"				\
+   "1:\tadd r0, pc, r0\n"				\
+     "\tmov pc, lr\n"					\
+     ".L" fn ": .long " fn " - 1b - " PIPE_OFFSET "\n"
+# define IFUNC_DECL(name, hidden, fn1, fn2)		\
+asm (".text\n"						\
+     "\t.globl " #name "\n"				\
+     "\t" hidden " " #name "\n"				\
+     "\t.type " #name ", %gnu_indirect_function\n"	\
+     #name ":\n"					\
+     IFUNC_ASM (PICK (fn1, fn2))			\
+     "\t.size " #name ", .-" #name "\n")
 #else
 # error Architecture not supported
 #endif

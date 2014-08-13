@@ -145,6 +145,10 @@ typedef uint8_t Elf64_Byte;
 #define R_390_IRELATIVE		61
 #endif
 
+#ifndef R_ARM_IRELATIVE
+#define R_ARM_IRELATIVE		160
+#endif
+
 struct prelink_entry;
 struct prelink_info;
 struct PLArch;

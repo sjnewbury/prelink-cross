@@ -1,3 +1,15 @@
+2014-08-13  Kyle McMartin  <kmcmartin@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+	    Julian Brown   <julian@codesourcery.com>
+	* testsuite/ifunc.h: Add ARM support.
+	* src/prelink.h (R_ARM_IRELATIVE): Define.
+	* src/arch-arm.c (arm_adjust_rel, arm_adjust_rela)
+	(arm_prelink_rel, arm_prelink_rela, arm_apply_conflict_rela)
+	(arm_rela_to_rel, arm_rel_to_rela, arm_undo_prelink_rel):
+	Handle R_ARM_IRELATIVE.
+	(arm_prelink_conflict_rel, arm_prelink_conflict_rela): Handle
+	R_ARM_IRELATIVE, ifunc conflicts.
+
 2014-07-22  Maciej W. Rozycki  <macro@codesourcery.com>
 	* src/arch-arm.c (arm_prelink_conflict_rel): Always create a 
 	conflict for R_ARM_TLS_DESC relocs.

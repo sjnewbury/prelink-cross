@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2004, 2009, 2011 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2004, 2009, 2011, 2013 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -80,6 +80,7 @@ arm_adjust_rel (DSO *dso, GElf_Rel *rel, GElf_Addr start,
     {
     case R_ARM_RELATIVE:
     case R_ARM_JUMP_SLOT:
+    case R_ARM_IRELATIVE:
       data = read_une32 (dso, rel->r_offset);
       if (data >= start)
 	write_ne32 (dso, rel->r_offset, data + adjust);
@@ -97,6 +98,7 @@ arm_adjust_rela (DSO *dso, GElf_Rela *rela, GElf_Addr start,
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
       if ((Elf32_Addr) rela->r_addend >= start)
 	{
 	  rela->r_addend += (Elf32_Sword) adjust;
@@ -123,6 +125,7 @@ arm_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
   Elf32_Sword val;
 
   if (GELF_R_TYPE (rel->r_info) == R_ARM_RELATIVE
+      || GELF_R_TYPE (rel->r_info) == R_ARM_IRELATIVE
       || GELF_R_TYPE (rel->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
@@ -212,6 +215,7 @@ arm_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
   Elf32_Sword val;
 
   if (GELF_R_TYPE (rela->r_info) == R_ARM_RELATIVE
+      || GELF_R_TYPE (rela->r_info) == R_ARM_IRELATIVE
       || GELF_R_TYPE (rela->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
@@ -293,12 +297,24 @@ static int
 arm_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
 			 char *buf, GElf_Addr dest_addr)
 {
+  GElf_Rela *ret;
+
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_ARM_GLOB_DAT:
     case R_ARM_JUMP_SLOT:
     case R_ARM_ABS32:
       buf_write_ne32 (info->dso, buf, rela->r_addend);
+      break;
+    case R_ARM_IRELATIVE:
+      if (dest_addr == 0)
+	return 5;
+      ret = prelink_conflict_add_rela (info);
+      if (ret == NULL)
+	return 1;
+      ret->r_offset = dest_addr;
+      ret->r_info = GELF_R_INFO (0, R_ARM_IRELATIVE);
+      ret->r_addend = rela->r_addend;
       break;
     default:
       abort ();
@@ -399,22 +415,23 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
   GElf_Rela *ret;
 
   if (GELF_R_TYPE (rel->r_info) == R_ARM_RELATIVE
-      || GELF_R_TYPE (rel->r_info) == R_ARM_NONE
-      || info->dso == dso)
+      || GELF_R_TYPE (rel->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rel->r_info),
 			       GELF_R_TYPE (rel->r_info));
   if (conflict == NULL)
     {
-      if (info->curtls == NULL)
-	return 0;
-
       switch (GELF_R_TYPE (rel->r_info))
 	{
 	/* Even local DTPMOD and TPOFF relocs need conflicts.  */
 	case R_ARM_TLS_DTPMOD32:
 	case R_ARM_TLS_TPOFF32:
+	  if (info->curtls == NULL || info->dso == dso)
+	    return 0;
+	  break;
+	/* Similarly IRELATIVE relocations always need conflicts.  */
+	case R_ARM_IRELATIVE:
 	  break;
 	/* Likewise TLS_DESC.  */
 	case R_ARM_TLS_DESC:
@@ -424,12 +441,8 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
 	}
       value = 0;
     }
-  else if (conflict->ifunc)
-    {
-      error (0, 0, "%s: STT_GNU_IFUNC not handled on ARM yet",
-	     dso->filename);
-      return 1;
-    }
+  else if (info->dso == dso && !conflict->ifunc)
+    return 0;
   else
     {
       /* DTPOFF32 wants to see only real conflicts, not lookups
@@ -452,6 +465,11 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
     case R_ARM_GLOB_DAT:
     case R_ARM_JUMP_SLOT:
       ret->r_addend = (Elf32_Sword) value;
+      if (conflict != NULL && conflict->ifunc)
+	ret->r_info = GELF_R_INFO (0, R_ARM_IRELATIVE);
+      break;
+    case R_ARM_IRELATIVE:
+      ret->r_addend = (Elf32_Sword) read_une32 (dso, rel->r_offset);
       break;
     case R_ARM_ABS32:
     case R_ARM_PC24:
@@ -510,8 +528,7 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
   Elf32_Sword val;
 
   if (GELF_R_TYPE (rela->r_info) == R_ARM_RELATIVE
-      || GELF_R_TYPE (rela->r_info) == R_ARM_NONE
-      || info->dso == dso)
+      || GELF_R_TYPE (rela->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rela->r_info),
@@ -564,7 +581,10 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
     case R_ARM_GLOB_DAT:
     case R_ARM_JUMP_SLOT:
     case R_ARM_ABS32:
+    case R_ARM_IRELATIVE:
       ret->r_addend = (Elf32_Sword) (value + rela->r_addend);
+      if (conflict && conflict->ifunc)
+	ret->r_info = GELF_R_INFO (0, R_ARM_IRELATIVE);
       break;
     case R_ARM_PC24:
       val = value + rela->r_addend - rela->r_offset;
@@ -629,6 +649,7 @@ arm_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
       /* We should be never converting .rel.plt into .rela.plt.  */
       abort ();
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
     case R_ARM_ABS32:
     case R_ARM_TLS_TPOFF32:
     case R_ARM_TLS_DTPOFF32:
@@ -660,6 +681,7 @@ arm_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
 	 and thus never .rela.plt back to .rel.plt.  */
       abort ();
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
     case R_ARM_ABS32:
     case R_ARM_TLS_TPOFF32:
     case R_ARM_TLS_DTPOFF32:
@@ -798,6 +820,7 @@ arm_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
   switch (GELF_R_TYPE (rel->r_info))
     {
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
     case R_ARM_NONE:
       break;
     case R_ARM_JUMP_SLOT:
