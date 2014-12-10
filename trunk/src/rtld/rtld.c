@@ -128,13 +128,21 @@ parse_opt (int key, char *arg, struct argp_state *state)
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_X86_64_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From eglibc-2.15 ports/sysdepsa/arm/dl-machine.h */
+/* From eglibc-2.15 ports/sysdeps/arm/dl-machine.h */
 # define arm_elf_machine_type_class(type) \
   ((((type) == R_ARM_JUMP_SLOT || (type) == R_ARM_TLS_DTPMOD32          \
      || (type) == R_ARM_TLS_DTPOFF32 || (type) == R_ARM_TLS_TPOFF32     \
      || (type) == R_ARM_TLS_DESC)					\
     * ELF_RTYPE_CLASS_PLT)                                              \
    | (((type) == R_ARM_COPY) * ELF_RTYPE_CLASS_COPY))
+
+# define aarch64_elf_machine_type_class(type) \
+  ((((type) == R_AARCH64_JUMP_SLOT ||                                   \
+     (type) == R_AARCH64_TLS_DTPMOD64 ||                                \
+     (type) == R_AARCH64_TLS_DTPREL64 ||                                \
+     (type) == R_AARCH64_TLS_TPREL64 ||                                 \
+     (type) == R_AARCH64_TLSDESC) * ELF_RTYPE_CLASS_PLT)                \
+   | (((type) == R_AARCH64_COPY) * ELF_RTYPE_CLASS_COPY))
 
 # define sh_elf_machine_type_class(type) \
   ((((type) == R_SH_JMP_SLOT || (type) == R_SH_TLS_DTPMOD32                   \
@@ -150,6 +158,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     || (type) == R_PPC_ADDR24) * ELF_RTYPE_CLASS_PLT)   \
    | (((type) == R_PPC_COPY) * ELF_RTYPE_CLASS_COPY))
 
+/* We only have support for ELFv1 PowerPC64 right now */
 #define powerpc64_elf_machine_type_class(type) \
   (ELF_RTYPE_CLASS_PLT | (((type) == R_PPC64_COPY) * ELF_RTYPE_CLASS_COPY))
 
@@ -181,6 +190,8 @@ reloc_type_class (int type, int machine)
 	return x86_64_elf_machine_type_class(type);
     case EM_ARM:
 	return arm_elf_machine_type_class(type);
+    case EM_AARCH64:
+	return aarch64_elf_machine_type_class(type);
     case EM_SH:
 	return sh_elf_machine_type_class(type);
     case EM_PPC:
@@ -205,13 +216,15 @@ reloc_type_class (int type, int machine)
 int
 is_ldso_soname (const char *soname)
 {
-  if (! strcmp (soname, "ld-linux.so.2")
+  if (   ! strcmp (soname, "ld-linux.so.2")
       || ! strcmp (soname, "ld-linux.so.3")
       || ! strcmp (soname, "ld.so.1")
       || ! strcmp (soname, "ld-linux-ia64.so.2")
       || ! strcmp (soname, "ld-linux-x86-64.so.2")
       || ! strcmp (soname, "ld64.so.1")
       || ! strcmp (soname, "ld-linux-armhf.so.3")
+      || ! strcmp (soname, "ld-linux-aarch64.so.1")
+      || ! strcmp (soname, "ld-linux-aarch64_be.so.1")
      )
     return 1;
   return 0;
@@ -644,7 +657,7 @@ load_dsos (DSO *dso, int host_paths)
 		  new_dso_ent = in_dso_list (dso_list, soname, NULL);
 		  if (new_dso_ent == NULL)
 		    {
-		      if (__builtin_expect (GLRO_dl_debug_mask & DL_DEBUG_FILES, 0))
+		      if (__builtin_expect (GLRO(dl_debug_mask) & DL_DEBUG_FILES, 0))
 			printf ("\tfile=%s [0];  needed by %s [0]\n",
 				soname, cur_dso->filename);
 
@@ -747,7 +760,7 @@ struct
 } cache;
 
 void
-do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[],
+do_reloc (DSO *dso, struct link_map *map, struct r_scope_elem *scope[],
 	  GElf_Word sym, GElf_Word type)
 {
   struct r_found_version *ver;
@@ -813,7 +826,7 @@ do_reloc (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[],
 }
 
 void
-do_rel_section (DSO *dso, struct ldlibs_link_map *map, 
+do_rel_section (DSO *dso, struct link_map *map, 
 		struct r_scope_elem *scope[],
 		int tag, int section)
 {
@@ -844,7 +857,7 @@ do_rel_section (DSO *dso, struct ldlibs_link_map *map,
 }
 
 void
-do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[], int tag)
+do_relocs (DSO *dso, struct link_map *map, struct r_scope_elem *scope[], int tag)
 {
   GElf_Addr rel_start, rel_end;
   GElf_Addr pltrel_start, pltrel_end;
@@ -867,7 +880,7 @@ do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[], 
 	{
 	  pltrel_start = dso->info[DT_JMPREL];
 	  pltrel_end = pltrel_start + dso->info[DT_PLTRELSZ];
-	  if (pltrel_start < rel_start || pltrel_start >= rel_end)
+	  if (pltrel_start < rel_start || pltrel_end >= rel_end)
 	    do_rel_section (dso, map, scope, tag, addr_to_sec (dso, pltrel_start));
 	}
     }
@@ -882,7 +895,7 @@ do_relocs (DSO *dso, struct ldlibs_link_map *map, struct r_scope_elem *scope[], 
    DT_MIPS_GOTSYM + X.  */
 
 void
-do_mips_global_got_relocs (DSO *dso, struct ldlibs_link_map *map,
+do_mips_global_got_relocs (DSO *dso, struct link_map *map,
 			   struct r_scope_elem *scope[])
 {
   GElf_Word i;
@@ -953,14 +966,14 @@ void
 build_local_scope (struct dso_list *ent, int max)
 {
   ent->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
-  ent->map->l_local_scope[0]->r_list = malloc (sizeof (struct ldlibs_link_map *) * max);
+  ent->map->l_local_scope[0]->r_list = malloc (sizeof (struct link_map *) * max);
   ent->map->l_local_scope[0]->r_nlist = 0;
   add_to_scope (ent->map->l_local_scope, ent);
 }
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
 
-struct ldlibs_link_map *requested_map;
+struct link_map *requested_map;
 
 static void process_one_dso (DSO *dso, int host_paths);
 
@@ -1097,7 +1110,7 @@ process_one_dso (DSO *dso, int host_paths)
 {
   struct dso_list *dso_list, *cur_dso_ent, *old_dso_ent;
   const char *req;
-  int i, flag;
+  int i;
   int ld_warn = 1;
 
   if ((req = getenv ("RTLD_TRACE_PRELINKING")) != NULL)
@@ -1119,7 +1132,7 @@ process_one_dso (DSO *dso, int host_paths)
       if (cur_dso_ent->dso)
 	{
 	  create_map_object_from_dso_ent (cur_dso_ent);
-	  if ((GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (req, cur_dso_ent->dso->filename) == 0)
+	  if ((GLRO(dl_debug_mask) & DL_DEBUG_PRELINK) && strcmp (req, cur_dso_ent->dso->filename) == 0)
 	    requested_map = cur_dso_ent->map;
 	}
        else
@@ -1131,7 +1144,7 @@ process_one_dso (DSO *dso, int host_paths)
       cur_dso_ent = cur_dso_ent->next;
     }
   dso_list->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
-  dso_list->map->l_local_scope[0]->r_list = malloc (sizeof (struct ldlibs_link_map *) * i);
+  dso_list->map->l_local_scope[0]->r_list = malloc (sizeof (struct link_map *) * i);
   dso_list->map->l_local_scope[0]->r_nlist = i;
   cur_dso_ent = dso_list;
   i = 0;
@@ -1158,10 +1171,9 @@ process_one_dso (DSO *dso, int host_paths)
 
   cur_dso_ent = dso_list;
 
-  flag = 0;
   /* In ldd mode, do not show the application. Note that we do show it
      in list-loaded-objects RTLD_TRACE_PRELINK mode.  */
-  if (!(GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && cur_dso_ent)
+  if (!(GLRO(dl_debug_mask) & DL_DEBUG_PRELINK) && cur_dso_ent)
     {
       /* Based on the presence of DT_NEEDED, see load_dsos */
       if (static_binary)
@@ -1198,16 +1210,16 @@ process_one_dso (DSO *dso, int host_paths)
 
       /* The difference between the two numbers must be dso->base,
          and the first number must be unique.  */
-      if (dso_open_error && ld_warn && (GLRO_dl_debug_mask & DL_DEBUG_PRELINK))
+      if (dso_open_error && ld_warn && (GLRO(dl_debug_mask) & DL_DEBUG_PRELINK))
         {
 	  if (cur_dso_ent->dso == NULL)
 	    rtld_signal_error(cur_dso_ent->err_no, cur_dso_ent->name, NULL, "cannot open shared object file", 0);
 	}
       else if (cur_dso_ent->dso == NULL)
 	printf ("\t%s => not found\n", cur_dso_ent->name);
-      else if (GLRO_dl_debug_mask & DL_DEBUG_PRELINK)
+      else if (GLRO(dl_debug_mask) & DL_DEBUG_PRELINK)
         {
-	   struct ldlibs_link_map * l = cur_dso_ent->map;
+	   struct link_map * l = cur_dso_ent->map;
 	   if (size_pointer == 16)
 	     printf ("\t%s => %s (0x%016"PRIx64", 0x%016"PRIx64")",
 		     cur_dso_ent->name ? cur_dso_ent->name
@@ -1239,8 +1251,8 @@ process_one_dso (DSO *dso, int host_paths)
 	}
       else
 	{
-	   struct ldlibs_link_map * l = cur_dso_ent->map;
-	   if (!(GLRO_dl_debug_mask & DL_DEBUG_PRELINK) && strcmp (cur_dso_ent->name, filename) == 0)
+	   struct link_map * l = cur_dso_ent->map;
+	   if (!(GLRO(dl_debug_mask) & DL_DEBUG_PRELINK) && strcmp (cur_dso_ent->name, filename) == 0)
 	     if (size_pointer == 16)
 	       printf ("\t%s (0x%016"PRIx64")\n", cur_dso_ent->name,
 		       (uint64_t) l->l_map_start);
@@ -1262,13 +1274,12 @@ process_one_dso (DSO *dso, int host_paths)
 	free (filename);
 
       cur_dso_ent = cur_dso_ent->next;
-      flag = 1;
     }
 
   if (dso_open_error)
     exit (127);
 
-  if (!ld_warn && (GLRO_dl_debug_mask & DL_DEBUG_PRELINK))
+  if (!ld_warn && (GLRO(dl_debug_mask) & DL_DEBUG_PRELINK))
     handle_relocs (dso_list->dso, dso_list);
 
   cur_dso_ent = dso_list;

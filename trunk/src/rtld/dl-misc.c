@@ -1,7 +1,7 @@
-/* Based on code originally in eglibc 2.13, libc/elf/dl-misc.c */
+/* glibc 2.20, elf/dl-misc.c */
 
 /* Miscellaneous support functions for dynamic linker
-   Copyright (C) 1997-2004, 2006, 2009 Free Software Foundation, Inc.
+   Copyright (C) 1997-2014 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -15,9 +15,8 @@
    Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library; if not, write to the Free
-   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-   02111-1307 USA.  */
+   License along with the GNU C Library; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #include <assert.h>
 #include <error.h>
@@ -27,7 +26,7 @@
 
 /* Test whether given NAME matches any of the names of the given object.  */
 int
-_dl_name_match_p (const char *name, const struct ldlibs_link_map *map)
+_dl_name_match_p (const char *name, const struct link_map *map)
 {
   if (strcmp (name, map->l_name) == 0)
     return 1;
@@ -78,7 +77,7 @@ _dl_higher_prime_number (unsigned long int n)
     UINT32_C (536870909),
     UINT32_C (1073741789),
     UINT32_C (2147483647),
-                                       /* 4294967291L */
+				       /* 4294967291L */
     UINT32_C (2147483647) + UINT32_C (2147483644)
   };
 

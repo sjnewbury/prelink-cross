@@ -1,7 +1,7 @@
 /* Based on code originally in eglibc 2.13, libc/elf/dl-version.c */
 
 /* Handle symbol and library versioning.
-   Copyright (C) 1997-2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 1997-2014 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1997.
 
@@ -16,19 +16,14 @@
    Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library; if not, write to the Free
-   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-   02111-1307 USA.  */
+   License along with the GNU C Library; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 #include <assert.h>
 #include <error.h>
 #include <errno.h>
 #include <string.h>
 #include "rtld.h"
-
-#ifndef VERSYMIDX
-# define VERSYMIDX(tag)	(DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGIDX (tag))
-#endif
 
 #define make_string(string, rest...) \
   ({									      \
@@ -48,10 +43,10 @@
   })
 
 
-static inline struct ldlibs_link_map *
-find_needed (const char *name, struct ldlibs_link_map *map)
+static inline struct link_map *
+find_needed (const char *name, struct link_map *map)
 {
-  struct ldlibs_link_map *tmap = map;
+  struct link_map *tmap = map;
   unsigned int n = 0;
 
   for (n = 0; n < map->l_local_scope[0]->r_nlist; n++)
@@ -71,7 +66,7 @@ find_needed (const char *name, struct ldlibs_link_map *map)
 
 static int
 match_symbol (const char *name, Elf64_Word hash, const char *string,
-	      struct ldlibs_link_map *map, int verbose, int weak)
+	      struct link_map *map, int verbose, int weak)
 {
   const char *strtab = (const void *) D_PTR (map, l_info[DT_STRTAB]);
   Elf64_Verdef *def;
@@ -80,13 +75,13 @@ match_symbol (const char *name, Elf64_Word hash, const char *string,
   int result = 0;
 
   /* Display information about what we are doing while debugging.  */
-  if (__builtin_expect(GLRO_dl_debug_mask & DL_DEBUG_VERSIONS, 0))
+  if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_VERSIONS))
     _dl_debug_printf ("\
 checking for version `%s' in file %s required by file %s\n",
-		      string, map->l_name[0] ? map->l_name : rtld_progname,
+		      string, DSO_FILENAME (map->l_name),
 		      name);
 
-  if (__builtin_expect (map->l_info[VERSYMIDX (DT_VERDEF)] == NULL, 0))
+  if (__glibc_unlikely (map->l_info[VERSYMIDX (DT_VERDEF)] == NULL))
     {
       /* The file has no symbol versioning.  I.e., the dependent
 	 object was linked against another version of this file.  We
@@ -140,7 +135,7 @@ no version information available (required by ", name, ")");
     }
 
   /* Symbol not found.  If it was a weak reference it is not fatal.  */
-  if (__builtin_expect (weak, 1))
+  if (__glibc_likely (weak))
     {
       if (verbose)
 	{
@@ -157,14 +152,14 @@ no version information available (required by ", name, ")");
 			   name, ")");
   result = 1;
  call_cerror:
-  _dl_signal_cerror (0, map->l_name[0] ? map->l_name : rtld_progname,
+  _dl_signal_cerror (0, DSO_FILENAME (map->l_name),
 		     ("version lookup error"), errstring);
   return result;
 }
 
 
 int
-_dl_check_map_versions (struct ldlibs_link_map *map, int verbose, int trace_mode)
+_dl_check_map_versions (struct link_map *map, int verbose, int trace_mode)
 {
   int result = 0;
   const char *strtab;
@@ -205,14 +200,14 @@ _dl_check_map_versions (struct ldlibs_link_map *map, int verbose, int trace_mode
 	  errstring = make_string ("unsupported version ",
 				   " of Verneed record\n");
 	call_error:
-	  _dl_signal_error (errval, *map->l_name ? map->l_name : rtld_progname,
+	  _dl_signal_error (errval, DSO_FILENAME (map->l_name),
 			    NULL, errstring);
 	}
 
       while (1)
 	{
 	  Elf64_Vernaux *aux;
-	  struct ldlibs_link_map *needed = find_needed (strtab + ent->vn_file, map);
+	  struct link_map *needed = find_needed (strtab + ent->vn_file, map);
 
 	  /* If NEEDED is NULL this means a dependency was not found
 	     and no stub entry was created.  This should never happen.  */
@@ -228,8 +223,7 @@ _dl_check_map_versions (struct ldlibs_link_map *map, int verbose, int trace_mode
 	      while (1)
 		{
 		  /* Match the symbol.  */
-		  result |= match_symbol ((*map->l_name
-					   ? map->l_name : rtld_progname),
+		  result |= match_symbol (DSO_FILENAME (map->l_name),
 					  aux->vna_hash,
 					  strtab + aux->vna_name,
 					  needed, verbose,
@@ -286,7 +280,7 @@ _dl_check_map_versions (struct ldlibs_link_map *map, int verbose, int trace_mode
 	 section.  */
       map->l_versions = (struct r_found_version *)
 	calloc (ndx_high + 1, sizeof (*map->l_versions));
-      if (__builtin_expect (map->l_versions == NULL, 0))
+      if (__glibc_unlikely (map->l_versions == NULL))
 	{
 	  errstring = ("cannot allocate version reference table");
 	  errval = ENOMEM;
@@ -311,7 +305,7 @@ _dl_check_map_versions (struct ldlibs_link_map *map, int verbose, int trace_mode
 		{
 		  Elf64_Half ndx = aux->vna_other & 0x7fff;
 		  /* In trace mode, dependencies may be missing.  */
-		  if (__builtin_expect (ndx < map->l_nversions, 1))
+		  if (__glibc_likely (ndx < map->l_nversions))
 		    {
 		      map->l_versions[ndx].hash = aux->vna_hash;
 		      map->l_versions[ndx].hidden = aux->vna_other & 0x8000;

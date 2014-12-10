@@ -9,6 +9,8 @@
 #define DT_VERSIONTAGNUM 16
 #endif
 
+#define link_map ldlibs_link_map
+
 struct needed_list
 {
   struct dso_list *ent;
@@ -18,7 +20,7 @@ struct needed_list
 struct dso_list
 {
   DSO *dso;
-  struct ldlibs_link_map *map;
+  struct link_map *map;
   struct dso_list *next, *prev;
   struct needed_list *needed, *needed_tail;
   const char *name;
@@ -34,11 +36,11 @@ struct libname_list
     struct libname_list *next;  /* Link to next name for this object.  */
   };
 
-struct ldlibs_link_map;
+struct link_map;
 
 struct r_scope_elem
 {
-  struct ldlibs_link_map **r_list;
+  struct link_map **r_list;
   unsigned int r_nlist;
 };
 
@@ -58,7 +60,7 @@ struct unique_sym_table
       uint32_t hashval;
       const char *name;
       const void *sym;
-      struct link_map *map;
+      const struct link_map *map;
     } *entries;
     size_t size;
     size_t n_elements;
@@ -73,7 +75,7 @@ typedef uint32_t Elf_Symndx;
 
 /* Mimic libc/include/link.h  struct link_map */
 
-struct ldlibs_link_map
+struct link_map
   {
     int elfclass;
 
@@ -165,28 +167,49 @@ extern unsigned int _dl_dynamic_weak;
 extern const char *rtld_progname;
 #define _dl_debug_printf printf
 
-#define GLRO_dl_debug_mask _dl_debug_mask
-#define DL_DEBUG_FILES 2
-#define DL_DEBUG_SYMBOLS 4
-#define DL_DEBUG_VERSIONS 8
-#define DL_DEBUG_BINDINGS 16
-#define DL_DEBUG_PRELINK 1
+/* glibc-2.20: sysdeps/generic/ldsodefs.h */
+/* The filename itself, or the main program name, if available.  */
+#define DSO_FILENAME(name) ((name)[0] ? (name)                                \
+                            : (rtld_progname ?: "<main program>"))
+
+#define RTLD_PROGNAME (rtld_progname ?: "<program name unknown>")
+
+/* glibc-2.20: sysdeps/generic/ldsodefs.h */
+#define DL_DEBUG_LIBS       (1 << 0)
+#define DL_DEBUG_IMPCALLS   (1 << 1)
+#define DL_DEBUG_BINDINGS   (1 << 2)
+#define DL_DEBUG_SYMBOLS    (1 << 3)
+#define DL_DEBUG_VERSIONS   (1 << 4)
+#define DL_DEBUG_RELOC      (1 << 5)
+#define DL_DEBUG_FILES      (1 << 6)
+#define DL_DEBUG_STATISTICS (1 << 7)
+#define DL_DEBUG_UNUSED     (1 << 8)
+#define DL_DEBUG_SCOPES     (1 << 9)
+/* These two are used only internally.  */
+#define DL_DEBUG_HELP       (1 << 10)
+#define DL_DEBUG_PRELINK    (1 << 11)
 
 #define _dl_trace_prelink_map requested_map
 
-extern struct ldlibs_link_map *requested_map;
+extern struct link_map *requested_map;
 
-#define __builtin_expect(a,b) (a)
+#ifndef __glibc_unlikely
+#define __glibc_unlikely(a) (a)
+#endif
+
+#ifndef __glibc_likely
+#define __glibc_likely(a) (a)
+#endif
 
 /* dl-load.c */
 
 #define _dl_new_object rtld_new_object
 
-struct ldlibs_link_map * _dl_new_object (const char *realname, const char *libname, int type);
+struct link_map * _dl_new_object (const char *realname, const char *libname, int type);
 
 /* dl-lookup.c */
 
-#define lookup_t struct ldlibs_link_map *
+#define lookup_t struct link_map *
 #define LOOKUP_VALUE(map) map
 
 /* Search loaded objects' symbol tables for a definition of the symbol
@@ -210,45 +233,45 @@ enum
   };
 
 #define _dl_setup_hash rtld_setup_hash
-void _dl_setup_hash (struct ldlibs_link_map *map);
+void _dl_setup_hash (struct link_map *map);
 
 #define _dl_lookup_symbol_x32 rtld_lookup_symbol_x32
 #define _dl_lookup_symbol_x64 rtld_lookup_symbol_x64
 
 /* Lookup versioned symbol.  */
 inline lookup_t _dl_lookup_symbol_x (const char *undef,
-                                     struct ldlibs_link_map *undef_map,
+                                     struct link_map *undef_map,
                                      const Elf64_Sym **sym,
                                      struct r_scope_elem *symbol_scope[],
                                      const struct r_found_version *version,
                                      int type_class, int flags,
-                                     struct ldlibs_link_map *skip_map);
+                                     struct link_map *skip_map);
 
 /* Lookup versioned symbol.  */
 lookup_t _dl_lookup_symbol_x32 (const char *undef,
-                                     struct ldlibs_link_map *undef_map,
+                                     struct link_map *undef_map,
                                      const Elf32_Sym **sym,
                                      struct r_scope_elem *symbol_scope[],
                                      const struct r_found_version *version,
                                      int type_class, int flags,
-                                     struct ldlibs_link_map *skip_map);
+                                     struct link_map *skip_map);
 
 /* Lookup versioned symbol.  */
 lookup_t _dl_lookup_symbol_x64 (const char *undef,
-                                     struct ldlibs_link_map *undef_map,
+                                     struct link_map *undef_map,
                                      const Elf64_Sym **sym,
                                      struct r_scope_elem *symbol_scope[],
                                      const struct r_found_version *version,
                                      int type_class, int flags,
-                                     struct ldlibs_link_map *skip_map);
+                                     struct link_map *skip_map);
 
 /* dl-version.c */
 
 #define _dl_check_map_versions rtld_check_map_versions
-int _dl_check_map_versions (struct ldlibs_link_map *map, int verbose, int trace_mode);
+int _dl_check_map_versions (struct link_map *map, int verbose, int trace_mode);
 
 #define _dl_name_match_p rtld_name_match_p
-int _dl_name_match_p (const char *name, const struct ldlibs_link_map *map);
+int _dl_name_match_p (const char *name, const struct link_map *map);
 
 /* Error handling */
 
@@ -281,7 +304,7 @@ void rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
 #define _dl_name_match_p rtld_name_match_p
 #define _dl_higher_prime_number rtld_higher_prime_number
 
-extern int _dl_name_match_p (const char *name, const struct ldlibs_link_map *map);
+extern int _dl_name_match_p (const char *name, const struct link_map *map);
 extern unsigned long int _dl_higher_prime_number (unsigned long int n);
 
 

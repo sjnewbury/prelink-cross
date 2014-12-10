@@ -21,6 +21,26 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* glibc 2.20: elf/dl-tls.c */
+
+/* Thread-local storage handling in the ELF dynamic linker.  Generic version.
+   Copyright (C) 2002-2014 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <http://www.gnu.org/licenses/>.  */
+
 #include <config.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -87,6 +107,11 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
       tls_tcb_size = 8;
       break;
 
+    case EM_AARCH64:
+      tls_dtv_at_tp = 1;
+      tls_tcb_size = 16;
+      break;
+
     case EM_MIPS:
       tls_dtv_at_tp = 1;
       tls_tcb_size = 0;
@@ -107,7 +132,7 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
       /* Hope there's no TLS!  */
       for (i = 0; i < search_list->r_nlist; i++)
 	{
-	  struct ldlibs_link_map *map = search_list->r_list[i];
+	  struct link_map *map = search_list->r_list[i];
 
 	  if (map->l_tls_blocksize > 0)
 	    _dl_signal_error(0, map->l_name, NULL, "cannot handle TLS data");
@@ -116,7 +141,7 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
       return;
     }
 
-  /* from eglibc 2.13: libc/elf/dl-tls.c: _dl_determine_tlsoffset (void) */
+  /* eglibc 2.20: elf/dl-tls.c: _dl_determine_tlsoffset (void) */
   /* Determining the offset of the various parts of the static TLS
      block has several dependencies.  In addition we have to work
      around bugs in some toolchains.
@@ -133,7 +158,7 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
      This means we have to add artificial padding at the beginning of
      the TLS block.  These bytes are never used for the TLS data in
      this module but the first byte allocated must be aligned
-     according to mod p_align == 0 so that the first byte of the TLS 
+     according to mod p_align == 0 so that the first byte of the TLS
      block is aligned according to p_vaddr mod p_align.  This is ugly
      and the linker can help by computing the offsets in the TLS block
      assuming the first byte of the TLS block is aligned according to
@@ -155,103 +180,103 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
      if we take too much space here, glibc won't allocate enough
      static TLS area to hold it.  */
 
-  if (tls_tcb_at_tp == 1)
-  {
-    /* We simply start with zero.  */
-    uint64_t offset = 0;
+/* #if TLS_TCB_AT_TP */ if (tls_tcb_at_tp == 1) {
+  /* We simply start with zero.  */
+  uint64_t offset = 0;
 
-    for (i = 0; i < search_list->r_nlist; i++)
-	{
-	  struct ldlibs_link_map *map = search_list->r_list[i];
-
-	  uint64_t firstbyte = (-map->l_tls_firstbyte_offset
-				& (map->l_tls_align - 1));
-	  uint64_t off;
-
-	  /* elf/rtld.c would have caused us to skip this block.. so emulate this */
-	  if (map->l_tls_blocksize == 0)
-	    continue;
-
-	  /* allocate_tls_init would nomrally Increment the module id */
-	  map->l_tls_modid = modid++;
-
-	  if (freebottom - freetop >= map->l_tls_blocksize)
-	    {
-	      off = roundup (freetop + map->l_tls_blocksize
-			     - firstbyte, map->l_tls_align)
-		    + firstbyte;
-	      if (off <= freebottom)
-		{
-		  freetop = off;
-
-		  map->l_tls_offset = off;
-		  continue;
-		}
-	    }
-
-	  off = roundup (offset + map->l_tls_blocksize - firstbyte,
-			 map->l_tls_align) + firstbyte;
-	  if (off > offset + map->l_tls_blocksize
-	      + (freebottom - freetop))
-	    {
-	      freetop = offset;
-	      freebottom = off - map->l_tls_blocksize;
-	    }
-	  offset = off;
-
-	  map->l_tls_offset = off;
-	}
-    }
-  else if (tls_dtv_at_tp == 1)
+  for (i = 0; i < search_list->r_nlist; i++)
     {
-      uint64_t offset = tls_tcb_size;
+      struct link_map *map = search_list->r_list[i];
 
-      for (i = 0; i < search_list->r_nlist; i++)
+      uint64_t firstbyte = (-map->l_tls_firstbyte_offset
+			    & (map->l_tls_align - 1));
+      uint64_t off;
+
+      /* elf/rtld.c would have caused us to skip this block.. so emulate this */
+      if (map->l_tls_blocksize == 0)
+	continue;
+
+      /* allocate_tls_init would nomrally Increment the module id */
+      map->l_tls_modid = modid++;
+
+      if (freebottom - freetop >= map->l_tls_blocksize)
 	{
-	  struct ldlibs_link_map *map = search_list->r_list[i];
-
-	  uint64_t firstbyte = (-map->l_tls_firstbyte_offset
-			        & (map->l_tls_align - 1));
-	  uint64_t off;
-
-	  /* elf/rtld.c would have caused us to skip this block.. so emulate this */
-	  if (map->l_tls_blocksize == 0)
-	    continue;
-
-	  /* allocate_tls_init would nomrally Increment the module id */
-	  map->l_tls_modid = modid++;
-
-	  if (map->l_tls_blocksize <= freetop - freebottom)
+	  off = roundup (freetop + map->l_tls_blocksize
+			 - firstbyte, map->l_tls_align)
+		+ firstbyte;
+	  if (off <= freebottom)
 	    {
-	      off = roundup (freebottom, map->l_tls_align);
-	      if (off - freebottom < firstbyte)
-		off += map->l_tls_align;
-	      if (off + map->l_tls_blocksize - firstbyte <= freetop)
-		{
-		  map->l_tls_offset = off - firstbyte;
-		  freebottom = (off + map->l_tls_blocksize
-				- firstbyte);
-		  continue;
-		}
-	    }
+	      freetop = off;
 
-	  off = roundup (offset, map->l_tls_align);
-	  if (off - offset < firstbyte)
+	      /* XXX For some architectures we perhaps should store the
+	       negative offset.  */
+	      map->l_tls_offset = off;
+	      continue;
+	    }
+	}
+
+      off = roundup (offset + map->l_tls_blocksize - firstbyte,
+		       map->l_tls_align) + firstbyte;
+      if (off > offset + map->l_tls_blocksize
+		+ (freebottom - freetop))
+	{
+	  freetop = offset;
+	  freebottom = off - map->l_tls_blocksize;
+	}
+      offset = off;
+
+      /* XXX For some architectures we perhaps should store the
+	 negative offset.  */
+      map->l_tls_offset = off;
+    }
+/* #elif TLS_DTV_AT_TP */ } else if (tls_dtv_at_tp == 1) {
+  /* The TLS blocks start right after the TCB.  */
+  uint64_t offset = tls_tcb_size;
+
+  for (i = 0; i < search_list->r_nlist; i++)
+    {
+      struct link_map *map = search_list->r_list[i];
+
+      uint64_t firstbyte = (-map->l_tls_firstbyte_offset
+			   & (map->l_tls_align - 1));
+      uint64_t off;
+
+      /* elf/rtld.c would have caused us to skip this block.. so emulate this */
+      if (map->l_tls_blocksize == 0)
+	continue;
+
+      /* allocate_tls_init would nomrally Increment the module id */
+      map->l_tls_modid = modid++;
+
+      if (map->l_tls_blocksize <= freetop - freebottom)
+	{
+	  off = roundup (freebottom, map->l_tls_align);
+	  if (off - freebottom < firstbyte)
 	    off += map->l_tls_align;
-
-	  map->l_tls_offset = off - firstbyte;
-	  if (off - firstbyte - offset > freetop - freebottom)
+	  if (off + map->l_tls_blocksize - firstbyte <= freetop)
 	    {
-	      freebottom = offset;
-	      freetop = off - firstbyte;
+	      map->l_tls_offset = off - firstbyte;
+	      freebottom = (off + map->l_tls_blocksize
+			    - firstbyte);
+	      continue;
 	    }
-
-	  offset = off + map->l_tls_blocksize - firstbyte;
 	}
+
+      off = roundup (offset, map->l_tls_align);
+      if (off - offset < firstbyte)
+	off += map->l_tls_align;
+
+      map->l_tls_offset = off - firstbyte;
+      if (off - firstbyte - offset > freetop - freebottom)
+	{
+	  freebottom = offset;
+	  freetop = off - firstbyte;
+	}
+
+      offset = off + map->l_tls_blocksize - firstbyte;
     }
-  else
-    {
-      /* Should never happen... */
-      _dl_signal_error(0, NULL, NULL, "Neither TLS_TCB_AT_TP nor TLS_DTV_AT_TP is defined for this architecture");
-    }
+/* #else */ } else {
+    /* Should never happen... */
+    _dl_signal_error(0, NULL, NULL, "Neither TLS_TCB_AT_TP nor TLS_DTV_AT_TP is defined for this architecture");
+/* #endif */ }
 }

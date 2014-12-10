@@ -1,6 +1,7 @@
+/* glibc-2.20: elf/dl-lookup.c */
+
 /* Look up a symbol in the loaded objects.
-   Copyright (C) 1995-2005, 2006, 2007, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1995-2014 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -14,9 +15,8 @@
    Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library; if not, write to the Free
-   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-   02111-1307 USA.  */
+   License along with the GNU C Library; if not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This file is based on the original eglibc-2.13 libc/elf/dl-lookup.c
    code.
@@ -48,6 +48,28 @@
 
 #include "rtld.h"
 
+/* Return nonzero if check_match should consider SYM to fail to match a
+   symbol reference for some machine-specific reason.  */
+#ifndef ELF_MACHINE_SYM_NO_MATCH
+/* glibc-2.20: sysdeps/mips/dl-machine.h */
+/* The semantics of zero/non-zero values of undefined symbols differs
+   depending on whether the non-PIC ABI is in use.  Under the non-PIC
+   ABI, a non-zero value indicates that there is an address reference
+   to the symbol and thus it must always be resolved (except when
+   resolving a jump slot relocation) to the PLT entry whose address is
+   provided as the symbol's value; a zero value indicates that this
+   canonical-address behaviour is not required.  Yet under the classic
+   MIPS psABI, a zero value indicates that there is an address
+   reference to the function and the dynamic linker must resolve the
+   symbol immediately upon loading.  To avoid conflict, symbols for
+   which the dynamic linker must assume the non-PIC ABI semantics are
+   marked with the STO_MIPS_PLT flag.  */
+#define ELF_MACHINE_SYM_NO_MATCH(sym) \
+  (map->machine == EM_MIPS && \
+  ((sym)->st_shndx == SHN_UNDEF && !((sym)->st_other & STO_MIPS_PLT)) \
+  )
+#endif
+
 struct unique_sym_table * _ns_unique_sym_table = NULL;
 
 /* This file is from eglibc 2.13, libc/elf/dl-lookup.c
@@ -56,9 +78,6 @@ struct unique_sym_table * _ns_unique_sym_table = NULL;
    processing in the same application.  This file contains the common
    routines ... and is the entry to the overall set of files.
  */
-
-/* We need this string more than once.  */
-static const char undefined_msg[] = "undefined symbol: ";
 
 #define make_string(string, rest...) \
   ({									      \
@@ -98,7 +117,7 @@ dl_new_hash (const char *s)
 #undef RTLD_ELF_SIZE
 
 void
-rtld_setup_hash (struct ldlibs_link_map *map)
+rtld_setup_hash (struct link_map *map)
 {
    if (map)
     {

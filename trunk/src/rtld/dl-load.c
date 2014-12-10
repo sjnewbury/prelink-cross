@@ -19,24 +19,38 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+/* glibc-2.20: elf/dl-load.c */
+
+/* Map in a shared object's segments from the file.
+   Copyright (C) 1995-2014 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <http://www.gnu.org/licenses/>.  */
+
 #include <assert.h>
 #include <error.h>
 #include <errno.h>
 #include <string.h>
 #include "rtld.h"
 
-#ifndef VERSYMIDX
-# define VERSYMIDX(sym) (DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGIDX (sym))
-#endif
-
-/* From eglibc-2.13 libc/elf/dl-load.c */
-
 /* Add `name' to the list of names for a particular shared object.
    `name' is expected to have been allocated with malloc and will
    be freed if the shared object already has this name.
    Returns false if the object already had this name.  */
 static void
-add_name_to_object (struct ldlibs_link_map *l, const char *name)
+add_name_to_object (struct link_map *l, const char *name)
 {
   struct libname_list *lnp, *lastp;
   struct libname_list *newname;
@@ -63,43 +77,16 @@ add_name_to_object (struct ldlibs_link_map *l, const char *name)
   lastp->next = newname;
 }
 
-/* From libc/elf/dl-object.c */
-
-/* Allocate a `struct link_map' for a new object being loaded,
-   and enter it into the _dl_loaded list.  */
-struct ldlibs_link_map *
-_dl_new_object (const char *realname, const char *libname, int type)
-{
-  size_t libname_len = strlen (libname) + 1;
-  struct ldlibs_link_map *new;
-  struct libname_list *newname;
-
-  new = (struct ldlibs_link_map *) calloc (sizeof (*new) +
-                                    + sizeof (*newname) + libname_len, 1);
-
-  if (new == NULL)
-    return NULL;
-
-  new->l_libname = newname
-    = (struct libname_list *) ((char *) (new + 1));
-  newname->name = (char *) memcpy (newname + 1, libname, libname_len);
-  /* newname->next = NULL;      We use calloc therefore not necessary.  */
-
-  new->l_name = realname;
-  new->l_type = type;
-
-  return new;
-}
-
 const char *rtld_progname;
 
 static Elf64_Addr load_addr = 0xdead0000;
 
-/* mimic behavior of _dl_map_object_from_fd(...) in eglibc 2.13 libc/elf/dl-load.c*/
+/* mimic behavior of _dl_map_object_from_fd(...) 
+   Note: this is not a copy of the function! */
 void
 create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
 {
-  struct ldlibs_link_map *l = NULL;
+  struct link_map *l = NULL;
   DSO *dso = cur_dso_ent->dso;
 
   int i;
@@ -117,7 +104,7 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
 
 
   /* Print debug message. */
-  if (__builtin_expect (GLRO_dl_debug_mask & DL_DEBUG_FILES, 0))
+  if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_FILES))
     printf("\tfile=%s; generating link map\n", name);
 
 
@@ -164,7 +151,7 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
         data = elf_getdata (dso->scn[i], NULL);
 
 #if 0
-  	if (__builtin_expect (GLRO_dl_debug_mask & DL_DEBUG_FILES, 0))
+  	if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_FILES))
 	     printf("l_info DT_GNU_HASH: offset %d -- addr %p (0x%lx) - type %d\n", 
 		    (DT_ADDRTAGIDX(DT_GNU_HASH) + DT_NUM
                     + DT_THISPROCNUM + DT_VERSIONTAGNUM
