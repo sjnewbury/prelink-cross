@@ -1,0 +1,47 @@
+2014-12-10  Mark Hatle <mark.hatle@windriver.com>
+	* rtld/COPYING, rtld/COPYING.LIB,
+	  rtld/ChangeLog, rtld/README-rtld: Add local history
+	  information to setup for a resync to glibc-2.20
+
+2012-09-12  Joseph Myers  <joseph@codesourcery.com>
+	* rtld/dl-lookup.c: Fix variable copy reloc when host/target
+	  byte size is different
+
+2012-04-10  Maxim Kuvyrkov  <maxim@codesourcery.com>
+	* rtld/rtld.c (find_lib_by_soname): Follow ld.so's behavior of
+	  pulling its name from PT_INTERP.
+
+2012-01-26  Mark Hatle <mark.hatle@windriver.com>
+	* elf.h, rtld/dl-lookupX.h, rtld/rtld.c: Sync to eglibc 2.15
+
+2011-12-08  Mark Hatle <mark.hatle@windriver.com>
+	* rtld/rtld.c: Add support for $ORIGIN, $PLATFORM and $LIB.
+	  Note: $PLATFORM = ""
+
+2011-12-08  Mark Hatle <mark.hatle@windriver.com>
+	* rtld/rtld.c: Fix an issue where missing objects would trigger
+	  an assert in dl-version.c
+	* rtld/rtld.h: Add _dl_new_object prototype
+
+2011-09-13  Mark Hatle <mark.hatle@windriver.com>
+	* Fix printf problem causing prelink-rtld issues on x86 (32-bit)
+	  and arm
+
+2011-08-26  Mark Hatle <mark.hatle@windriver.com>
+	* Add a special check for invalid GNU_HASH entries
+
+2011-08-26  Mark Hatle <mark.hatle@windriver.com>
+	* Sync to eglibc 2.13 ld.so code
+	    * sync elf_machine_type_class macros for supports archs
+
+2011-08-26  Mark Hatle <mark.hatle@windriver.com>
+	* Sync to eglibc 2.13 ld.so code
+	* mips specific items from ports
+
+2011-08-26  Mark Hatle <mark.hatle@windriver.com>
+	* Rename ld-libs.c to rtld.c
+	* Sync to eglibc 2.13 ld.so code
+
+2011-08-18  Mark Hatle <mark.hatle@windriver.com>
+	* Move prelink-rtld specific components to rtld
+
