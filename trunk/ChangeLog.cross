@@ -1,4 +1,8 @@
 2014-12-10  Mark Hatle <mark.hatle@windriver.com>
+        * testsuite/Makefile.am: latest autotools has changed the 
+	  way TEST_ENVIRONMENT is defined.  Remove the $(SHELL)
+
+2014-12-10  Mark Hatle <mark.hatle@windriver.com>
 	* Resync src/rtld to glibc-2.20
 	* src/elf.h, src/rtld/rtld.c, src/rtld/dl-tls.c:
 	  Update elf.h to glibc 2.20 version

@@ -20,8 +20,7 @@ TESTS = movelibs.sh \
 TESTS_ENVIRONMENT = \
 	PRELINK="../src/prelink -c ./prelink.conf -C ./prelink.cache --ld-library-path=. --dynamic-linker=`echo ./ld*.so.*[0-9]` --rtld=../src/rtld/prelink-rtld" \
 	CC="$(CC) $(LINKOPTS)" CCLINK="$(CC) -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`" \
-	CXX="$(CXX) $(LINKOPTS)" CXXLINK="$(CXX) -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`" \
-	$(SHELL)
+	CXX="$(CXX) $(LINKOPTS)" CXXLINK="$(CXX) -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`"
 
 extra_DIST = $(TESTS) functions.sh
 
