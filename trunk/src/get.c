@@ -30,7 +30,6 @@ int
 is_ldso_soname (const char *soname)
 {
   if (! strcmp (soname, "ld-linux.so.2")
-      || ! strcmp (soname, "ld-linux.so.3")
       || ! strcmp (soname, "ld.so.1")
       || ! strcmp (soname, "ld-linux-ia64.so.2")
       || ! strcmp (soname, "ld-linux-x86-64.so.2")

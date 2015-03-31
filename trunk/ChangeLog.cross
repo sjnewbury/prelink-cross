@@ -1,3 +1,8 @@
+2015-03-31  Mark Hatle <mark.hatle@windriver.com>
+        * Based on submission by Maninder Singh <maninder1.s@samsung.com>
+          src/get.c: Remove extra check for ld-linux.so.3 in strcmp
+          (remove first entry, second is already in upstream code)
+
 2014-12-10  Mark Hatle <mark.hatle@windriver.com>
         * testsuite/Makefile.am: latest autotools has changed the 
 	  way TEST_ENVIRONMENT is defined.  Remove the $(SHELL)
