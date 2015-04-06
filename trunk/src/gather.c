@@ -240,8 +240,8 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 		  if (q != NULL)
 		    {
 		      error (0, 0,
-			     "%s: Could not find one of the dependencies",
-			     ent->filename);
+			     "%s: Could not find one of the dependencies: \n%s",
+			     ent->filename, line);
 		      goto error_out;
 		    }
 		}

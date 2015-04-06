@@ -1,6 +1,7 @@
 2015-04-06  Mark Hatle <mark.hatle@windriver.com>
 	    Maninder Singh <maninder1.s@samsung.com>
 	* src/rtld/dl-version.c: Add debug for mising ld-linux or libc
+	* src/gather.c: Return rtld error messages on failure
 
 2015-03-31  Mark Hatle <mark.hatle@windriver.com>
         * Based on submission by Maninder Singh <maninder1.s@samsung.com>
