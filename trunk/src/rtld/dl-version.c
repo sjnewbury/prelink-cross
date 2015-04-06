@@ -211,6 +211,12 @@ _dl_check_map_versions (struct link_map *map, int verbose, int trace_mode)
 
 	  /* If NEEDED is NULL this means a dependency was not found
 	     and no stub entry was created.  This should never happen.  */
+	  if (needed == NULL)
+	    {
+	      _dl_signal_error (errval, NULL, NULL, strtab + ent->vn_file);
+              printf("error while loading shared libraries: %s", strtab + ent->vn_file);
+	      exit (1);
+            }
 	  assert (needed != NULL);
 
 	  /* Make sure this is no stub we created because of a missing

@@ -1,3 +1,7 @@
+2015-04-06  Mark Hatle <mark.hatle@windriver.com>
+	    Maninder Singh <maninder1.s@samsung.com>
+	* rtld/dl-version.c: Add debug for mising ld-linux or libc.so
+
 2014-12-10  Mark Hatle <mark.hatle@windriver.com>
 	* rtld/rtld.c: Sync aarch64 elf_machine_type_class (dl-machine.h)
 		(do_relocs): fix comparison pltrel_end >= rel_end
