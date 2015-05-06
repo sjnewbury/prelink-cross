@@ -479,13 +479,15 @@ find_lib_in_path (struct search_path *path, const char *soname,
       if (wrap_access (ret, F_OK) == 0)
 	{
 	  DSO *dso = open_dso (ret);
-          int dso_class = gelf_getclass (dso->elf);
-	  int dso_machine = (dso_class == ELFCLASS32) ?
-			    elf32_getehdr (dso->elf)->e_machine :
-			    elf64_getehdr (dso->elf)->e_machine;
+	  int dso_class, dso_machine;
 
 	  if (dso == NULL)
 	    continue;
+
+	  dso_class = gelf_getclass (dso->elf);
+	  dso_machine = (dso_class == ELFCLASS32) ?
+			    elf32_getehdr (dso->elf)->e_machine :
+			    elf64_getehdr (dso->elf)->e_machine;
 
 	  /* Skip 32-bit libraries when looking for 64-bit.  Also
 	     skip libraries for alternative machines.  */
