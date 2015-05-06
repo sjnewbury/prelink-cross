@@ -1,3 +1,6 @@
+2015-09-09   Maninder Singh <maninder1.s@samsung.com>
+	* src/doit.c, src/gather.c, src/undoall.c: Fix realloc memory leak
+
 2015-09-07  Andrew Stubbs  <ams@codesourcery.com>
 	* src/arch-arm.c (PL_ARCH(arm)): Set max_page_size to match
 	the new BFD default.

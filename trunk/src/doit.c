@@ -53,7 +53,7 @@ prelink_ent (struct prelink_entry *ent)
   DSO *dso;
   struct stat64 st;
   struct prelink_link *hardlink;
-  char *move = NULL;
+  char *move = NULL, *move_temp;
   size_t movelen = 0;
 
   for (i = 0; i < ent->ndepends; ++i)
@@ -176,9 +176,11 @@ prelink_ent (struct prelink_entry *ent)
       if (len + sizeof (".#prelink#") > movelen)
 	{
 	  movelen = len + sizeof (".#prelink#");
+	  move_temp = move;
 	  move = realloc (move, movelen);
 	  if (move == NULL)
 	    {
+	      free(move_temp);
 	      error (0, ENOMEM, "Could not hardlink %s to %s",
 		     hardlink->canon_filename, ent->canon_filename);
 	      movelen = 0;

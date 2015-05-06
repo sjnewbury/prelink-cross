@@ -64,7 +64,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
   const char *argv[6];
   const char *envp[5];
   char *line = NULL, *p, *q = NULL;
-  const char **depends = NULL;
+  const char **depends = NULL, **depends_temp;
   size_t ndepends = 0, ndepends_alloced = 0;
   size_t len = 0;
   ssize_t n;
@@ -261,11 +261,13 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
       if (ndepends == ndepends_alloced)
 	{
 	  ndepends_alloced += 10;
+	  depends_temp = depends;
 	  depends =
 	    (const char **) realloc (depends,
 				     ndepends_alloced * sizeof (char *));
 	  if (depends == NULL)
 	    {
+	      free(depends_temp);
 	      error (0, ENOMEM, "%s: Could not record dependencies",
 		     ent->filename);
 	      goto error_out;
