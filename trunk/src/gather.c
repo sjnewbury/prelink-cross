@@ -561,8 +561,7 @@ make_unprelinkable:
 
       assert (ent->type == ET_NONE);
       ent->type = ET_UNPRELINKABLE;
-      if (dso)
-	close_dso (dso);
+      close_dso (dso);
       return 0;
     }
 

@@ -1,3 +1,6 @@
+2015-09-09   Akhilesh Kumar <akhilesh.k@samsung.com>
+	* src/gather.c: Remove unnecessary dso NULL check
+
 2015-09-09   Maninder Singh <maninder1.s@samsung.com>
 	* src/doit.c, src/gather.c, src/undoall.c: Fix realloc memory leak
 
