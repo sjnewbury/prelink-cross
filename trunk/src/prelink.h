@@ -597,6 +597,7 @@ extern enum verify_method_t verify_method;
 extern int quick;
 extern long long seed;
 extern GElf_Addr mmap_reg_start, mmap_reg_end, layout_page_size;
+extern char *ld_preload;
 
 extern const char *sysroot;
 

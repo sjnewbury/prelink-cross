@@ -1,3 +1,6 @@
+2015-09-11   Vaneet Narang <v.narang@samsung.com>
+	* rtld/rtld.c: Add ability to specify preloaded libraries 
+
 2015-09-09  Maninder Singh <maninder1.s@samsung.com>
 	    Mark Hatle <mark.hatle@windriver.com>
 	* rtld/rtld.c: dso null pointer check fix

@@ -640,12 +640,13 @@ prelink_get_relocations (struct prelink_info *info)
 {
   FILE *f;
   DSO *dso = info->dso;
-  const char *argv[6];
+  const char *argv[8];
   const char *envp[4];
   int i, ret, status;
   char *p;
   const char *dl = dynamic_linker ?: dso->arch->dynamic_linker;
   const char *ent_filename;
+  int etype = info->dso->ehdr.e_type;
 
   if (info->ent->type == ET_DYN)
     {
@@ -708,6 +709,12 @@ prelink_get_relocations (struct prelink_info *info)
           argv[i++] = "--library-path";
           argv[i++] = ld_library_path;
         }
+
+      if(etype == ET_EXEC && ld_preload) {
+          argv[i++] = "--ld-preload";
+          argv[i++] = ld_preload;
+      }
+
       argv[i++] = "--target-paths";
       argv[i++] = ent_filename;
       argv[i] = NULL;

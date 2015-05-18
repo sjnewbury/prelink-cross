@@ -61,7 +61,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 {
   int i, j, seen = 0;
   FILE *f = NULL;
-  const char *argv[6];
+  const char *argv[8];
   const char *envp[5];
   char *line = NULL, *p, *q = NULL;
   const char **depends = NULL, **depends_temp;
@@ -74,6 +74,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
   int nliblist = 0;
   const char *dl;
   const char *ent_filename;
+  int etype = dso->ehdr.e_type;
 
   if (check_dso (dso))
     {
@@ -181,6 +182,11 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
           argv[i++] = "--library-path";
           argv[i++] = ld_library_path;
         }
+
+      if(etype == ET_EXEC && ld_preload) {
+          argv[i++] = "--ld-preload";
+          argv[i++] = ld_preload;
+      }
       argv[i++] = "--target-paths";
       argv[i++] = ent_filename;
       argv[i] = NULL;

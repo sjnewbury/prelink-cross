@@ -47,6 +47,7 @@ unsigned int _dl_debug_mask = 0;
 /* LD_DYNAMIC_WEAK option.  Default is off, changing to 1
    is equivalent to setting LD_DYNAMIC_WEAK. */
 unsigned int _dl_dynamic_weak = 0;
+#define MAX_PRELOADED_LIBS   20
 
 struct search_path
 {
@@ -60,6 +61,7 @@ int host_paths;
 char * dst_ORIGIN;
 char * dst_PLATFORM = ""; /* undefined */
 char * dst_LIB = "lib";
+char * ld_preload = NULL;
 
 
 void string_to_path (struct search_path *path, const char *string);
@@ -73,11 +75,13 @@ static char argp_doc[] = PRELINK_RTLD_PROG " -- program to simulate the runtime 
 #define OPT_SYSROOT		0x8c
 #define OPT_LIBRARY_PATH	0x8e
 #define OPT_TARGET_PATHS	0x8f
+#define OPT_LD_PRELOAD		0x90
 
 static struct argp_option options[] = {
   {"library-path",		OPT_LIBRARY_PATH, "LIBRARY_PATH", 0, "Set library search path to LIBRARY_PATH" },
   {"root",			OPT_SYSROOT, "ROOT_PATH", 0, "Prefix all paths with ROOT_PATH" },
   {"target-paths",		OPT_TARGET_PATHS, 0, 0, "Specified paths are based on ROOT_PATH" },
+  {"ld-preload",                OPT_LD_PRELOAD, "PATHLIST", 0, "List of LD_PRELOAD libraries"},
   { 0 }
 };
 
@@ -94,6 +98,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case OPT_TARGET_PATHS:
       host_paths = 0;
+      break;
+    case OPT_LD_PRELOAD:
+      ld_preload = arg;
       break;
     default:
       return ARGP_ERR_UNKNOWN;
@@ -599,6 +606,8 @@ load_dsos (DSO *dso, int host_paths)
 {
   struct dso_list *dso_list, *dso_list_tail, *cur_dso_ent, *new_dso_ent;
   struct stat64 st;
+  int total_preload = 0;
+  char * libname[MAX_PRELOADED_LIBS] = {NULL};
 
   /* Assume it's static unless we find DT_NEEDED entries */
   static_binary = 1;
@@ -621,6 +630,22 @@ load_dsos (DSO *dso, int host_paths)
 
   cur_dso_ent = dso_list_tail = dso_list;
 
+  if(dso->ehdr.e_type == ET_EXEC && ld_preload) {
+      char *next_lib =  ld_preload;
+      libname[total_preload] = ld_preload;
+      total_preload++;
+      next_lib=strchr(ld_preload,':');
+      while(next_lib!=NULL){
+	  *next_lib = '\0';
+	  next_lib++;
+	  libname[total_preload] = next_lib;
+	  total_preload++;
+	  next_lib=strchr(next_lib,':');
+      }
+  }
+  else {
+      total_preload = 0;
+  }
   while (cur_dso_ent != NULL)
     {
       DSO *cur_dso, *new_dso;
@@ -641,9 +666,16 @@ load_dsos (DSO *dso, int host_paths)
 	{
 	  int ndx, maxndx;
 	  maxndx = data->d_size / cur_dso->shdr[cur_dso->dynamic].sh_entsize;
-	  for (ndx = 0; ndx < maxndx; ++ndx)
+	  for (ndx = 0; ndx < maxndx + total_preload; ++ndx)
 	    {
-	      gelfx_getdyn (cur_dso->elf, data, ndx, &dyn);
+
+              if(ndx - total_preload >= 0) {
+                  gelfx_getdyn (cur_dso->elf, data, ndx - total_preload, &dyn);
+              }
+              else {
+                  dyn.d_tag = DT_NEEDED;
+              }
+
 	      if (dyn.d_tag == DT_NULL)
 		break;
 	      if (dyn.d_tag == DT_NEEDED)
@@ -652,10 +684,17 @@ load_dsos (DSO *dso, int host_paths)
 		  static_binary = 0;
 
 		  char *new_name=NULL, *new_canon_name=NULL;
-		  const char *soname = get_data (cur_dso,
-						 cur_dso->info[DT_STRTAB]
-						 + dyn.d_un.d_val,
-						 NULL, NULL);
+		  const char * soname = NULL;
+		  if(ndx - total_preload >= 0) {
+		      soname = get_data (cur_dso,
+			                 cur_dso->info[DT_STRTAB]
+					 + dyn.d_un.d_val,
+				         NULL, NULL);
+		  }
+		  else {
+		      soname = libname[ndx];
+		  }
+
 		  new_dso_ent = in_dso_list (dso_list, soname, NULL);
 		  if (new_dso_ent == NULL)
 		    {

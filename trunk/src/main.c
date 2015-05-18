@@ -59,6 +59,7 @@ const char *ld_library_path;
 const char *prelink_conf = PRELINK_CONF;
 const char *prelink_cache = PRELINK_CACHE;
 const char *undo_output;
+char *ld_preload = NULL;
 int noreexecinit;
 time_t initctime;
 
@@ -84,6 +85,7 @@ static char argp_doc[] = PRELINK_PROG " -- program to relocate and prelink ELF s
 #define OPT_SYSROOT		0x8d
 #define OPT_RTLD		0x8e
 #define OPT_ALLOW_TEXTREL	0x8f
+#define OPT_LD_PRELOAD		0x90
 
 static struct argp_option options[] = {
   {"all",		'a', 0, 0,  "Prelink all binaries" },
@@ -113,6 +115,7 @@ static struct argp_option options[] = {
   {"no-exec-shield",	OPT_NO_EXEC_SHIELD, 0, 0, "Don't lay out libraries for exec-shield on IA-32" },
   {"ld-library-path",	OPT_LD_LIBRARY_PATH, "PATHLIST",
 				0,  "What LD_LIBRARY_PATH should be used" },
+  {"ld-preload",	OPT_LD_PRELOAD, "PATHLIST", 0,  "What LD_PRELOAD should be used" },
   {"libs-only",		OPT_LIBS_ONLY, 0, 0, "Prelink only libraries, no binaries" },
   {"layout-page-size",	OPT_LAYOUT_PAGE_SIZE, "SIZE", 0, "Layout start of libraries at given boundary" },
   {"disable-c++-optimizations", OPT_CXX_DISABLE, 0, OPTION_HIDDEN, "" },
@@ -249,6 +252,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case OPT_ALLOW_TEXTREL:
       allow_bad_textrel = 1;
+      break;
+    case OPT_LD_PRELOAD:
+      ld_preload = arg;
       break;
     default:
       return ARGP_ERR_UNKNOWN;

@@ -1,3 +1,8 @@
+2015-09-11   Vaneet Narang <v.narang@samsung.com>
+	* src/gather.c, src/get.c, src/main.c, src/prelink.h:
+	Add ability to specify preloaded libraries that influence the
+	prelinker.
+
 2015-09-09   Akhilesh Kumar <akhilesh.k@samsung.com>
 	* src/gather.c: Remove unnecessary dso NULL check
 
