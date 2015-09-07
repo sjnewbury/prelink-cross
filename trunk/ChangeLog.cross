@@ -1,3 +1,7 @@
+2015-09-07  Andrew Stubbs  <ams@codesourcery.com>
+	* src/arch-arm.c (PL_ARCH(arm)): Set max_page_size to match
+	the new BFD default.
+
 2015-04-06  Mark Hatle <mark.hatle@windriver.com>
 	    Maninder Singh <maninder1.s@samsung.com>
 	* src/rtld/dl-version.c: Add debug for mising ld-linux or libc
