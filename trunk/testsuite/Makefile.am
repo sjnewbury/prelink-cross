@@ -16,7 +16,7 @@ TESTS = movelibs.sh \
 	cycle1.sh cycle2.sh \
 	deps1.sh deps2.sh \
 	ifunc1.sh ifunc2.sh ifunc3.sh \
-	undosyslibs.sh
+	undosyslibs.sh preload1.sh
 TESTS_ENVIRONMENT = \
 	PRELINK="../src/prelink -c ./prelink.conf -C ./prelink.cache --ld-library-path=. --dynamic-linker=`echo ./ld*.so.*[0-9]` --rtld=../src/rtld/prelink-rtld" \
 	CC="$(CC) $(LINKOPTS)" CCLINK="$(CC) -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`" \

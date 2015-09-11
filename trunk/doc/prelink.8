@@ -136,6 +136,17 @@ to be used when
 .B prelink
 queries the dynamic linker about symbol resolution details.
 .TP
+.B \-\-ld\-preload=PATH
+Specify a special
+.IR LD_PRELOAD
+to be used when processing the executables.  Up to 20 libraries may be
+added for preloading, separated by colons (
+.B :
+).  Using this option allows 
+.B prelink 
+to optimize the memory map for executables that use preloaded libraries.
+Note: The order of libraries loaded should match the runtime environment.
+.TP
 .B \-\-layout\-page\-size=SIZE
 Layout start of libraries at given boundary.
 .TP

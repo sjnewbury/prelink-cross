@@ -1,3 +1,7 @@
+2015-09-11   Mark Hatle <mark.hatle@windriver.com>
+	* doc/prelink.8: Add --ld-preload docs
+	* testsuite/Maekfile.am, testsuite/preload1*: Add test
+
 2015-09-11   Vaneet Narang <v.narang@samsung.com>
 	* src/gather.c, src/get.c, src/main.c, src/prelink.h:
 	Add ability to specify preloaded libraries that influence the
