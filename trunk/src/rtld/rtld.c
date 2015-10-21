@@ -119,44 +119,53 @@ parse_opt (int key, char *arg, struct argp_state *state)
 /* The following needs to be kept in sync with the 
    sysdeps/.../dl-machine.h: elf_machine_type_class macro */
 
+/* From glibc-2.22: sysdeps/i386/dl-machine.h */
 # define i386_elf_machine_type_class(type) \
   ((((type) == R_386_JMP_SLOT || (type) == R_386_TLS_DTPMOD32                 \
      || (type) == R_386_TLS_DTPOFF32 || (type) == R_386_TLS_TPOFF32           \
      || (type) == R_386_TLS_TPOFF || (type) == R_386_TLS_DESC)                \
     * ELF_RTYPE_CLASS_PLT)                                                    \
-   | (((type) == R_386_COPY) * ELF_RTYPE_CLASS_COPY))
+   | (((type) == R_386_COPY) * ELF_RTYPE_CLASS_COPY)                          \
+   | (((type) == R_386_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_386)))
 
-# define x86_64_elf_machine_type_class(type)                                         \
+/* From glibc-2.22: sysdeps/x86_64/dl-machine.h */
+# define x86_64_elf_machine_type_class(type)                                  \
   ((((type) == R_X86_64_JUMP_SLOT                                             \
      || (type) == R_X86_64_DTPMOD64                                           \
      || (type) == R_X86_64_DTPOFF64                                           \
      || (type) == R_X86_64_TPOFF64                                            \
      || (type) == R_X86_64_TLSDESC)                                           \
     * ELF_RTYPE_CLASS_PLT)                                                    \
-   | (((type) == R_X86_64_COPY) * ELF_RTYPE_CLASS_COPY))
+   | (((type) == R_X86_64_COPY) * ELF_RTYPE_CLASS_COPY)                       \
+   | (((type) == R_X86_64_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_X86_64)))
 
-/* From eglibc-2.15 ports/sysdeps/arm/dl-machine.h */
+/* From glibc-2.22: ports/sysdeps/arm/dl-machine.h */
 # define arm_elf_machine_type_class(type) \
   ((((type) == R_ARM_JUMP_SLOT || (type) == R_ARM_TLS_DTPMOD32          \
      || (type) == R_ARM_TLS_DTPOFF32 || (type) == R_ARM_TLS_TPOFF32     \
      || (type) == R_ARM_TLS_DESC)					\
     * ELF_RTYPE_CLASS_PLT)                                              \
-   | (((type) == R_ARM_COPY) * ELF_RTYPE_CLASS_COPY))
+   | (((type) == R_ARM_COPY) * ELF_RTYPE_CLASS_COPY)                    \
+   | (((type) == R_ARM_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_ARM)))
 
+/* From glibc-2.22: ports/sysdeps/aarch64/dl-machine.h */
 # define aarch64_elf_machine_type_class(type) \
   ((((type) == R_AARCH64_JUMP_SLOT ||                                   \
-     (type) == R_AARCH64_TLS_DTPMOD64 ||                                \
-     (type) == R_AARCH64_TLS_DTPREL64 ||                                \
-     (type) == R_AARCH64_TLS_TPREL64 ||                                 \
+     (type) == R_AARCH64_TLS_DTPMOD ||                                  \
+     (type) == R_AARCH64_TLS_DTPREL ||                                  \
+     (type) == R_AARCH64_TLS_TPREL ||                                   \
      (type) == R_AARCH64_TLSDESC) * ELF_RTYPE_CLASS_PLT)                \
-   | (((type) == R_AARCH64_COPY) * ELF_RTYPE_CLASS_COPY))
+   | (((type) == R_AARCH64_COPY) * ELF_RTYPE_CLASS_COPY)                \
+   | (((type) == R_AARCH64_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_AARCH64)))
 
+/* From glibc-2.22: sysdeps/sh/dl-machine.h */
 # define sh_elf_machine_type_class(type) \
   ((((type) == R_SH_JMP_SLOT || (type) == R_SH_TLS_DTPMOD32                   \
      || (type) == R_SH_TLS_DTPOFF32 || (type) == R_SH_TLS_TPOFF32)            \
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_SH_COPY) * ELF_RTYPE_CLASS_COPY))
 
+/* From glibc-2.22: sysdeps/powerpc/powerpc32/dl-machine.h */
 #define powerpc32_elf_machine_type_class(type)                    \
   ((((type) == R_PPC_JMP_SLOT                           \
     || (type) == R_PPC_REL24                            \
@@ -165,29 +174,49 @@ parse_opt (int key, char *arg, struct argp_state *state)
     || (type) == R_PPC_ADDR24) * ELF_RTYPE_CLASS_PLT)   \
    | (((type) == R_PPC_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* We only have support for ELFv1 PowerPC64 right now */
-#define powerpc64_elf_machine_type_class(type) \
-  (ELF_RTYPE_CLASS_PLT | (((type) == R_PPC64_COPY) * ELF_RTYPE_CLASS_COPY))
+/* From glibc-2.22: sysdeps/powerpc/powerpc64/dl-machine.h */
+/* we only support ELFv2 at this point */
+#define IS_PPC64_TLS_RELOC(R)                                           \
+  (((R) >= R_PPC64_TLS && (R) <= R_PPC64_DTPREL16_HIGHESTA)             \
+   || ((R) >= R_PPC64_TPREL16_HIGH && (R) <= R_PPC64_DTPREL16_HIGHA))
 
+#define powerpc64_elf_machine_type_class(type) \
+  ((((type) == R_PPC64_JMP_SLOT                                 \
+     || (type) == R_PPC64_ADDR24                                \
+     || IS_PPC64_TLS_RELOC (type)) * ELF_RTYPE_CLASS_PLT)       \
+   | (((type) == R_PPC64_COPY) * ELF_RTYPE_CLASS_COPY))
+
+/* From glibc-2.22: sysdeps/mips/dl-machine.h */
 #define ELF_MACHINE_JMP_SLOT		R_MIPS_JUMP_SLOT
 #define mips_elf_machine_type_class(type) \
   ((((type) == ELF_MACHINE_JMP_SLOT) * ELF_RTYPE_CLASS_PLT)     \
    | (((type) == R_MIPS_COPY) * ELF_RTYPE_CLASS_COPY))
 
+/* From glibc-2.22: sysdeps/sparc/sparc32/dl-machine.h */
 #define sparc_elf_machine_type_class(type) \
   ((((type) == R_SPARC_JMP_SLOT                                               \
      || ((type) >= R_SPARC_TLS_GD_HI22 && (type) <= R_SPARC_TLS_TPOFF64))     \
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_SPARC_COPY) * ELF_RTYPE_CLASS_COPY))
 
+/* From glibc-2.22: sysdeps/sparc/sparc64/dl-machine.h */
 # define sparc64_elf_machine_type_class(type) \
   ((((type) == R_SPARC_JMP_SLOT                                               \
      || ((type) >= R_SPARC_TLS_GD_HI22 && (type) <= R_SPARC_TLS_TPOFF64))     \
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_SPARC_COPY) * ELF_RTYPE_CLASS_COPY))
 
+/* From glibc-2.22: sysdeps/nios2/dl-machine.h */
+# define nios2_elf_machine_type_class(type)                     \
+  ((((type) == R_NIOS2_JUMP_SLOT                                \
+     || (type) == R_NIOS2_TLS_DTPMOD                            \
+     || (type) == R_NIOS2_TLS_DTPREL                            \
+     || (type) == R_NIOS2_TLS_TPREL) * ELF_RTYPE_CLASS_PLT)     \
+   | (((type) == R_NIOS2_COPY) * ELF_RTYPE_CLASS_COPY)          \
+   | (((type) == R_NIOS2_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_ALTERA_NIOS2)))
+
 int
-reloc_type_class (int type, int machine)
+elf_machine_type_class (int type, int machine)
 {
   switch (machine)
     {
@@ -212,11 +241,66 @@ reloc_type_class (int type, int machine)
 	return sparc_elf_machine_type_class(type);
     case EM_SPARCV9:
 	return sparc64_elf_machine_type_class(type);
+    case EM_ALTERA_NIOS2:
+	return nios2_elf_machine_type_class(type);
 
     default:
       printf ("Unknown architecture!\n");
       exit (1);
       return 0;
+    }
+}
+
+int
+extern_protected_data(int machine)
+{
+  switch (machine)
+    {
+    case EM_386:
+    case EM_X86_64:
+    case EM_ARM:
+    case EM_AARCH64:
+    case EM_ALTERA_NIOS2:
+      return 4;
+    default:
+      return 0;
+    }
+}
+
+int
+machine_no_rela (int machine)
+{
+  switch (machine)
+    {
+    case EM_386:
+    case EM_X86_64:
+    case EM_ARM:
+    case EM_AARCH64:
+    case EM_SH:
+    case EM_PPC:
+    case EM_PPC64:
+    case EM_MIPS:
+    case EM_SPARC:
+    case EM_SPARC32PLUS:
+    case EM_SPARCV9:
+    case EM_ALTERA_NIOS2:
+      return 0;
+    default:
+      return 1;
+    }
+}
+
+int
+machine_no_rel (int machine)
+{
+  switch (machine)
+    {
+    case EM_386:
+    case EM_MIPS:
+    case EM_ARM:
+      return 0;
+    default:
+      return 1;
     }
 }
 
@@ -228,10 +312,11 @@ is_ldso_soname (const char *soname)
       || ! strcmp (soname, "ld.so.1")
       || ! strcmp (soname, "ld-linux-ia64.so.2")
       || ! strcmp (soname, "ld-linux-x86-64.so.2")
-      || ! strcmp (soname, "ld64.so.1")
+      || ! strcmp (soname, "ld64.so.2")
       || ! strcmp (soname, "ld-linux-armhf.so.3")
       || ! strcmp (soname, "ld-linux-aarch64.so.1")
       || ! strcmp (soname, "ld-linux-aarch64_be.so.1")
+      || ! strcmp (soname, "ld-linux-nios2.so.1")
      )
     return 1;
   return 0;
@@ -822,7 +907,7 @@ do_reloc (DSO *dso, struct link_map *map, struct r_scope_elem *scope[],
   else
     ver = NULL;
 
-  rtypeclass = reloc_type_class (type, dso->ehdr.e_machine);
+  rtypeclass = elf_machine_type_class (type, dso->ehdr.e_machine);
 
   if (gelf_getclass (dso->elf) == ELFCLASS32)
     {

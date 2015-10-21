@@ -21,10 +21,10 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
-/* glibc 2.20: elf/dl-tls.c */
+/* glibc 2.22: elf/dl-tls.c */
 
 /* Thread-local storage handling in the ELF dynamic linker.  Generic version.
-   Copyright (C) 2002-2014 Free Software Foundation, Inc.
+   Copyright (C) 2002-2015 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -126,6 +126,11 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
     case EM_SPARCV9:
       tls_tcb_at_tp = 1;
       tls_tcb_size = -1;
+      break;
+
+    case EM_ALTERA_NIOS2:
+      tls_dtv_at_tp = 1;
+      tls_tcb_size = 0;
       break;
 
     default:

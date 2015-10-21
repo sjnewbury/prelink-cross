@@ -1,7 +1,7 @@
-/* glibc-2.20: elf/dl-lookup.c */
+/* glibc-2.22: elf/dl-lookup.c */
 
 /* Look up a symbol in the loaded objects.
-   Copyright (C) 1995-2014 Free Software Foundation, Inc.
+   Copyright (C) 1995-2015 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@
  */
 
 #if RTLD_ELF_SIZE == 32
+  #define enter_unique_sym enter_unique_sym_val32
   #define sym_val sym_val32
   #define check_match check_match32
   #define do_lookup_unique do_lookup_unique32
@@ -39,6 +40,7 @@
   #define rtld_size_fmtx PRIx32
 
 #elif RTLD_ELF_SIZE == 64
+  #define enter_unique_sym enter_unique_sym_val64
   #define sym_val sym_val64
   #define check_match check_match64
   #define do_lookup_unique do_lookup_unique64
@@ -182,6 +184,27 @@ check_match (const char *const undef_name,
   return sym;
 }
 
+/* Utility function for do_lookup_unique.  Add a symbol to TABLE.  */
+static void
+enter_unique_sym (struct unique_sym *table, size_t size,
+                  unsigned int hash, const char *name,
+                  const ElfW(Sym) *sym, const struct link_map *map)
+{
+  size_t idx = hash % size;
+  size_t hash2 = 1 + hash % (size - 2);
+  while (table[idx].name != NULL)
+    {
+      idx += hash2;
+      if (idx >= size)
+        idx -= size;
+    }
+
+  table[idx].hashval = hash;
+  table[idx].name = name;
+  table[idx].sym = sym;
+  table[idx].map = map;
+}
+
 /* Utility function for do_lookup_x. Lookup an STB_GNU_UNIQUE symbol
    in the unique symbol table, creating a new entry if necessary.
    Return the matching symbol in RESULT.  */
@@ -191,31 +214,14 @@ do_lookup_unique (const char *undef_name, uint_fast32_t new_hash,
 		  int type_class, const ElfW(Sym) *sym, const char *strtab,
 		  const ElfW(Sym) *ref, const struct link_map *undef_map)
 {
-  /* We have to determine whether we already found a
-     symbol with this name before.  If not then we have to
-     add it to the search table.  If we already found a
-     definition we have to use it.  */
-  void enter (struct unique_sym *table, size_t size,
-	      unsigned int hash, const char *name,
-	      const ElfW(Sym) *sym, const struct link_map *map)
-  {
-    size_t idx = hash % size;
-    size_t hash2 = 1 + hash % (size - 2);
-    while (table[idx].name != NULL)
-      {
-	idx += hash2;
-	if (idx >= size)
-	  idx -= size;
-      }
-
-    table[idx].hashval = hash;
-    table[idx].name = name;
-    table[idx].sym = sym;
-    table[idx].map = map;
-  }
+  /* We have to determine whether we already found a symbol with this
+     name before.  If not then we have to add it to the search table.
+     If we already found a definition we have to use it.  */
 
   struct unique_sym_table *tab
     = _ns_unique_sym_table;
+
+  __rtld_lock_lock_recursive (tab->lock);
 
   struct unique_sym *entries = tab->entries;
   size_t size = tab->size;
@@ -241,6 +247,7 @@ do_lookup_unique (const char *undef_name, uint_fast32_t new_hash,
 		  result->s = entries[idx].sym;
 		  result->m = (struct link_map *) entries[idx].map;
 		}
+	      __rtld_lock_unlock_recursive (tab->lock);
 	      return;
 	    }
 
@@ -265,14 +272,15 @@ do_lookup_unique (const char *undef_name, uint_fast32_t new_hash,
 	  if (newentries == NULL)
 	    {
 	    nomem:
+	      __rtld_lock_unlock_recursive (tab->lock);
 	      _dl_fatal_printf ("out of memory\n");
 	    }
 
 	  for (idx = 0; idx < size; ++idx)
 	    if (entries[idx].name != NULL)
-	      enter (newentries, newsize, entries[idx].hashval,
-		     entries[idx].name, entries[idx].sym,
-		     entries[idx].map);
+	      enter_unique_sym (newentries, newsize, entries[idx].hashval,
+                                entries[idx].name, entries[idx].sym,
+                                entries[idx].map);
 
 	  tab->free (entries);
 	  tab->size = newsize;
@@ -313,11 +321,12 @@ do_lookup_unique (const char *undef_name, uint_fast32_t new_hash,
     }
 
   if ((type_class & ELF_RTYPE_CLASS_COPY) != 0)
-    enter (entries, size, new_hash, strtab + sym->st_name, ref,
+    enter_unique_sym (entries, size, new_hash, strtab + sym->st_name, ref,
 	   undef_map);
   else
     {
-      enter (entries, size, new_hash, strtab + sym->st_name, sym, map);
+      enter_unique_sym (entries, size,
+                        new_hash, strtab + sym->st_name, sym, map);
 
 #if 0
       if (map->l_type == lt_loaded)
@@ -347,6 +356,11 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 	     struct link_map *skip, int type_class, struct link_map *undef_map)
 {
   size_t n = scope->r_nlist;
+  /* Make sure we read the value before proceeding.  Otherwise we
+     might use r_list pointing to the initial scope and r_nlist being
+     the value after a resize.  That is the only path in dl-open.c not
+     protected by GSCOPE.  A read barrier here might be to expensive.  */
+  __asm volatile ("" : "+r" (n), "+m" (scope->r_list));
   struct link_map **list = scope->r_list;
 
   do
@@ -453,6 +467,59 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
       if (sym != NULL)
 	{
 	found_it:
+	  /* When UNDEF_MAP is NULL, which indicates we are called from
+	     do_lookup_x on relocation against protected data, we skip
+	     the data definion in the executable from copy reloc.  */
+	  if (ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(map->machine)
+	      && undef_map == NULL
+	      && map->l_type == lt_executable
+	      && type_class == ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(map->machine))
+	    {
+	      const ElfW(Sym) *s;
+	      unsigned int i;
+
+if (!ELF_MACHINE_NO_RELA(map->machine)) { /* #if ! ELF_MACHINE_NO_RELA */
+	      if (map->l_info[DT_RELA] != NULL
+		  && map->l_info[DT_RELASZ] != NULL
+		  && ((ElfW(Dyn) *)(map->l_info[DT_RELASZ]))->d_un.d_val != 0)
+		{
+		  const ElfW(Rela) *rela
+		    = (const ElfW(Rela) *) D_PTR (map, l_info[DT_RELA]);
+		  unsigned int rela_count
+		    = ((ElfW(Dyn) *)(map->l_info[DT_RELASZ]))->d_un.d_val / sizeof (*rela);
+
+		  for (i = 0; i < rela_count; i++, rela++)
+		    if (elf_machine_type_class (ELFW(R_TYPE) (rela->r_info), map->machine)
+			== ELF_RTYPE_CLASS_COPY)
+		      {
+			s = &symtab[ELFW(R_SYM) (rela->r_info)];
+			if (!strcmp (strtab + s->st_name, undef_name))
+			  goto skip;
+		      }
+		}
+} /* #endif */
+if (!ELF_MACHINE_NO_REL(map->machine)) { /* #if ! ELF_MACHINE_NO_REL */
+	      if (map->l_info[DT_REL] != NULL
+		  && map->l_info[DT_RELSZ] != NULL
+		  && ((ElfW(Dyn) *)(map->l_info[DT_RELSZ]))->d_un.d_val != 0)
+		{
+		  const ElfW(Rel) *rel
+		    = (const ElfW(Rel) *) D_PTR (map, l_info[DT_REL]);
+		  unsigned int rel_count
+		    = ((ElfW(Dyn) *)(map->l_info[DT_RELSZ]))->d_un.d_val / sizeof (*rel);
+
+		  for (i = 0; i < rel_count; i++, rel++)
+		    if (elf_machine_type_class (ELFW(R_TYPE) (rel->r_info), map->machine)
+			== ELF_RTYPE_CLASS_COPY)
+		      {
+			s = &symtab[ELFW(R_SYM) (rel->r_info)];
+			if (!strcmp (strtab + s->st_name, undef_name))
+			  goto skip;
+		      }
+		}
+} /* #endif */
+	    }
+
 	  switch (ELFW(ST_BIND) (sym->st_info))
 	    {
 	    case STB_WEAK:
@@ -484,6 +551,7 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 	    }
 	}
 
+skip:
       /* If this current map is the one mentioned in the verneed entry
 	 and we have not found a weak entry, it is a bug.  */
       if (symidx == STN_UNDEF && version != NULL && version->filename != NULL
@@ -610,7 +678,12 @@ _dl_lookup_symbol_x (const char *undef_name, struct link_map *undef_map,
 	  for (scope = symbol_scope; *scope != NULL; i = 0, ++scope)
 	    if (do_lookup_x (undef_name, new_hash, &old_hash, *ref,
 			     &protected_value, *scope, i, version, flags,
-			     skip_map, ELF_RTYPE_CLASS_PLT, NULL) != 0)
+			     skip_map,
+			     (ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(skip_map->machine)
+			      && ELFW(ST_TYPE) ((*ref)->st_info) == STT_OBJECT
+			      && type_class == ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(skip_map->machine))
+			     ? ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(skip_map->machine)
+			     : ELF_RTYPE_CLASS_PLT, NULL) != 0)
 	      break;
 
 	  if (protected_value.s != NULL && protected_value.m != undef_map)
@@ -810,6 +883,7 @@ _dl_debug_bindings (const char *undef_name, struct link_map *undef_map,
 #endif
 }
 
+#undef enter_unique_sym
 #undef sym_val
 #undef check_match
 #undef do_lookup_unique

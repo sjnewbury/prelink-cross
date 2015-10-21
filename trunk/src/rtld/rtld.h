@@ -154,6 +154,17 @@ struct link_map
 #define ELF_RTYPE_CLASS_COPY 2
 #define ELF_RTYPE_CLASS_PLT 1
 
+int elf_machine_type_class(int type, int machine);
+
+int extern_protected_data(int machine);
+#define ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(machine) extern_protected_data(machine)
+
+int machine_no_rela(int machine);
+#define ELF_MACHINE_NO_RELA(machine) machine_no_rela(machine)
+
+int machine_no_rel(int machine);
+#define ELF_MACHINE_NO_REL(machine) machine_no_rel(machine)
+
 #define GL(x) _##x
 #define GLRO(x) _##x
 #define INTUSE(x) x
@@ -166,6 +177,9 @@ extern unsigned int _dl_dynamic_weak;
 
 extern const char *rtld_progname;
 #define _dl_debug_printf printf
+
+#define __rtld_lock_lock_recursive(NAME)
+#define __rtld_lock_unlock_recursive(NAME)
 
 /* glibc-2.20: sysdeps/generic/ldsodefs.h */
 /* The filename itself, or the main program name, if available.  */
