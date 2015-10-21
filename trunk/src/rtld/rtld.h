@@ -176,7 +176,13 @@ extern unsigned int _dl_debug_mask;
 extern unsigned int _dl_dynamic_weak;
 
 extern const char *rtld_progname;
-#define _dl_debug_printf printf
+
+/* This is an optional value before the ':' when debuging is enabled.        */
+/* Typically glibc sets this to a number of spaces and the pid of the process*/
+#ifndef RTLD_DEBUG_PID
+# define RTLD_DEBUG_PID "          "
+#endif
+#define _dl_debug_printf(...) printf( RTLD_DEBUG_PID ":\t" __VA_ARGS__)
 
 #define __rtld_lock_lock_recursive(NAME)
 #define __rtld_lock_unlock_recursive(NAME)

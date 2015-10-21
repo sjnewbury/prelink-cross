@@ -699,6 +699,7 @@ load_dsos (DSO *dso, int host_paths)
 
   dso_list = malloc (sizeof (struct dso_list));
   dso_list->dso = dso;
+  dso_list->map = NULL;
   dso_list->next = NULL;
   dso_list->prev = NULL;
   dso_list->needed = NULL;
@@ -784,7 +785,7 @@ load_dsos (DSO *dso, int host_paths)
 		  if (new_dso_ent == NULL)
 		    {
 		      if (__builtin_expect (GLRO(dl_debug_mask) & DL_DEBUG_FILES, 0))
-			printf ("\tfile=%s [0];  needed by %s [0]\n",
+			_dl_debug_printf ("file=%s [0];  needed by %s [0]\n",
 				soname, cur_dso->filename);
 
 		      int machine;
@@ -804,6 +805,7 @@ load_dsos (DSO *dso, int host_paths)
 			  dso_list_tail = dso_list_tail->next;
 			  dso_list_tail->next = NULL;
 			  dso_list_tail->dso = NULL;
+			  dso_list_tail->map = NULL;
 			  dso_list_tail->needed = NULL;
 			  dso_list_tail->name = soname;
 			  dso_list_tail->loader = NULL;
@@ -834,6 +836,7 @@ load_dsos (DSO *dso, int host_paths)
 		      dso_list_tail = dso_list_tail->next;
 		      dso_list_tail->next = NULL;
 		      dso_list_tail->dso = new_dso;
+		      dso_list_tail->map = NULL;
 		      dso_list_tail->needed = NULL;
 		      dso_list_tail->loader = cur_dso_ent;
 		      dso_list_tail->canon_filename = new_canon_name;
@@ -1099,7 +1102,7 @@ build_local_scope (struct dso_list *ent, int max)
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
 
-struct link_map *requested_map;
+struct link_map *requested_map = NULL;
 
 static void process_one_dso (DSO *dso, int host_paths);
 
@@ -1353,7 +1356,7 @@ process_one_dso (DSO *dso, int host_paths)
 		     filename ? filename
 		     : rtld_progname ?: "<main program>",
 		     (uint64_t) l->l_map_start,
-		     (uint64_t) (l->l_map_start - cur_dso_ent->dso->base));
+		     (uint64_t) (l->l_map_start == cur_dso_ent->dso->base ? 0 : l->l_map_start));
 	   else
 	     printf ("\t%s => %s (0x%08"PRIx32", 0x%08"PRIx32")",
 		     cur_dso_ent->name ? cur_dso_ent->name
@@ -1361,7 +1364,7 @@ process_one_dso (DSO *dso, int host_paths)
 		     filename ? filename
 		     : rtld_progname ?: "<main program>",
 		     (uint32_t) l->l_map_start,
-		     (uint32_t) (l->l_map_start - cur_dso_ent->dso->base));
+		     (uint32_t) (l->l_map_start == cur_dso_ent->dso->base ? 0 : l->l_map_start));
 
 	   if (l->l_tls_modid)
 	     if (size_pointer == 16)

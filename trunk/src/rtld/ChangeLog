@@ -6,9 +6,18 @@
 		new extern_protected_data function.
 		rename reloc_typeclass to elf_machine_type_class
 		add machine_no_rela, machine_no_rel funcs
+		Update debug msg
+		Fix missing dso_list->map = NULL
 	* rtld/dl-tls.c: (rtld_determine_tlsoffsets) add NIOS2 definition
-	* rtld/dl-lookup.c
+	* rtld/dl-lookup.c: Add EXTERN_PROTECTED_DATA support
 	* rtld/dl-lookupX.h: Add EXTERN_PROTECTED_DATA support
+		update debug msgs
+	* rtld/dl-load.c: (create_map_object_from_dso_ent) Add ld.so like debug
+		When an executable sets a load address use it
+		Update the load address calculation, prevents visual overlaps
+	* rtld/dl-version.c: update debug msgs
+	* rtld/rtld.h: define _dl_debug_printf to act like ld.so debug
+		define RTLD_DEBUG_PID to set the debug prefix
 
 	* glibc changes directly affecting the implementation:
 

@@ -80,6 +80,7 @@ add_name_to_object (struct link_map *l, const char *name)
 const char *rtld_progname;
 
 static Elf64_Addr load_addr = 0xdead0000;
+static Elf64_Addr dynamic_addr = 0xfeed0000;
 
 /* mimic behavior of _dl_map_object_from_fd(...) 
    Note: this is not a copy of the function! */
@@ -104,8 +105,9 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
 
 
   /* Print debug message. */
-  if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_FILES))
-    printf("\tfile=%s; generating link map\n", name);
+  if ((l_type == lt_library && !is_ldso_soname(soname)) &&
+      __glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_FILES))
+    _dl_debug_printf("file=%s [0]; generating link map\n", soname);
 
 
   l = _dl_new_object (realname, name, l_type);
@@ -207,13 +209,57 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
       }
    }
 
-  /* Set up the symbol hash table. */
-  _dl_setup_hash (l);
+  if (dso->base) {
+    l->l_map_start = dso->base;
 
-  l->l_map_start = load_addr;
-  load_addr += 0x1000;
+    /* We need to ensure that we don't have two DSOs loading at the same place! */
+    struct dso_list * dso_list_ptr;
+    for (dso_list_ptr = cur_dso_ent->prev; dso_list_ptr; dso_list_ptr = dso_list_ptr->prev)
+     {
+	/* This looks for fairly obvious overlaps... */
+	if ((dso_list_ptr->dso->base <= dso->base && dso->base <= dso_list_ptr->dso->end) || \
+	    (dso->base <= dso_list_ptr->dso->base && dso_list_ptr->dso->base <= dso->end))
+	 {
+	    l->l_map_start = (Elf64_Addr)NULL;
+	    break;
+	 }
+     }
+  }
+
+  if (l->l_map_start == (Elf64_Addr)NULL)
+  {
+    l->l_map_start = load_addr;
+    load_addr += ( ((dso->end - dso->base) + (0x1000 - 1)) & (~(0x1000-1)) );
+  }
 
   l->sym_base = dso->info[DT_SYMTAB] - dso->base;
+
+  if ((l_type == lt_library && !is_ldso_soname(soname))
+      && (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_FILES))) {
+    _dl_debug_printf ("\
+  dynamic: 0x%0*lx  base: 0x%0*lx   size: 0x%0*Zx\n",
+			   (int) sizeof (void *) * (gelf_getclass (dso->elf) == ELFCLASS64 ? 2 : 1),
+			   (unsigned long int) dynamic_addr,
+			   (int) sizeof (void *) * (gelf_getclass (dso->elf) == ELFCLASS64 ? 2 : 1),
+			   (unsigned long int) l->l_map_start,
+			   (int) sizeof (void *) * (gelf_getclass (dso->elf) == ELFCLASS64 ? 2 : 1),
+			   (dso->end - dso->base));
+    _dl_debug_printf ("\
+    entry: 0x%0*lx  phdr: 0x%0*lx  phnum:   %*u\n",
+			   (int) sizeof (void *) * (gelf_getclass (dso->elf) == ELFCLASS64 ? 2 : 1),
+			   (unsigned long int) l->l_map_start + dso->ehdr.e_entry,
+			   (int) sizeof (void *) * (gelf_getclass (dso->elf) == ELFCLASS64 ? 2 : 1),
+			   (unsigned long int) l->l_map_start + dso->ehdr.e_ehsize,
+			   (int) sizeof (void *) * (gelf_getclass (dso->elf) == ELFCLASS64 ? 2 : 1),
+			   dso->ehdr.e_phnum);
+    _dl_debug_printf ("\n");
+
+    /* Only used for debugging output */
+    dynamic_addr += ( ((dso->end - dso->base) + (0x1000 - 1)) & (~(0x1000-1)) );
+  }
+
+  /* Set up the symbol hash table. */
+  _dl_setup_hash (l);
 
   for (i = 0; i < dso->ehdr.e_phnum; ++i)
     if (dso->phdr[i].p_type == PT_TLS)

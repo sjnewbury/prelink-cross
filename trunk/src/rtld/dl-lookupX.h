@@ -784,9 +784,9 @@ _dl_debug_bindings (const char *undef_name, struct link_map *undef_map,
 			0UL,
 			protected ? "protected" : "normal", undef_name);
       if (version)
-	_dl_debug_printf (" [%s]\n", version->name);
+	printf (" [%s]\n", version->name);
       else
-	_dl_debug_printf ("\n");
+	printf ("\n");
     }
 #if 1
   if (GLRO(dl_debug_mask) & DL_DEBUG_PRELINK)

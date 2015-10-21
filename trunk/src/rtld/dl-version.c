@@ -77,7 +77,7 @@ match_symbol (const char *name, Elf64_Word hash, const char *string,
   /* Display information about what we are doing while debugging.  */
   if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_VERSIONS))
     _dl_debug_printf ("\
-checking for version `%s' in file %s required by file %s\n",
+checking for version `%s' in file %s [0] required by file %s [0]\n",
 		      string, DSO_FILENAME (map->l_name),
 		      name);
 
