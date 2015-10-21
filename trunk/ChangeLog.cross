@@ -2,6 +2,8 @@
 	* Resync src/rtld to glibc-2.22
 	* src/elf.h, src/rtld/*:
 	  Update elf.h to glibc 2.22 version
+	* get.c, prelink.h: Add symname to conflict structure
+	* conflict.c: Provide more debuggign on a conflict (symname)
 
 2015-09-11   Mark Hatle <mark.hatle@windriver.com>
 	* doc/prelink.8: Add --ld-preload docs

@@ -449,6 +449,7 @@ prelink_record_relocations (struct prelink_info *info, FILE *f,
 		  conflict->reloc_class = reloc_class;
 		  conflict->used = 0;
 		  conflict->ifunc = ifunc;
+		  conflict->symname = strdup(symname);
 		  if (++info->conflicts[symowner].count == 16)
 		    conflict_hash_init (&info->conflicts[symowner]);
 		}
@@ -602,6 +603,7 @@ prelink_record_relocations (struct prelink_info *info, FILE *f,
 		  conflict->reloc_class = reloc_class;
 		  conflict->used = 0;
 		  conflict->ifunc = ifunc;
+		  conflict->symname = strdup(symname);
 		  if (++info->conflicts[symowner].count == 16)
 		    conflict_hash_init (&info->conflicts[symowner]);
 		}

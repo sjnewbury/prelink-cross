@@ -603,8 +603,8 @@ prelink_build_conflicts (struct prelink_info *info)
 	     conflict = conflict->next)
 	  if (! conflict->used && (i || conflict->ifunc))
 	    {
-	      error (0, 0, "%s: Conflict %08llx not found in any relocation",
-		     dso->filename, (unsigned long long) conflict->symoff);
+	      error (0, 0, "%s: Conflict %08llx (%s) not found in any relocation",
+		     dso->filename, (unsigned long long) conflict->symoff, conflict->symname);
 	      ret = 1;
 	    }
 

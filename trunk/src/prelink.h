@@ -489,6 +489,7 @@ struct prelink_conflict
   int reloc_class;
   unsigned char used;
   unsigned char ifunc;
+  char * symname;
 };
 
 struct prelink_conflicts
