@@ -1,0 +1,5 @@
+2015-10-22   Mark Hatle <mark.hatle@windriver.com>
+	* Upstream project appears to have been abandoned
+	* Update the project to remove the SVN like 'trunk' dir
+	* Adjust the AUTHORS file
+	* Move the previous ChangeLog to ChangeLog.1
