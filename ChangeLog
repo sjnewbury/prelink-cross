@@ -1,3 +1,11 @@
+2015-10-22   Mark Hatle <mark.hatle@windriver.com>
+	* Upstream project appears to have been abandoned
+	* Update the project to remove the SVN like 'trunk' dir
+	* Adjust the AUTHORS file
+	* Move the README.cross to replace README and update it
+	* Move the previous ChangeLog to ChangeLog.1
+	* Move the current ChangeLog.cross to ChangeLog
+
 2015-10-21   Mark Hatle <mark.hatle@windriver.com>
 	* Resync src/rtld to glibc-2.22
 	* src/elf.h, src/rtld/*:
