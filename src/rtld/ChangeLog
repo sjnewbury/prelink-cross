@@ -1,3 +1,17 @@
+2015-10-28   Mark Hatle <mark.hatle@windriver.com>
+	* dl-lookupX.h: Sync with glibc fix for ld.so / prelink mismatch
+
+		2015-10-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+		[BZ #19178]
+		* elf/dl-lookup.c (RTYPE_CLASS_VALID): New.
+		(RTYPE_CLASS_PLT): Likewise.
+		(RTYPE_CLASS_COPY): Likewise.
+		(RTYPE_CLASS_TLS): Likewise.
+		(_dl_debug_bindings): Use RTYPE_CLASS_TLS and RTYPE_CLASS_VALID
+		to set relocation type class for DL_DEBUG_PRELINK.  Clear the
+		ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA bit for DL_DEBUG_PRELINK.
+
 2015-10-21   Mark Hatle <mark.hatle@windriver.com>
 	* rtld/: Resync to glibc-2.22
 	* rtld/*: Update copyright dates to match glibc-2.22
