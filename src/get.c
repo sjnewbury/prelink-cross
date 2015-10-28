@@ -278,9 +278,9 @@ prelink_record_relocations (struct prelink_info *info, FILE *f,
 	    reloc_class = dso->arch->reloc_class (reloc_class);
 	  else
 	    {
-	      if (reloc_class & 8)
+	      if (reloc_class & RTYPE_CLASS_VALID)
 		{
-		  reloc_class = ((reloc_class & ~8)
+		  reloc_class = ((reloc_class & ~RTYPE_CLASS_VALID)
 				 | dso->arch->rtype_class_valid);
 		  ifunc = 1;
 		}
@@ -483,9 +483,9 @@ prelink_record_relocations (struct prelink_info *info, FILE *f,
 	    reloc_class = dso->arch->reloc_class (reloc_class);
 	  else
 	    {
-	      if (reloc_class & 8)
+	      if (reloc_class & RTYPE_CLASS_VALID)
 		{
-		  reloc_class = ((reloc_class & ~8)
+		  reloc_class = ((reloc_class & ~RTYPE_CLASS_VALID)
 				 | dso->arch->rtype_class_valid);
 		  ifunc = 1;
 		}

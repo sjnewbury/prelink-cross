@@ -1,3 +1,6 @@
+2015-10-28   Mark Hatle <mark.hatle@windriver.com>
+	* get.c: Sync rtld/prelink type_class values
+
 2015-10-22   Mark Hatle <mark.hatle@windriver.com>
 	* Upstream project appears to have been abandoned
 	* Update the project to remove the SVN like 'trunk' dir
