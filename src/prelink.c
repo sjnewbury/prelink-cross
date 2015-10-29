@@ -420,7 +420,7 @@ prelink_prepare (DSO *dso)
       int safe = 1, align = 0, last;
       GElf_Addr start, adjust, adjust1, adjust2;
 
-      for (i = 1; i < (rinfo.plt ? rinfo.plt : rinfo.first); i++)
+      for (i = 1; (i < (rinfo.plt ? rinfo.plt : rinfo.first)) & safe; i++)
 	switch (dso->shdr[i].sh_type)
 	  {
 	  case SHT_HASH:
@@ -441,6 +441,7 @@ prelink_prepare (DSO *dso)
 	  case SHT_DYNAMIC:
 	  case SHT_MIPS_REGINFO:
 	  case SHT_MIPS_OPTIONS:
+	  case SHT_MIPS_ABIFLAGS:
 	    /* The same applies to these sections on MIPS.  The convention
 	       is to put .dynamic and .reginfo near the beginning of the
 	       read-only segment, before the program text.  No relocations
@@ -456,10 +457,11 @@ prelink_prepare (DSO *dso)
 
       if (! safe)
 	{
-	  error (0, 0, "%s: Cannot safely convert %s' section from REL to RELA",
+	  error (0, 0, "%s: Cannot safely convert %s' section from REL to RELA: due to section 0x%x [%u]",
 		 dso->filename, strptr (dso, dso->ehdr.e_shstrndx,
 					dso->shdr[rinfo.rel_to_rela
-					? rinfo.first : rinfo.plt].sh_name));
+					? rinfo.first : rinfo.plt].sh_name),
+		 dso->shdr[i-1].sh_type, i-1);
 	  return 1;
 	}
 

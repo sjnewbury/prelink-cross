@@ -110,6 +110,10 @@ typedef uint8_t Elf64_Byte;
 #define SHT_MIPS_DWARF		0x7000001e
 #endif
 
+#ifndef SHT_MIPS_ABIFLAGS
+#define SHT_MIPS_ABIFLAGS       0x7000002a
+#endif
+
 #ifndef RSS_UNDEF
 #define RSS_UNDEF              0
 #endif
