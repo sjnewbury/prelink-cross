@@ -1,3 +1,9 @@
+2015-10-29  Mark Hatle <mark.hatle@windriver.com>
+	* prelink.h: Define SHT_MIPS_ABIFLAGS if not set
+	* prelink.c: OK to skip SHT_MIPS_ABIFLAGS
+	  optimize the loop to stop on the first bad entry
+	  adjust the error to give us more info on the bad section
+
 2015-10-28   Mark Hatle <mark.hatle@windriver.com>
 	* Merge with cross_prelink
 	* Strip out the cross compilation bits to generate a standalone
