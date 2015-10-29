@@ -1089,7 +1089,7 @@ i386_layout_libs_post (struct layout_libs *l)
   return 0;
 }
 
-PL_ARCH = {
+PL_ARCH(i386) = {
   .name = "i386",
   .class = ELFCLASS32,
   .machine = EM_386,

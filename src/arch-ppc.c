@@ -1150,7 +1150,7 @@ ppc_layout_libs_post (struct layout_libs *l)
   return 0;
 }
 
-PL_ARCH = {
+PL_ARCH(ppc) = {
   .name = "PowerPC",
   .class = ELFCLASS32,
   .machine = EM_PPC,

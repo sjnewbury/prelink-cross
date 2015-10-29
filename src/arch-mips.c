@@ -1,5 +1,6 @@
-/* Copyright (C) 2006 CodeSourcery
+/* Copyright (C) 2006, 2008 CodeSourcery.
    Written by Richard Sandiford <richard@codesourcery.com>, 2006
+   Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -90,6 +91,7 @@
 
 #include "prelink.h"
 #include "layout.h"
+#include "reloc-info.h"
 
 /* The thread pointer points 0x7000 past the first static TLS block.  */
 #define TLS_TP_OFFSET 0x7000
@@ -124,6 +126,28 @@ struct mips_local_got_iterator {
   struct data_iterator got_iterator;
 };
 
+/* Read native-endian address-type data.  */
+
+static uint64_t
+mips_buf_read_addr (DSO *dso, unsigned char *data)
+{
+  if (dso->ehdr.e_ident[EI_CLASS] == ELFCLASS64)
+    return buf_read_une64 (dso, data);
+  else
+    return buf_read_une32 (dso, data);
+}
+
+/* Write native-endian address-type data.  */
+
+static void
+mips_buf_write_addr (DSO *dso, unsigned char *data, uint64_t val)
+{
+  if (dso->ehdr.e_ident[EI_CLASS] == ELFCLASS64)
+    buf_write_ne64 (dso, data, val);
+  else
+    buf_write_ne32 (dso, data, val);
+}
+
 /* Set up LGI to iterate over DSO's local GOT.  The caller should use
    mips_get_local_got_entry to read the first entry.  */
 
@@ -131,7 +155,7 @@ static inline void
 mips_init_local_got_iterator (struct mips_local_got_iterator *lgi, DSO *dso)
 {
   lgi->dso = dso;
-  lgi->entry_size = gelf_fsize (dso->elf, ELF_T_WORD, 1, EV_CURRENT);
+  lgi->entry_size = gelf_fsize (dso->elf, ELF_T_ADDR, 1, EV_CURRENT);
   lgi->got_index = RESERVED_GOTNO - 1;
   lgi->failed = 0;
   init_data_iterator (&lgi->got_iterator, dso,
@@ -199,7 +223,7 @@ mips_init_global_got_iterator (struct mips_global_got_iterator *ggi, DSO *dso)
   GElf_Word sym_size;
 
   ggi->dso = dso;
-  ggi->entry_size = gelf_fsize (dso->elf, ELF_T_WORD, 1, EV_CURRENT);
+  ggi->entry_size = gelf_fsize (dso->elf, ELF_T_ADDR, 1, EV_CURRENT);
   ggi->got_addr = (dso->info[DT_PLTGOT]
 		   + (dso->info_DT_MIPS_LOCAL_GOTNO - 1) * ggi->entry_size);
   ggi->sym_index = dso->info_DT_MIPS_GOTSYM - 1;
@@ -252,8 +276,8 @@ mips_arch_adjust (DSO *dso, GElf_Addr start, GElf_Addr adjust)
   mips_init_local_got_iterator (&lgi, dso);
   while (mips_get_local_got_entry (&lgi))
     {
-      value = buf_read_une32 (dso, lgi.got_entry);
-      buf_write_ne32 (dso, lgi.got_entry, value + adjust);
+      value = mips_buf_read_addr (dso, lgi.got_entry);
+      mips_buf_write_addr (dso, lgi.got_entry, value + adjust);
     }
 
   /* Adjust every global GOT entry.  Referring to the table above:
@@ -269,13 +293,13 @@ mips_arch_adjust (DSO *dso, GElf_Addr start, GElf_Addr adjust)
   mips_init_global_got_iterator (&ggi, dso);
   while (mips_get_global_got_entry (&ggi))
     {
-      value = buf_read_une32 (dso, ggi.got_entry);
+      value = mips_buf_read_addr (dso, ggi.got_entry);
       if (ggi.sym.st_shndx != SHN_COMMON
 	  && value >= start
 	  && (value == ggi.sym.st_value
 	      ? adjust_symbol_p (dso, &ggi.sym)
 	      : ggi.sym.st_shndx != SHN_UNDEF))
-	buf_write_ne32 (dso, ggi.got_entry, value + adjust);
+	mips_buf_write_addr (dso, ggi.got_entry, value + adjust);
     }
 
   return lgi.failed || ggi.failed;
@@ -325,21 +349,41 @@ mips_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
    address R_OFFSET.  */
 
 static inline uint32_t
-mips_read_addend (DSO *dso, GElf_Addr r_offset, GElf_Rela *rela)
+mips_read_32bit_addend (DSO *dso, GElf_Addr r_offset, GElf_Rela *rela)
 {
   return rela ? rela->r_addend : read_une32 (dso, r_offset);
 }
 
-/* Like mips_read_addend, but change the addend to VALUE.  */
+/* Like mips_read_32bit_addend, but change the addend to VALUE.  */
 
 static inline void
-mips_write_addend (DSO *dso, GElf_Addr r_offset, GElf_Rela *rela,
-		   uint32_t value)
+mips_write_32bit_addend (DSO *dso, GElf_Addr r_offset, GElf_Rela *rela,
+			 uint32_t value)
 {
   if (rela)
     rela->r_addend = (int32_t) value;
   else
     write_ne32 (dso, r_offset, value);
+}
+
+/* Like mips_read_32bit_addend, but 64-bit.  */
+
+static inline uint64_t
+mips_read_64bit_addend (DSO *dso, GElf_Addr r_offset, GElf_Rela *rela)
+{
+  return rela ? rela->r_addend : read_une64 (dso, r_offset);
+}
+
+/* Like mips_read_64bit_addend, but change the addend to VALUE.  */
+
+static inline void
+mips_write_64bit_addend (DSO *dso, GElf_Addr r_offset, GElf_Rela *rela,
+			 uint64_t value)
+{
+  if (rela)
+    rela->r_addend = value;
+  else
+    write_ne64 (dso, r_offset, value);
 }
 
 /* There is a relocation of type R_INFO against address R_OFFSET in DSO.
@@ -354,9 +398,9 @@ mips_adjust_reloc (DSO *dso, GElf_Addr r_offset, GElf_Xword r_info,
   GElf_Addr value;
   GElf_Word r_sym;
 
-  if (GELF_R_TYPE (r_info) == R_MIPS_REL32)
+  if (reloc_r_type (dso, r_info) == R_MIPS_REL32)
     {
-      r_sym = GELF_R_SYM (r_info);
+      r_sym = reloc_r_sym (dso, r_info);
       if (r_sym < dso->info_DT_MIPS_GOTSYM)
 	{
 	  /* glibc's dynamic linker adds the symbol's st_value and the
@@ -388,8 +432,18 @@ mips_adjust_reloc (DSO *dso, GElf_Addr r_offset, GElf_Xword r_info,
 		     " relocs against local symbols", dso->filename);
 	      return 1;
 	    }
-	  value = mips_read_addend (dso, r_offset, rela);
-	  mips_write_addend (dso, r_offset, rela, value + adjust);
+	  if (reloc_r_type2 (dso, r_info) == R_MIPS_64)
+	    {
+	      assert (reloc_r_type3 (dso, r_info) == R_MIPS_NONE);
+	      assert (reloc_r_ssym (dso, r_info) == RSS_UNDEF);
+	      value = mips_read_64bit_addend (dso, r_offset, rela);
+	      mips_write_64bit_addend (dso, r_offset, rela, value + adjust);
+	    }
+	  else
+	    {
+	      value = mips_read_32bit_addend (dso, r_offset, rela);
+	      mips_write_32bit_addend (dso, r_offset, rela, value + adjust);
+	    }
 	}
     }
   return 0;
@@ -418,6 +472,13 @@ mips_prelink_32bit_reloc (DSO *dso, GElf_Rela *rela, GElf_Addr value)
   write_ne32 (dso, rela->r_offset, value + rela->r_addend);
 }
 
+static void
+mips_prelink_64bit_reloc (DSO *dso, GElf_Rela *rela, GElf_Addr value)
+{
+  assert (rela != NULL);
+  write_ne64 (dso, rela->r_offset, value + rela->r_addend);
+}
+
 /* There is a relocation of type R_INFO against address R_OFFSET in DSO.
    Prelink the relocation field, using INFO to look up symbol values.
    If the relocation is in a RELA section, RELA points to the relocation,
@@ -433,8 +494,8 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
   int r_type;
 
   dso = info->dso;
-  r_sym = GELF_R_SYM (r_info);
-  r_type = GELF_R_TYPE (r_info);
+  r_sym = reloc_r_sym (dso, r_info);
+  r_type = reloc_r_type (dso, r_info);
   switch (r_type)
     {
     case R_MIPS_NONE:
@@ -443,47 +504,87 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
     case R_MIPS_REL32:
       /* An in-place R_MIPS_REL32 relocation against symbol 0 needs no
 	 adjustment.  */
-      if (rela != NULL || GELF_R_SYM (r_info) != 0)
+      if (rela != NULL || r_sym != 0)
 	{
 	  value = info->resolve (info, r_sym, r_type);
-	  mips_prelink_32bit_reloc (dso, rela, value);
+	  if (reloc_r_type2 (dso, r_info) == R_MIPS_64)
+	    {
+	      assert (reloc_r_type3 (dso, r_info) == R_MIPS_NONE);
+	      assert (reloc_r_ssym (dso, r_info) == RSS_UNDEF);
+	      mips_prelink_64bit_reloc (dso, rela, value);
+	    }
+	  else
+	    mips_prelink_32bit_reloc (dso, rela, value);
 	}
       break;
 
     case R_MIPS_GLOB_DAT:
+      if (reloc_r_type2 (dso, r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, r_info) == RSS_UNDEF);
+	  write_ne64 (dso, r_offset, info->resolve (info, r_sym, r_type));
+	}
+      else
+	write_ne32 (dso, r_offset, info->resolve (info, r_sym, r_type));
+      break;
+
+    case R_MIPS_JUMP_SLOT:
       write_ne32 (dso, r_offset, info->resolve (info, r_sym, r_type));
       break;
 
     case R_MIPS_TLS_DTPMOD32:
+    case R_MIPS_TLS_DTPMOD64:
+      /* Relocations in a shared library will be resolved using a conflict.
+         We need not change the relocation field here.  */
       if (dso->ehdr.e_type == ET_EXEC)
 	{
-	  error (0, 0, "%s: R_MIPS_TLS_DTPMOD32 reloc in executable?",
-		 dso->filename);
-	  return 1;
+	  struct prelink_tls *tls = info->symbols[r_sym].u.tls;
+
+	  if (tls == NULL)
+	    break;
+	  value = tls->modid;
+	  if (r_type == R_MIPS_TLS_DTPMOD32)
+	    mips_prelink_32bit_reloc (dso, rela, value);
+	  else
+	    mips_prelink_64bit_reloc (dso, rela, value);
 	}
-      /* These relocations will be resolved using a conflict.  We need
-	 not change the field value here.  */
       break;
 
     case R_MIPS_TLS_DTPREL32:
+    case R_MIPS_TLS_DTPREL64:
       value = info->resolve (info, r_sym, r_type);
-      mips_prelink_32bit_reloc (dso, rela, value - TLS_DTV_OFFSET);
+      if (r_type == R_MIPS_TLS_DTPREL32)
+	mips_prelink_32bit_reloc (dso, rela, value - TLS_DTV_OFFSET);
+      else
+	mips_prelink_64bit_reloc (dso, rela, value - TLS_DTV_OFFSET);
       break;
 
     case R_MIPS_TLS_TPREL32:
+    case R_MIPS_TLS_TPREL64:
       /* Relocations in a shared library will be resolved using a conflict.
 	 We need not change the relocation field here.  */
       if (dso->ehdr.e_type == ET_EXEC)
 	{
 	  value = info->resolve (info, r_sym, r_type);
 	  value += info->resolvetls->offset - TLS_TP_OFFSET;
-	  mips_prelink_32bit_reloc (dso, rela, value);
+	  if (r_type == R_MIPS_TLS_TPREL32)
+	    mips_prelink_32bit_reloc (dso, rela, value);
+	  else
+	    mips_prelink_64bit_reloc (dso, rela, value);
 	}
       break;
 
+    case R_MIPS_COPY:
+      if (dso->ehdr.e_type == ET_EXEC)
+	/* COPY relocs are handled specially in generic code.  */
+	return 0;
+      error (0, 0, "%s: R_MIPS_COPY reloc in shared library?", dso->filename);
+      return 1;
+
     default:
       error (0, 0, "%s: Unknown MIPS relocation type %d",
-	     dso->filename, (int) GELF_R_TYPE (r_info));
+	     dso->filename, (int) reloc_r_type (dso, r_info));
       return 1;
     }
   return 0;
@@ -492,20 +593,41 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
 static int
 mips_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
 {
+  GElf_Xword r_info;
+  GElf_Word r_sym;
+  int r_type;
   DSO *dso;
 
   /* Convert R_MIPS_REL32 relocations against global symbols into
      R_MIPS_GLOB_DAT if the addend is zero.  */
   dso = info->dso;
-  if (GELF_R_TYPE (rel->r_info) == R_MIPS_REL32
-      && GELF_R_SYM (rel->r_info) >= dso->info_DT_MIPS_GOTSYM
-      && read_une32 (dso, rel->r_offset) == 0)
+  r_sym = reloc_r_sym (dso, rel->r_info);
+  r_type = reloc_r_type (dso, rel->r_info);
+  if (r_type == R_MIPS_REL32 && r_sym >= dso->info_DT_MIPS_GOTSYM)
     {
-      rel->r_info = GELF_R_INFO (GELF_R_SYM (rel->r_info), R_MIPS_GLOB_DAT);
-      write_ne32 (dso, rel->r_offset,
-		  info->resolve (info, GELF_R_SYM (rel->r_info),
-				 GELF_R_TYPE (rel->r_info)));
-      return 2;
+      r_type = R_MIPS_GLOB_DAT;
+      r_info = reloc_r_info_ext (dso, r_sym, reloc_r_ssym (dso, rel->r_info),
+				 r_type,
+				 reloc_r_type2 (dso, rel->r_info),
+				 reloc_r_type3 (dso, rel->r_info));
+      if (reloc_r_type2 (dso, rel->r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, rel->r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, rel->r_info) == RSS_UNDEF);
+	  if (read_une64 (dso, rel->r_offset) == 0)
+	    {
+	      rel->r_info = r_info;
+	      write_ne64 (dso, rel->r_offset,
+			  info->resolve (info, r_sym, r_type));
+	      return 2;
+	    }
+	}
+      else if (read_une32 (dso, rel->r_offset) == 0)
+	{
+	  rel->r_info = r_info;
+	  write_ne32 (dso, rel->r_offset, info->resolve (info, r_sym, r_type));
+	  return 2;
+	}
     }
   return mips_prelink_reloc (info, rel->r_offset, rel->r_info, NULL);
 }
@@ -552,18 +674,23 @@ mips_prelink_conflict_reloc (DSO *dso, struct prelink_info *info,
   struct prelink_conflict *conflict;
   struct prelink_tls *tls = NULL;
   GElf_Rela *entry;
+  GElf_Word r_sym;
+  int r_type;
 
   if (info->dso == dso)
     return 0;
 
-  conflict = prelink_conflict (info, GELF_R_SYM (r_info),
-			       GELF_R_TYPE (r_info));
+  r_sym = reloc_r_sym (dso, r_info);
+  r_type = reloc_r_type (dso, r_info);
+  conflict = prelink_conflict (info, r_sym, r_type);
   if (conflict == NULL)
     {
-      switch (GELF_R_TYPE (r_info))
+      switch (r_type)
 	{
 	case R_MIPS_TLS_DTPMOD32:
+	case R_MIPS_TLS_DTPMOD64:
 	case R_MIPS_TLS_TPREL32:
+	case R_MIPS_TLS_TPREL64:
 	  tls = info->curtls;
 	  if (tls == NULL)
 	    return 0;
@@ -584,10 +711,11 @@ mips_prelink_conflict_reloc (DSO *dso, struct prelink_info *info,
     }
   else
     {
-      /* DTPREL32 relocations just involve the symbol value; no other
-	 TLS information is needed.  Ignore conflicts created from a
-	 lookup of type RTYPE_CLASS_TLS if no real conflict exists.  */
-      if (GELF_R_TYPE (r_info) == R_MIPS_TLS_DTPREL32
+      /* DTPREL32/DTPREL64 relocations just involve the symbol value;
+         no other TLS information is needed.  Ignore conflicts created
+         from a lookup of type RTYPE_CLASS_TLS if no real conflict
+         exists.  */
+      if ((r_type == R_MIPS_TLS_DTPREL32 || r_type == R_MIPS_TLS_DTPREL64)
 	  && conflict->lookup.tls == conflict->conflict.tls
 	  && conflict->lookupval == conflict->conflictval)
 	return 0;
@@ -596,44 +724,67 @@ mips_prelink_conflict_reloc (DSO *dso, struct prelink_info *info,
     }
   /* VALUE now contains the final symbol value.  Change it to the
      value we want to store at R_OFFSET.  */
-  switch (GELF_R_TYPE (r_info))
+  switch (r_type)
     {
     case R_MIPS_REL32:
-      value += mips_read_addend (dso, r_offset, rela);
+      if (reloc_r_type2 (dso, r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, r_info) == RSS_UNDEF);
+	  value += mips_read_64bit_addend (dso, r_offset, rela);
+	}
+      else
+	value += mips_read_32bit_addend (dso, r_offset, rela);
       break;
 
     case R_MIPS_GLOB_DAT:
       break;
 
+    case R_MIPS_COPY:
+      error (0, 0, "R_MIPS_COPY should not be present in shared libraries");
+      return 1;
+
     case R_MIPS_TLS_DTPMOD32:
+    case R_MIPS_TLS_DTPMOD64:
       if (conflict != NULL && mips_get_tls (dso, conflict, &tls) == 1)
 	return 1;
       value = tls->modid;
       break;
 
     case R_MIPS_TLS_DTPREL32:
-      value += mips_read_addend (dso, r_offset, rela) - TLS_DTV_OFFSET;
+      value += mips_read_32bit_addend (dso, r_offset, rela) - TLS_DTV_OFFSET;
+      break;
+    case R_MIPS_TLS_DTPREL64:
+      value += mips_read_64bit_addend (dso, r_offset, rela) - TLS_DTV_OFFSET;
       break;
 
     case R_MIPS_TLS_TPREL32:
+    case R_MIPS_TLS_TPREL64:
       if (conflict != NULL && mips_get_tls (dso, conflict, &tls) == 1)
 	return 1;
-      value += (mips_read_addend (dso, r_offset, rela)
-		+ tls->offset - TLS_TP_OFFSET);
+      if (r_type == R_MIPS_TLS_TPREL32)
+	value += mips_read_32bit_addend (dso, r_offset, rela);
+      else
+	value += mips_read_64bit_addend (dso, r_offset, rela);
+      value += tls->offset - TLS_TP_OFFSET;
       break;
 
     default:
       error (0, 0, "%s: Unknown MIPS relocation type %d", dso->filename,
-	     (int) GELF_R_TYPE (r_info));
+	     r_type);
       return 1;
     }
   /* Create and initialize a conflict entry.  */
   entry = prelink_conflict_add_rela (info);
   if (entry == NULL)
     return 1;
-  entry->r_addend = (int32_t) value;
   entry->r_offset = r_offset;
-  entry->r_info = GELF_R_INFO (0, R_MIPS_REL32);
+  entry->r_info = reloc_r_info_ext (dso, 0, RSS_UNDEF,
+				    R_MIPS_REL32, R_MIPS_64, R_MIPS_NONE);
+  if (reloc_r_type2 (dso, entry->r_info) == R_MIPS_64)
+    entry->r_addend = value;
+  else
+    entry->r_addend = (int32_t) value;
   return 0;
 }
 
@@ -678,14 +829,19 @@ mips_arch_prelink_conflict (DSO *dso, struct prelink_info *info)
 	value = ggi.sym.st_value;
       else
 	continue;
-      if (buf_read_une32 (dso, ggi.got_entry) != value)
+      if (mips_buf_read_addr (dso, ggi.got_entry) != value)
 	{
 	  entry = prelink_conflict_add_rela (info);
 	  if (entry == NULL)
 	    return 1;
-	  entry->r_addend = (int32_t) value;
 	  entry->r_offset = ggi.got_addr;
-	  entry->r_info = GELF_R_INFO (0, R_MIPS_REL32);
+	  entry->r_info = reloc_r_info_ext (dso, 0, RSS_UNDEF,
+					    R_MIPS_REL32, R_MIPS_64,
+					    R_MIPS_NONE);
+	  if (reloc_r_type2 (dso, entry->r_info) == R_MIPS_64)
+	    entry->r_addend = value;
+	  else
+	    entry->r_addend = (int32_t) value;
 	}
     }
 
@@ -696,9 +852,23 @@ static int
 mips_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
 			  char *buf, GElf_Addr dest_addr)
 {
-  switch (GELF_R_TYPE (rela->r_info))
+  DSO *dso;
+
+  dso = info->dso;
+  switch (reloc_r_type (dso, rela->r_info))
     {
     case R_MIPS_REL32:
+      if (reloc_r_type2 (dso, rela->r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_ssym (dso, rela->r_info) == RSS_UNDEF);
+	  assert (reloc_r_type3 (dso, rela->r_info) == R_MIPS_NONE);
+          buf_write_ne64 (info->dso, buf, rela->r_addend);
+	}
+      else
+        buf_write_ne32 (info->dso, buf, rela->r_addend);
+      break;
+
+    case R_MIPS_JUMP_SLOT:
       buf_write_ne32 (info->dso, buf, rela->r_addend);
       break;
 
@@ -720,26 +890,42 @@ mips_apply_adjustment (DSO *dso, GElf_Rela *rela, char *buf,
   if (rela)
     adjustment += rela->r_addend;
   else
-    adjustment += buf_read_une32 (dso, buf);
-  buf_write_ne32 (dso, buf, adjustment);
+    adjustment += mips_buf_read_addr (dso, buf);
+  mips_buf_write_addr (dso, buf, adjustment);
 }
 
 static int
 mips_apply_reloc (struct prelink_info *info, GElf_Xword r_info,
 		  GElf_Rela *rela, char *buf)
 {
+  GElf_Addr value;
+  GElf_Word r_sym;
+  int r_type;
   DSO *dso;
 
   dso = info->dso;
-  switch (GELF_R_TYPE (r_info))
+  r_sym = reloc_r_sym (dso, r_info);
+  r_type = reloc_r_type (dso, r_info);
+  value = info->resolve (info, r_sym, r_type);
+  switch (r_type)
     {
     case R_MIPS_NONE:
       break;
 
+    case R_MIPS_JUMP_SLOT:
+      buf_write_ne32 (info->dso, buf, value);
+      break;
+
+    case R_MIPS_COPY:
+      abort ();
+
     case R_MIPS_REL32:
-      mips_apply_adjustment (dso, rela, buf,
-			     info->resolve (info, GELF_R_SYM (r_info),
-					    GELF_R_TYPE (r_info)));
+      if (reloc_r_type2 (dso, r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, r_info) == RSS_UNDEF);
+	}
+      mips_apply_adjustment (dso, rela, buf, value);
       break;
 
     default:
@@ -763,27 +949,50 @@ mips_apply_rela (struct prelink_info *info, GElf_Rela *rela, char *buf)
 static int
 mips_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
 {
+  GElf_Word r_sym;
+  int r_type;
+
+  r_sym = reloc_r_sym (dso, rel->r_info);
+  r_type = reloc_r_type (dso, rel->r_info);
   rela->r_offset = rel->r_offset;
   rela->r_info = rel->r_info;
-  switch (GELF_R_TYPE (rel->r_info))
+  switch (r_type)
     {
     case R_MIPS_REL32:
+      /* This relocation has an in-place addend.  */
+      if (reloc_r_type2 (dso, rel->r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, rel->r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, rel->r_info) == RSS_UNDEF);
+	  rela->r_addend = read_une64 (dso, rel->r_offset);
+	}
+      else
+	rela->r_addend = (int32_t) read_une32 (dso, rel->r_offset);
+      break;
+
     case R_MIPS_TLS_DTPREL32:
     case R_MIPS_TLS_TPREL32:
       /* These relocations have an in-place addend.  */
       rela->r_addend = (int32_t) read_une32 (dso, rel->r_offset);
       break;
+    case R_MIPS_TLS_DTPREL64:
+    case R_MIPS_TLS_TPREL64:
+      /* These relocations have an in-place addend.  */
+      rela->r_addend = read_une64 (dso, rel->r_offset);
+      break;
 
     case R_MIPS_NONE:
+    case R_MIPS_COPY:
     case R_MIPS_GLOB_DAT:
     case R_MIPS_TLS_DTPMOD32:
+    case R_MIPS_TLS_DTPMOD64:
       /* These relocations have no addend.  */
       rela->r_addend = 0;
       break;
 
     default:
       error (0, 0, "%s: Unknown MIPS relocation type %d", dso->filename,
-	     (int) GELF_R_TYPE (rel->r_info));
+	     r_type);
       return 1;
     }
   return 0;
@@ -792,29 +1001,60 @@ mips_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
 static int
 mips_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
 {
+  GElf_Sxword r_addend;
+  GElf_Word r_sym;
+  int r_type;
+
+  r_sym = reloc_r_sym (dso, rela->r_info);
+  r_type = reloc_r_type (dso, rela->r_info);
+  r_addend = rela->r_addend;
   rel->r_offset = rela->r_offset;
   rel->r_info = rela->r_info;
-  switch (GELF_R_TYPE (rela->r_info))
+  switch (r_type)
     {
     case R_MIPS_NONE:
+    case R_MIPS_COPY:
       break;
 
+    case R_MIPS_GLOB_DAT:
+      /* This relocation has no addend.  */
+      r_addend = 0;
+      /* FALLTHROUGH  */
     case R_MIPS_REL32:
+      /* This relocation has an in-place addend.  */
+      if (reloc_r_type2 (dso, rel->r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, rel->r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, rel->r_info) == RSS_UNDEF);
+	  write_ne64 (dso, rela->r_offset, rela->r_addend);
+	}
+      else
+	write_ne32 (dso, rela->r_offset, rela->r_addend);
+      break;
+
+    case R_MIPS_TLS_DTPMOD32:
+      /* This relocation has no addend.  */
+      r_addend = 0;
+      /* FALLTHROUGH  */
     case R_MIPS_TLS_DTPREL32:
     case R_MIPS_TLS_TPREL32:
       /* These relocations have an in-place addend.  */
       write_ne32 (dso, rela->r_offset, rela->r_addend);
       break;
-
-    case R_MIPS_GLOB_DAT:
-    case R_MIPS_TLS_DTPMOD32:
-      /* These relocations have no addend.  */
-      write_ne32 (dso, rela->r_offset, 0);
+    case R_MIPS_TLS_DTPMOD64:
+      /* This relocation has no addend.  */
+      r_addend = 0;
+      /* FALLTHROUGH  */
+    case R_MIPS_TLS_DTPREL64:
+    case R_MIPS_TLS_TPREL64:
+      /* These relocations have an in-place addend.  */
+      write_ne64 (dso, rela->r_offset, rela->r_addend);
+      break;
       break;
 
     default:
       error (0, 0, "%s: Unknown MIPS relocation type %d", dso->filename,
-	     (int) GELF_R_TYPE (rela->r_info));
+	     r_type);
       return 1;
     }
   return 0;
@@ -825,64 +1065,91 @@ mips_need_rel_to_rela (DSO *dso, int first, int last)
 {
   Elf_Data *data;
   Elf_Scn *scn;
-  Elf32_Rel *rel, *relend;
+  GElf_Shdr shdr;
+  GElf_Rel rel;
+  GElf_Word r_sym;
+  int r_type;
+  int count;
+  int i;
   int n;
 
   for (n = first; n <= last; n++)
     {
       data = NULL;
       scn = dso->scn[n];
+      gelfx_getshdr (dso->elf, scn, &shdr);
       while ((data = elf_getdata (scn, data)) != NULL)
 	{
-	  rel = (Elf32_Rel *) data->d_buf;
-	  relend = rel + data->d_size / sizeof (Elf32_Rel);
-	  for (; rel < relend; rel++)
-	    switch (ELF32_R_TYPE (rel->r_info))
-	      {
-	      case R_MIPS_NONE:
-		break;
-
-	      case R_MIPS_REL32:
-		/* The SVR4 definition was designed to allow exactly the
-		   sort of prelinking we want to do here, in combination
-		   with Quickstart.  Unfortunately, glibc's definition
-		   makes it impossible for relocations against anything
-		   other than the null symbol.  We get around this for
-		   zero addends by using a R_MIPS_GLOB_DAT relocation
-		   instead, where R_MIPS_GLOB_DAT is a GNU extension
-		   added specifically for this purpose.  */
-		if (ELF32_R_SYM (rel->r_info) != 0
-		    && (ELF32_R_SYM (rel->r_info) < dso->info_DT_MIPS_GOTSYM
-			|| read_une32 (dso, rel->r_offset) != 0))
+	  count = data->d_size / shdr.sh_entsize;
+	  for (i = 0; i < count; i++)
+	    {
+	      gelfx_getrel (dso->elf, data, i, &rel);
+	      r_type = reloc_r_type (dso, rel.r_info);
+	      r_sym = reloc_r_sym (dso, rel.r_info);
+	      switch (r_type)
+		{
+		case R_MIPS_NONE:
+		case R_MIPS_COPY:
+		case R_MIPS_JUMP_SLOT:
+		  break;
+  
+		case R_MIPS_REL32:
+		  /* The SVR4 definition was designed to allow exactly the
+		     sort of prelinking we want to do here, in combination
+		     with Quickstart.  Unfortunately, glibc's definition
+		     makes it impossible for relocations against anything
+		     other than the null symbol.  We get around this for
+		     zero addends by using a R_MIPS_GLOB_DAT relocation
+		     instead, where R_MIPS_GLOB_DAT is a GNU extension
+		     added specifically for this purpose.  */
+		  if (r_sym != 0)
+		    {
+		      if (r_sym < dso->info_DT_MIPS_GOTSYM)
+			return 1;
+		      if (reloc_r_type2 (dso, rel.r_info) == R_MIPS_64)
+			{
+			  assert (reloc_r_type3 (dso, rel.r_info)
+				  == R_MIPS_NONE);
+			  assert (reloc_r_ssym (dso, rel.r_info)
+				  == RSS_UNDEF);
+			  if (read_une64 (dso, rel.r_offset) != 0)
+			    return 1;
+			}
+		      else if (read_une32 (dso, rel.r_offset) != 0)
+			return 1;
+		    }
+		  break;
+  
+		case R_MIPS_GLOB_DAT:
+		  /* This relocation has no addend.  */
+		  break;
+  
+		case R_MIPS_TLS_DTPMOD32:
+		case R_MIPS_TLS_DTPMOD64:
+		  /* The relocation will be resolved using a conflict.  */
+		  break;
+  
+		case R_MIPS_TLS_DTPREL32:
+		case R_MIPS_TLS_DTPREL64:
+		  /* We can prelink these fields, and the addend is relative
+		     to the symbol value.  A RELA entry is needed.  */
 		  return 1;
-		break;
-
-	      case R_MIPS_GLOB_DAT:
-		/* This relocation has no addend.  */
-		break;
-
-	      case R_MIPS_TLS_DTPMOD32:
-		/* The relocation will be resolved using a conflict.  */
-		break;
-
-	      case R_MIPS_TLS_DTPREL32:
-		/* We can prelink these fields, and the addend is relative
-		   to the symbol value.  A RELA entry is needed.  */
-		return 1;
-
-	      case R_MIPS_TLS_TPREL32:
-		/* Relocations in shared libraries will be resolved by a
-		   conflict.  Relocations in executables will not, and the
-		   addend is relative to the symbol value.  */
-		if (dso->ehdr.e_type == ET_EXEC)
+  
+		case R_MIPS_TLS_TPREL32:
+		case R_MIPS_TLS_TPREL64:
+		  /* Relocations in shared libraries will be resolved by a
+		     conflict.  Relocations in executables will not, and the
+		     addend is relative to the symbol value.  */
+		  if (dso->ehdr.e_type == ET_EXEC)
+		    return 1;
+		  break;
+  
+		default:
+		  error (0, 0, "%s: Unknown MIPS relocation type %d",
+			 dso->filename, r_type);
 		  return 1;
-		break;
-
-	      default:
-		error (0, 0, "%s: Unknown MIPS relocation type %d",
-		       dso->filename, (int) GELF_R_TYPE (rel->r_info));
-		return 1;
-	      }
+		}
+	    }
 	}
     }
   return 0;
@@ -899,14 +1166,19 @@ mips_reloc_class (int reloc_type)
 {
   switch (reloc_type)
     {
+    case R_MIPS_COPY:
+      return RTYPE_CLASS_COPY;
+    case R_MIPS_JUMP_SLOT:
+      return RTYPE_CLASS_PLT;
     case R_MIPS_TLS_DTPMOD32:
+    case R_MIPS_TLS_DTPMOD64:
     case R_MIPS_TLS_DTPREL32:
+    case R_MIPS_TLS_DTPREL64:
     case R_MIPS_TLS_TPREL32:
+    case R_MIPS_TLS_TPREL64:
       return RTYPE_CLASS_TLS;
     default:
-      /* MIPS lazy resolution stubs are local to the containing object,
-	 so SHN_UNDEF symbols never participate in symbol lookup.  */
-      return RTYPE_CLASS_PLT;
+      return RTYPE_CLASS_VALID;
     }
 }
 
@@ -916,8 +1188,33 @@ mips_arch_prelink (struct prelink_info *info)
   struct mips_global_got_iterator ggi;
   DSO *dso;
   GElf_Addr value;
+  int i;
 
   dso = info->dso;
+
+  if (dso->info_DT_MIPS_PLTGOT)
+    {
+      /* Write address of .plt into gotplt[1].  This is in each
+	 normal gotplt entry unless prelinking.  */
+      int sec = addr_to_sec (dso, dso->info_DT_MIPS_PLTGOT);
+      Elf32_Addr data;
+
+      if (sec == -1)
+	return 1;
+
+      for (i = 1; i < dso->ehdr.e_shnum; i++)
+	if (dso->shdr[i].sh_type == SHT_PROGBITS
+	    && ! strcmp (strptr (dso, dso->ehdr.e_shstrndx,
+				 dso->shdr[i].sh_name),
+			 ".plt"))
+	break;
+
+      if (i == dso->ehdr.e_shnum)
+	return 0;
+      data = dso->shdr[i].sh_addr;
+      write_ne32 (dso, dso->info_DT_MIPS_PLTGOT + 4, data);
+    }
+
   if (dso->info[DT_PLTGOT] == 0)
     return 0;
 
@@ -929,7 +1226,7 @@ mips_arch_prelink (struct prelink_info *info)
       value = info->resolve (info, ggi.sym_index, R_MIPS_REL32);
       if (ggi.sym.st_shndx == SHN_UNDEF
 	  || ggi.sym.st_shndx == SHN_COMMON)
-	buf_write_ne32 (dso, ggi.got_entry, value);
+	mips_buf_write_addr (dso, ggi.got_entry, value);
       else
 	{
 	  /* Type E and F in the table above.  We cannot install Quickstart
@@ -947,7 +1244,7 @@ mips_arch_prelink (struct prelink_info *info)
 	     code will cope correctly with malformed type F entries in
 	     shared libraries, so we only complain about executables here.  */
 	  if (dso->ehdr.e_type == ET_EXEC
-	      && value != buf_read_une32 (dso, ggi.got_entry))
+	      && value != mips_buf_read_addr (dso, ggi.got_entry))
 	    {
 	      error (0, 0, "%s: The global GOT entries for defined symbols"
 		     " do not match their st_values\n", dso->filename);
@@ -962,6 +1259,30 @@ static int
 mips_arch_undo_prelink (DSO *dso)
 {
   struct mips_global_got_iterator ggi;
+  int i;
+
+  if (dso->info_DT_MIPS_PLTGOT)
+    {
+      /* Clear gotplt[1] if it contains the address of .plt.  */
+      int sec = addr_to_sec (dso, dso->info_DT_MIPS_PLTGOT);
+      Elf32_Addr data;
+
+      if (sec == -1)
+	return 1;
+
+      for (i = 1; i < dso->ehdr.e_shnum; i++)
+	if (dso->shdr[i].sh_type == SHT_PROGBITS
+	    && ! strcmp (strptr (dso, dso->ehdr.e_shstrndx,
+				 dso->shdr[i].sh_name),
+			 ".plt"))
+	break;
+
+      if (i == dso->ehdr.e_shnum)
+	return 0;
+      data = read_une32 (dso, dso->info_DT_MIPS_PLTGOT + 4);
+      if (data == dso->shdr[i].sh_addr)
+	write_ne32 (dso, dso->info_DT_MIPS_PLTGOT + 4, 0);
+    }
 
   if (dso->info[DT_PLTGOT] == 0)
     return 0;
@@ -970,41 +1291,79 @@ mips_arch_undo_prelink (DSO *dso)
   while (mips_get_global_got_entry (&ggi))
     if (ggi.sym.st_shndx == SHN_UNDEF)
       /* Types A-C in the table above.  */
-      buf_write_ne32 (dso, ggi.got_entry, ggi.sym.st_value);
+      mips_buf_write_addr (dso, ggi.got_entry, ggi.sym.st_value);
     else if (ggi.sym.st_shndx == SHN_COMMON)
       /* Type D in the table above.  */
-      buf_write_ne32 (dso, ggi.got_entry, 0);
+      mips_buf_write_addr (dso, ggi.got_entry, 0);
   return ggi.failed;
 }
 
 static int
 mips_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
 {
+  int sec;
+  const char *name;
+  GElf_Word r_sym;
+  int r_type;
+
   /* Convert R_MIPS_GLOB_DAT relocations back into R_MIPS_REL32
      relocations.  Ideally we'd have some mechanism for recording
      these changes in the undo section, but in the absence of that,
      it's better to assume that the original relocation was
      R_MIPS_REL32; R_MIPS_GLOB_DAT was added specifically for the
      prelinker and shouldn't be used in non-prelinked binaries.  */
-  if (GELF_R_TYPE (rel->r_info) == R_MIPS_GLOB_DAT)
+  r_sym = reloc_r_sym (dso, rel->r_info);
+  r_type = reloc_r_type (dso, rel->r_info);
+  if (r_type == R_MIPS_GLOB_DAT)
     {
-      write_ne32 (dso, rel->r_offset, 0);
-      rel->r_info = GELF_R_INFO (GELF_R_SYM (rel->r_info), R_MIPS_REL32);
+      if (reloc_r_type2 (dso, rel->r_info) == R_MIPS_64)
+	{
+	  assert (reloc_r_type3 (dso, rel->r_info) == R_MIPS_NONE);
+	  assert (reloc_r_ssym (dso, rel->r_info) == RSS_UNDEF);
+          write_ne64 (dso, rel->r_offset, 0);
+	}
+      else
+        write_ne32 (dso, rel->r_offset, 0);
+      rel->r_info = reloc_r_info_ext (dso,
+				      r_sym, reloc_r_ssym (dso, rel->r_info),
+				      R_MIPS_REL32,
+				      reloc_r_type2 (dso, rel->r_info),
+				      reloc_r_type3 (dso, rel->r_info));
       return 2;
     }
+  else if (r_type == R_MIPS_JUMP_SLOT)
+    {
+      sec = addr_to_sec (dso, rel->r_offset);
+      name = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[sec].sh_name);
+      if (sec == -1 || strcmp (name, ".got.plt"))
+	{
+	  error (0, 0,
+		 "%s: R_MIPS_JUMP_SLOT not pointing into .got.plt section",
+		 dso->filename);
+	  return 1;
+	}
+      else
+	{
+	  Elf32_Addr data = read_une32 (dso, dso->shdr[sec].sh_addr + 4);
+
+	  assert (rel->r_offset >= dso->shdr[sec].sh_addr + 8);
+	  assert (((rel->r_offset - dso->shdr[sec].sh_addr) & 3) == 0);
+	  write_ne32 (dso, rel->r_offset, data);
+	}
+    }
+
   return 0;
 }
 
-PL_ARCH = {
+PL_ARCH(mips) = {
   .name = "MIPS",
   .class = ELFCLASS32,
   .machine = EM_MIPS,
   .max_reloc_size = 4,
   .dynamic_linker = "/lib/ld.so.1",
-  /* MIPS does not use COPY relocs or jump slots.  Pick a value outside
-     the ELF32_R_TYPE range.  */
-  .R_COPY = ~0U,
-  .R_JMP_SLOT = ~0U,
+  .dynamic_linker_alt = "/lib32/ld.so.1",
+  .R_COPY = R_MIPS_COPY,
+  .R_JMP_SLOT = R_MIPS_JUMP_SLOT,
   /* R_MIPS_REL32 relocations against symbol 0 do act as relative relocs,
      but those against other symbols don't.  */
   .R_RELATIVE = ~0U,
@@ -1036,6 +1395,50 @@ PL_ARCH = {
      even dlopened libraries will get the slots they desire.  */
   .mmap_base = 0x2c000000,
   .mmap_end =  0x3c000000,
+  .max_page_size = 0x10000,
+  .page_size = 0x1000
+};
+
+PL_ARCH(mips64) = {
+  .name = "MIPS64",
+  .class = ELFCLASS64,
+  .machine = EM_MIPS,
+  .max_reloc_size = 8,
+  .dynamic_linker = "/lib/ld.so.1",
+  .dynamic_linker_alt = "/lib64/ld.so.1",
+  .R_COPY = R_MIPS_COPY,
+  .R_JMP_SLOT = R_MIPS_JUMP_SLOT,
+  /* R_MIPS_REL32 relocations against symbol 0 do act as relative relocs,
+     but those against other symbols don't.  */
+  .R_RELATIVE = ~0U,
+  .rtype_class_valid = RTYPE_CLASS_VALID,
+  .arch_adjust = mips_arch_adjust,
+  .adjust_dyn = mips_adjust_dyn,
+  .adjust_rel = mips_adjust_rel,
+  .adjust_rela = mips_adjust_rela,
+  .prelink_rel = mips_prelink_rel,
+  .prelink_rela = mips_prelink_rela,
+  .prelink_conflict_rel = mips_prelink_conflict_rel,
+  .prelink_conflict_rela = mips_prelink_conflict_rela,
+  .arch_prelink_conflict = mips_arch_prelink_conflict,
+  .apply_conflict_rela = mips_apply_conflict_rela,
+  .apply_rel = mips_apply_rel,
+  .apply_rela = mips_apply_rela,
+  .rel_to_rela = mips_rel_to_rela,
+  .rela_to_rel = mips_rela_to_rel,
+  .need_rel_to_rela = mips_need_rel_to_rela,
+  .reloc_size = mips_reloc_size,
+  .reloc_class = mips_reloc_class,
+  .arch_prelink = mips_arch_prelink,
+  .arch_undo_prelink = mips_arch_undo_prelink,
+  .undo_prelink_rel = mips_undo_prelink_rel,
+  /* Although TASK_UNMAPPED_BASE is 0x5555556000, we leave some
+     area so that mmap of /etc/ld.so.cache and ld.so's malloc
+     does not take some library's VA slot.
+     Also, if this guard area isn't too small, typically
+     even dlopened libraries will get the slots they desire.  */
+  .mmap_base = 0x5800000000LL,
+  .mmap_end =  0x9800000000LL,
   .max_page_size = 0x10000,
   .page_size = 0x1000
 };

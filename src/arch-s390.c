@@ -592,7 +592,7 @@ s390_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(s390) = {
   .name = "S390",
   .class = ELFCLASS32,
   .machine = EM_S390,

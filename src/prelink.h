@@ -1,6 +1,8 @@
 /* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011,
    2013 Red Hat, Inc.
+   Copyright (C) 2008 CodeSourcery.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
+   Updated by Maciej W. Rozycki <macro@codesourcery.com>, 2008.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,10 +24,17 @@
 #include <elf.h>
 #include <libelf.h>
 #include <gelfx.h>
+#include <ftw.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <utime.h>
+#include <glob.h>
+
+#ifndef HAVE_ELF64_BYTE
+typedef uint8_t Elf64_Byte;
+#endif
 
 #ifndef DT_GNU_LIBLIST
 #define DT_GNU_LIBLIST		0x6ffffef9
@@ -48,6 +57,10 @@
 #ifndef DT_GNU_HASH
 #define DT_GNU_HASH		0x6ffffef5
 #define SHT_GNU_HASH		0x6ffffff6
+#endif
+
+#ifndef DT_TLSDESC_PLT
+#define DT_TLSDESC_PLT		0x6ffffef6
 #endif
 
 #ifndef DT_MIPS_RLD_VERSION
@@ -75,8 +88,34 @@
 #define R_MIPS_TLS_TPREL32	47
 #endif
 
+#ifndef R_MIPS_TLS_DTPMOD64
+#define R_MIPS_TLS_DTPMOD64	40
+#define R_MIPS_TLS_DTPREL64	41
+#define R_MIPS_TLS_TPREL64	48
+#endif
+
 #ifndef R_MIPS_GLOB_DAT
 #define R_MIPS_GLOB_DAT		51
+#endif
+
+#ifndef R_MIPS_COPY
+#define R_MIPS_COPY		126
+#define R_MIPS_JUMP_SLOT	127
+#define STO_MIPS_PLT		0x8
+#define DT_MIPS_PLTGOT		0x70000032
+#define DT_MIPS_RWPLT		0x70000034
+#endif
+
+#ifndef SHT_MIPS_DWARF
+#define SHT_MIPS_DWARF		0x7000001e
+#endif
+
+#ifndef RSS_UNDEF
+#define RSS_UNDEF              0
+#endif
+
+#ifndef R_ARM_TLS_DESC
+#define R_ARM_TLS_DESC		13
 #endif
 
 #ifndef R_ARM_TLS_DTPMOD32
@@ -104,6 +143,10 @@
 
 #ifndef R_390_IRELATIVE
 #define R_390_IRELATIVE		61
+#endif
+
+#ifndef R_ARM_IRELATIVE
+#define R_ARM_IRELATIVE		160
 #endif
 
 struct prelink_entry;
@@ -138,9 +181,11 @@ typedef struct
   GElf_Addr info_DT_CHECKSUM;
   GElf_Addr info_DT_VERNEED, info_DT_VERDEF, info_DT_VERSYM;
   GElf_Addr info_DT_GNU_HASH;
+  GElf_Addr info_DT_TLSDESC_PLT;
   GElf_Addr info_DT_MIPS_LOCAL_GOTNO;
   GElf_Addr info_DT_MIPS_GOTSYM;
   GElf_Addr info_DT_MIPS_SYMTABNO;
+  GElf_Addr info_DT_MIPS_PLTGOT;
 #define DT_GNU_PRELINKED_BIT 50
 #define DT_CHECKSUM_BIT 51
 #define DT_VERNEED_BIT 52
@@ -150,6 +195,7 @@ typedef struct
 #define DT_AUXILIARY_BIT 56
 #define DT_LOPROC_BIT 57
 #define DT_GNU_HASH_BIT 58
+#define DT_TLSDESC_PLT_BIT 59
   uint64_t info_set_mask;
   int fd, fdro;
   int lastscn, dynamic;
@@ -166,7 +212,11 @@ typedef struct
   GElf_Shdr shdr[0];
 } DSO;
 
-#define dynamic_info_is_set(dso,bit) ((dso)->info_set_mask & (1ULL << (bit)))
+static inline int
+dynamic_info_is_set (DSO *dso, int bit)
+{
+  return ((dso)->info_set_mask & (1ULL << (bit))) != 0;
+}
 
 struct layout_libs;
 
@@ -178,6 +228,7 @@ struct PLArch
   int alternate_machine[3];
   int max_reloc_size;
   const char *dynamic_linker;
+  const char *dynamic_linker_alt;
   int R_COPY;
   int R_JMP_SLOT;
   int R_RELATIVE;
@@ -266,6 +317,7 @@ GElf_Addr adjust_old_to_new (DSO *dso, GElf_Addr addr);
 GElf_Addr adjust_new_to_old (DSO *dso, GElf_Addr addr);
 int strtabfind (DSO *dso, int strndx, const char *name);
 int shstrtabadd (DSO *dso, const char *name);
+int dso_has_bad_textrel (DSO *dso);
 
 /* data.c */
 
@@ -290,7 +342,7 @@ struct data_iterator {
   GElf_Addr sec_offset;
 };
 
-unsigned char * get_data (DSO *dso, GElf_Addr addr, int *scnp);
+unsigned char * get_data (DSO *dso, GElf_Addr addr, int *scnp, Elf_Type *typep);
 #define READWRITEPROTO(le,nn)					\
 uint##nn##_t buf_read_u##le##nn (unsigned char *data);		\
 uint##nn##_t read_u##le##nn (DSO *dso, GElf_Addr addr);		\
@@ -316,8 +368,8 @@ unsigned char *get_data_from_iterator (struct data_iterator *it,
 				       GElf_Addr size);
 int get_sym_from_iterator (struct data_iterator *it, GElf_Sym *sym);
 
-#define PL_ARCH \
-static struct PLArch plarch __attribute__((section("pl_arch"),used))
+#define PL_ARCH(F) \
+static struct PLArch plarch_##F __attribute__((section("pl_arch"),used))
 
 #define addr_adjust(addr, start, adjust)	\
   do {						\
@@ -437,6 +489,7 @@ struct prelink_conflict
   int reloc_class;
   unsigned char used;
   unsigned char ifunc;
+  char * symname;
 };
 
 struct prelink_conflicts
@@ -545,5 +598,8 @@ extern enum verify_method_t verify_method;
 extern int quick;
 extern long long seed;
 extern GElf_Addr mmap_reg_start, mmap_reg_end, layout_page_size;
+extern char *ld_preload;
+
+extern int allow_bad_textrel;
 
 #endif /* PRELINK_H */

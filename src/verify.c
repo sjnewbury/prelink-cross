@@ -412,6 +412,9 @@ prelink_verify (const char *filename)
   if (handle_verify (fdundone, filename))
     goto failure;
 
+  fsync (fd);
+  fsync (fdorig);
+  fsync (fdundone);
   close (fd);
   close (fdorig);
   close (fdundone);
@@ -421,11 +424,20 @@ failure_unlink:
   unlink (ent->filename);
 failure:
   if (fd != -1)
-    close (fd);
+    {
+      fsync (fd);
+      close (fd);
+    }
   if (fdorig != -1)
-    close (fdorig);
+    {
+      fsync (fdorig);
+      close (fdorig);
+    }
   if (fdundone != -1)
-    close (fdundone);
+    {
+      fsync (fdundone);
+      close (fdundone);
+    }
   if (dso)
     close_dso (dso);
   if (dso2)
@@ -440,6 +452,7 @@ not_prelinked:
     error (EXIT_FAILURE, errno, "Couldn't open %s", filename);
   if (handle_verify (fd, filename))
     return EXIT_FAILURE;
+  fsync (fd);
   close (fd);
   return 0;
 }

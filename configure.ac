@@ -126,7 +126,6 @@ AC_SUBST(REPORT_BUGS_TO)
 
 AC_OUTPUT([Makefile
 	   src/Makefile
-	   src/rtld/Makefile
 	   gelfx/Makefile
 	   gelfx32/Makefile
 	   gelf/Makefile

@@ -504,206 +504,219 @@ find_readonly_space (DSO *dso, GElf_Shdr *add, GElf_Ehdr *ehdr,
     }
 
   /* We have to create new PT_LOAD if at all possible.  */
-  addr = ehdr->e_phoff + (ehdr->e_phnum + 1) * ehdr->e_phentsize;
-  for (j = 1; j < ehdr->e_shnum; ++j)
+  for (j = 0; j < ehdr->e_phnum; ++j)
+    if (phdr[j].p_type == PT_NULL)
+      break;
+
+  if (j < ehdr->e_phnum)
     {
-      if (addr > shdr[j].sh_offset)
+      memmove (phdr, &phdr[j + 1],
+	       (ehdr->e_phnum - j - 1) * sizeof (GElf_Phdr));
+      ehdr->e_phnum--;
+    }
+  else
+    {
+      addr = ehdr->e_phoff + (ehdr->e_phnum + 1) * ehdr->e_phentsize;
+      for (j = 1; j < ehdr->e_shnum; ++j)
 	{
-	  GElf_Addr start, addstart, endaddr, *old_addr;
-	  GElf_Addr minsize = ~(GElf_Addr) 0;
-	  int movesec = -1, last, k, e;
-
-	  if (ehdr->e_phoff < phdr[i].p_offset
-	      || ehdr->e_phoff + (ehdr->e_phnum + 1) * ehdr->e_phentsize
-		 > phdr[i].p_offset + phdr[i].p_filesz
-	      || ! readonly_is_movable (dso, ehdr, shdr, j)
-	      || shdr[j].sh_addr >= phdr[i].p_vaddr + phdr[i].p_filesz)
+	  if (addr > shdr[j].sh_offset)
 	    {
-	      error (0, 0, "%s: No space in ELF segment table to add new ELF segment",
-		     dso->filename);
-	      return 0;
-	    }
+	      GElf_Addr start, addstart, endaddr, *old_addr;
+	      GElf_Addr minsize = ~(GElf_Addr) 0;
+	      int movesec = -1, last, k, e;
 
-	  start = phdr[i].p_vaddr - phdr[i].p_offset + ehdr->e_phoff
-		  + (ehdr->e_phnum + 1) * ehdr->e_phentsize;
-	  for (last = 1; last < ehdr->e_shnum; ++last)
-	    if (! readonly_is_movable (dso, ehdr, shdr, last)
-		|| shdr[last].sh_addr >= phdr[i].p_vaddr + phdr[i].p_filesz)
-	      break;
-	  for (j = 1; j < last; ++j)
-	    {
-	      addstart = (start + add->sh_addralign - 1)
-			 & ~(add->sh_addralign - 1);
-	      start = (start + shdr[j].sh_addralign - 1)
-		      & ~(shdr[j].sh_addralign - 1);
-	      endaddr = -1;
-	      if (j + 1 < ehdr->e_shnum)
-		endaddr = shdr[j + 1].sh_addr;
-	      if (phdr[i].p_vaddr + phdr[i].p_filesz < endaddr)
-		endaddr = phdr[i].p_vaddr + phdr[i].p_filesz;
-
-	      switch (shdr[j].sh_type)
+	      if (ehdr->e_phoff < phdr[i].p_offset
+		  || ehdr->e_phoff + (ehdr->e_phnum + 1) * ehdr->e_phentsize
+		     > phdr[i].p_offset + phdr[i].p_filesz
+		  || ! readonly_is_movable (dso, ehdr, shdr, j)
+		  || shdr[j].sh_addr >= phdr[i].p_vaddr + phdr[i].p_filesz)
 		{
-		case SHT_HASH:
-		case SHT_GNU_HASH:
-		case SHT_DYNSYM:
-		case SHT_STRTAB:
-		case SHT_GNU_verdef:
-		case SHT_GNU_verneed:
-		case SHT_GNU_versym:
-		case SHT_GNU_LIBLIST:
-		  if (endaddr >= start
-		      && endaddr - start < minsize)
-		    {
-		      minsize = endaddr - start;
-		      movesec = j;
-		    }
-		  if (endaddr > addstart
-		      && endaddr - addstart > add->sh_size
-		      && endaddr - addstart - add->sh_size
-			 < minsize)
-		    {
-		      minsize = endaddr - addstart - add->sh_size;
-		      movesec = j;
-		    }
-		  break;
-		case SHT_REL:
-		case SHT_RELA:
-		case SHT_NOTE:
-		    /* Don't allow inserting in between reloc sections
-		       if they are adjacent.  Similarly for adjacent
-		       note sections.  */
-		    if (j + 1 < ehdr->e_shnum)
-		      {
-			if (shdr[j].sh_type == SHT_NOTE)
-			  {
-			    if (shdr[j + 1].sh_type != SHT_NOTE)
-			      break;
-			  }
-			else if (shdr[j + 1].sh_type != SHT_REL
-				 && shdr[j + 1].sh_type != SHT_RELA)
-			  {
-			    break;
-			  }
-
-			if ((shdr[j].sh_addr
-			     + ((shdr[j].sh_size + 3) & -4))
-			    != shdr[j + 1].sh_addr)
-			  break;
-
-			start += shdr[j].sh_size;
-			continue;
-		      }
-		    break;
+		  error (0, 0, "%s: No space in ELF segment table to add new ELF segment",
+			 dso->filename);
+		  return 0;
 		}
 
-	      if (start + shdr[j].sh_size <= endaddr)
-		{
-		  movesec = j + 1;
+	      start = phdr[i].p_vaddr - phdr[i].p_offset + ehdr->e_phoff
+		      + (ehdr->e_phnum + 1) * ehdr->e_phentsize;
+	      for (last = 1; last < ehdr->e_shnum; ++last)
+		if (! readonly_is_movable (dso, ehdr, shdr, last)
+		    || shdr[last].sh_addr >= phdr[i].p_vaddr + phdr[i].p_filesz)
 		  break;
-		}
-	      start += shdr[j].sh_size;
-	    }
+	      for (j = 1; j < last; ++j)
+		{
+		  addstart = (start + add->sh_addralign - 1)
+			     & ~(add->sh_addralign - 1);
+		  start = (start + shdr[j].sh_addralign - 1)
+			  & ~(shdr[j].sh_addralign - 1);
+		  endaddr = -1;
+		  if (j + 1 < ehdr->e_shnum)
+		    endaddr = shdr[j + 1].sh_addr;
+		  if (phdr[i].p_vaddr + phdr[i].p_filesz < endaddr)
+		    endaddr = phdr[i].p_vaddr + phdr[i].p_filesz;
 
-	  if (movesec == -1)
-	    {
-	      error (0, 0, "%s: No space in ELF segment table to add new ELF segment",
-		     dso->filename);
-	      return 0;
-	    }
-
-	  start = phdr[i].p_vaddr - phdr[i].p_offset + ehdr->e_phoff
-		  + (ehdr->e_phnum + 1) * ehdr->e_phentsize;
-	  old_addr = (GElf_Addr *) alloca (movesec * sizeof (GElf_Addr));
-	  for (k = 1; k < movesec; ++k)
-	    {
-	      start = (start + shdr[k].sh_addralign - 1)
-		      & ~(shdr[k].sh_addralign - 1);
-	      old_addr[k] = shdr[k].sh_addr;
-	      shdr[k].sh_addr = start;
-	      shdr[k].sh_offset = start + phdr[i].p_offset
-				  - phdr[i].p_vaddr;
-	      start += shdr[k].sh_size;
-	    }
-
-	  for (e = 0; e < ehdr->e_phnum; ++e)
-	    if (phdr[e].p_type != PT_LOAD
-		&& phdr[e].p_type != PT_GNU_STACK)
-	      for (k = 1; k < movesec; ++k)
-		if (old_addr[k] == phdr[e].p_vaddr)
-		  {
-		    if (phdr[e].p_filesz != shdr[k].sh_size
-			|| phdr[e].p_memsz != shdr[k].sh_size)
-		      {
-			int k1 = -1;
-			if (phdr[e].p_type == PT_NOTE
-			    && shdr[k].sh_type == SHT_NOTE
-			    && phdr[e].p_filesz == phdr[e].p_memsz)
+		  switch (shdr[j].sh_type)
+		    {
+		    case SHT_HASH:
+		    case SHT_GNU_HASH:
+		    case SHT_DYNSYM:
+		    case SHT_STRTAB:
+		    case SHT_GNU_verdef:
+		    case SHT_GNU_verneed:
+		    case SHT_GNU_versym:
+		    case SHT_GNU_LIBLIST:
+		      if (endaddr >= start
+			  && endaddr - start < minsize)
+			{
+			  minsize = endaddr - start;
+			  movesec = j;
+			}
+		      if (endaddr > addstart
+			  && endaddr - addstart > add->sh_size
+			  && endaddr - addstart - add->sh_size
+			     < minsize)
+			{
+			  minsize = endaddr - addstart - add->sh_size;
+			  movesec = j;
+			}
+		      break;
+		    case SHT_REL:
+		    case SHT_RELA:
+		    case SHT_NOTE:
+			/* Don't allow inserting in between reloc sections
+			   if they are adjacent.  Similarly for adjacent
+			   note sections.  */
+			if (j + 1 < ehdr->e_shnum)
 			  {
-			    k1 = k;
-			    while (k1 < movesec)
+			    if (shdr[j].sh_type == SHT_NOTE)
 			      {
-				if (shdr[k1].sh_type != SHT_NOTE
-				    || shdr[k1].sh_addr - old_addr[k1]
-				       != shdr[k].sh_addr - old_addr[k]
-				    || old_addr[k1] + shdr[k1].sh_size
-				       > phdr[e].p_vaddr + phdr[e].p_filesz)
-				  {
-				    k1 = -1;
-				    break;
-				  }
-				if (old_addr[k1] + shdr[k1].sh_size
-				    == phdr[e].p_vaddr + phdr[e].p_filesz)
+				if (shdr[j + 1].sh_type != SHT_NOTE)
 				  break;
-				++k1;
 			      }
-			    if (k1 == movesec)
-			      k1 = -1;
-			  }
-			if (k1 == -1)
-			  {
-			    error (0, 0, "%s: Non-PT_LOAD segment spanning more than one section",
-				   dso->filename);
-			    return 0;
-			  }
-		      }
-		    phdr[e].p_vaddr += shdr[k].sh_addr - old_addr[k];
-		    phdr[e].p_paddr += shdr[k].sh_addr - old_addr[k];
-		    phdr[e].p_offset += shdr[k].sh_addr - old_addr[k];
-		    break;
-		  }
+			    else if (shdr[j + 1].sh_type != SHT_REL
+				     && shdr[j + 1].sh_type != SHT_RELA)
+			      {
+				break;
+			      }
 
-	  if (j < last)
-	    /* Now continue as if there was place for a new PT_LOAD
-	       in ElfW(Phdr) table initially.  */
-	    break;
-	  else
-	    {
-	      GElf_Shdr moveshdr;
-	      int newidx, ret, movedidx, oldidx;
+			    if ((shdr[j].sh_addr
+				 + ((shdr[j].sh_size + 3) & -4))
+				!= shdr[j + 1].sh_addr)
+			      break;
 
-	      moveshdr = shdr[movesec];
-	      newidx = remove_readonly_section (ehdr, shdr, movesec, adjust);
-	      oldidx = adjust->move->new_to_old[movesec];
-	      remove_section (adjust->move, movesec);
-	      ret = find_readonly_space (dso, add, ehdr, phdr, shdr, adjust);
-	      if (ret == 0)
-		return 0;
-	      movedidx = find_readonly_space (dso, &moveshdr, ehdr, phdr,
-					      shdr, adjust);
-	      if (movedidx == 0)
-		return 0;
-	      if (newidx != -1)
-		adjust->new[newidx] = movedidx;
-	      add_section (adjust->move, movedidx);
-	      if (oldidx != -1)
-		{
-		  adjust->move->old_to_new[oldidx] = movedidx;
-		  adjust->move->new_to_old[movedidx] = oldidx;
+			    start += shdr[j].sh_size;
+			    continue;
+			  }
+			break;
+		    }
+
+		  if (start + shdr[j].sh_size <= endaddr)
+		    {
+		      movesec = j + 1;
+		      break;
+		    }
+		  start += shdr[j].sh_size;
 		}
-	      if (movedidx <= ret)
-		++ret;
-	      return ret;
+
+	      if (movesec == -1)
+		{
+		  error (0, 0, "%s: No space in ELF segment table to add new ELF segment",
+			 dso->filename);
+		  return 0;
+		}
+
+	      start = phdr[i].p_vaddr - phdr[i].p_offset + ehdr->e_phoff
+		      + (ehdr->e_phnum + 1) * ehdr->e_phentsize;
+	      old_addr = (GElf_Addr *) alloca (movesec * sizeof (GElf_Addr));
+	      for (k = 1; k < movesec; ++k)
+		{
+		  start = (start + shdr[k].sh_addralign - 1)
+			  & ~(shdr[k].sh_addralign - 1);
+		  old_addr[k] = shdr[k].sh_addr;
+		  shdr[k].sh_addr = start;
+		  shdr[k].sh_offset = start + phdr[i].p_offset
+				      - phdr[i].p_vaddr;
+		  start += shdr[k].sh_size;
+		}
+
+	      for (e = 0; e < ehdr->e_phnum; ++e)
+		if (phdr[e].p_type != PT_LOAD
+		    && phdr[e].p_type != PT_GNU_STACK)
+		  for (k = 1; k < movesec; ++k)
+		    if (old_addr[k] == phdr[e].p_vaddr)
+		      {
+			if (phdr[e].p_filesz != shdr[k].sh_size
+			    || phdr[e].p_memsz != shdr[k].sh_size)
+			  {
+			    int k1 = -1;
+			    if (phdr[e].p_type == PT_NOTE
+				&& shdr[k].sh_type == SHT_NOTE
+				&& phdr[e].p_filesz == phdr[e].p_memsz)
+			      {
+				k1 = k;
+				while (k1 < movesec)
+				  {
+				    if (shdr[k1].sh_type != SHT_NOTE
+					|| shdr[k1].sh_addr - old_addr[k1]
+					   != shdr[k].sh_addr - old_addr[k]
+					|| old_addr[k1] + shdr[k1].sh_size
+					   > phdr[e].p_vaddr + phdr[e].p_filesz)
+				      {
+					k1 = -1;
+					break;
+				      }
+				    if (old_addr[k1] + shdr[k1].sh_size
+					== phdr[e].p_vaddr + phdr[e].p_filesz)
+				      break;
+				    ++k1;
+				  }
+				if (k1 == movesec)
+				  k1 = -1;
+			      }
+			    if (k1 == -1)
+			      {
+				error (0, 0, "%s: Non-PT_LOAD segment spanning more than one section",
+				       dso->filename);
+				return 0;
+			      }
+			  }
+			phdr[e].p_vaddr += shdr[k].sh_addr - old_addr[k];
+			phdr[e].p_paddr += shdr[k].sh_addr - old_addr[k];
+			phdr[e].p_offset += shdr[k].sh_addr - old_addr[k];
+			break;
+		      }
+
+	      if (j < last)
+		/* Now continue as if there was place for a new PT_LOAD
+		   in ElfW(Phdr) table initially.  */
+		break;
+	      else
+		{
+		  GElf_Shdr moveshdr;
+		  int newidx, ret, movedidx, oldidx;
+
+		  moveshdr = shdr[movesec];
+		  newidx = remove_readonly_section (ehdr, shdr, movesec, adjust);
+		  oldidx = adjust->move->new_to_old[movesec];
+		  remove_section (adjust->move, movesec);
+		  ret = find_readonly_space (dso, add, ehdr, phdr, shdr, adjust);
+		  if (ret == 0)
+		    return 0;
+		  movedidx = find_readonly_space (dso, &moveshdr, ehdr, phdr,
+						  shdr, adjust);
+		  if (movedidx == 0)
+		    return 0;
+		  if (newidx != -1)
+		    adjust->new[newidx] = movedidx;
+		  add_section (adjust->move, movedidx);
+		  if (oldidx != -1)
+		    {
+		      adjust->move->old_to_new[oldidx] = movedidx;
+		      adjust->move->new_to_old[movedidx] = oldidx;
+		    }
+		  if (movedidx <= ret)
+		    ++ret;
+		  return ret;
+		}
 	    }
 	}
     }

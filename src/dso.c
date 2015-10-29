@@ -109,6 +109,11 @@ read_dynamic (DSO *dso)
 		    dso->info_DT_GNU_HASH = dyn.d_un.d_val;
 		    dso->info_set_mask |= (1ULL << DT_GNU_HASH_BIT);
 		  }
+		else if (dyn.d_tag == DT_TLSDESC_PLT)
+		  {
+		    dso->info_DT_TLSDESC_PLT = dyn.d_un.d_val;
+		    dso->info_set_mask |= (1ULL << DT_TLSDESC_PLT_BIT);
+		  }
 		if (dso->ehdr.e_machine == EM_MIPS)
 		  {
 		    if (dyn.d_tag == DT_MIPS_LOCAL_GOTNO)
@@ -117,6 +122,8 @@ read_dynamic (DSO *dso)
 		      dso->info_DT_MIPS_GOTSYM = dyn.d_un.d_val;
 		    else if (dyn.d_tag == DT_MIPS_SYMTABNO)
 		      dso->info_DT_MIPS_SYMTABNO = dyn.d_un.d_val;
+		    else if (dyn.d_tag == DT_MIPS_PLTGOT)
+		      dso->info_DT_MIPS_PLTGOT = dyn.d_un.d_val;
 		  }
 	      }
 	    if (ndx < maxndx)
@@ -223,6 +230,13 @@ check_dso (DSO *dso)
 	  || (dso->shdr[i].sh_type != SHT_NOBITS && dso->shdr[i].sh_size != 0))
 	last = i;
     }
+
+  if (dso_has_bad_textrel (dso))
+    {
+      error (0, 0, "%s has text relocations", dso->filename);
+      return 1;
+    }
+
   return 0;
 }
 
@@ -517,7 +531,7 @@ fdopen_dso (int fd, const char *name)
       const char *soname;
 
       soname = get_data (dso, dso->info[DT_STRTAB] + dso->info[DT_SONAME],
-			 NULL);
+			 NULL, NULL);
       if (soname && soname[0] != '\0')
 	dso->soname = (const char *) strdup (soname);
     }
@@ -553,7 +567,10 @@ error_out:
   if (elf)
     elf_end (elf);
   if (fd != -1)
-    close (fd);
+    {
+      fsync (fd);
+      close (fd);
+    }
   return NULL;
 }
 
@@ -1018,6 +1035,7 @@ error_out:
   if (fd != -1)
     {
       unlink (filename);
+      fsync (fd);
       close (fd);
     }
   return 1;
@@ -1032,7 +1050,9 @@ adjust_symbol_p (DSO *dso, GElf_Sym *sym)
 {
   if (sym->st_shndx == SHN_ABS
       && sym->st_value != 0
-      && GELF_ST_TYPE (sym->st_info) <= STT_FUNC)
+      && (GELF_ST_TYPE (sym->st_info) <= STT_FUNC
+	|| (dso->ehdr.e_machine == EM_ARM
+	  && GELF_ST_TYPE (sym->st_info) == STT_ARM_TFUNC)))
     /* This is problematic.  How do we find out if
        we should relocate this?  Assume we should.  */
     return 1;
@@ -1383,6 +1403,7 @@ adjust_dso (DSO *dso, GElf_Addr start, GElf_Addr adjust)
       switch (dso->shdr[i].sh_type)
 	{
 	case SHT_PROGBITS:
+	case SHT_MIPS_DWARF:
 	  name = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[i].sh_name);
 	  if (strcmp (name, ".stab") == 0
 	      && adjust_stabs (dso, i, start, adjust))
@@ -1406,12 +1427,15 @@ adjust_dso (DSO *dso, GElf_Addr start, GElf_Addr adjust)
 	    return 1;
 	  break;
 	case SHT_REL:
-	  if (adjust_rel (dso, i, start, adjust))
-	    return 1;
+	  /* Don't adjust reloc sections for debug info.  */
+	  if (dso->shdr[i].sh_flags & SHF_ALLOC)
+	    if (adjust_rel (dso, i, start, adjust))
+	      return 1;
 	  break;
 	case SHT_RELA:
-	  if (adjust_rela (dso, i, start, adjust))
-	    return 1;
+	  if (dso->shdr[i].sh_flags & SHF_ALLOC)
+	    if (adjust_rela (dso, i, start, adjust))
+	      return 1;
 	  break;
 	}
       if ((dso->arch->machine == EM_ALPHA
@@ -1632,10 +1656,12 @@ close_dso_1 (DSO *dso)
     }
 
   elf_end (dso->elf);
+  fsync (dso->fd);
   close (dso->fd);
   if (dso->elfro)
     {
       elf_end (dso->elfro);
+      fsync (dso->fdro);
       close (dso->fdro);
     }
   if (dso->filename != dso->soname)
@@ -1811,7 +1837,7 @@ set_security_context (const char *temp_name, const char *name,
 	}
       freecon (scontext);
     }
-#endif
+#endif /* USE_SELINUX */
   return copy_xattrs (temp_name, name, ignore_errors);
 }
 
@@ -1939,4 +1965,29 @@ update_dso (DSO *dso, const char *orig_name)
     close_dso_1 (dso);
 
   return 0;
+}
+
+int allow_bad_textrel;
+
+int
+dso_has_bad_textrel (DSO *dso)
+{
+  if (allow_bad_textrel)
+    return 0;
+
+  switch (dso->arch->machine)
+    {
+    case EM_IA_64:
+    case EM_PPC:
+    case EM_PPC64:
+    case EM_X86_64:
+    case EM_ALPHA:
+    case EM_S390:
+    case EM_MIPS:
+    case EM_ARM:
+      return dynamic_info_is_set (dso, DT_TEXTREL);
+
+    default:
+      return 0;
+    }
 }

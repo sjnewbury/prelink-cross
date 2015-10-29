@@ -136,6 +136,17 @@ to be used when
 .B prelink
 queries the dynamic linker about symbol resolution details.
 .TP
+.B \-\-ld\-preload=PATH
+Specify a special
+.IR LD_PRELOAD
+to be used when processing the executables.  Up to 20 libraries may be
+added for preloading, separated by colons (
+.B :
+).  Using this option allows 
+.B prelink 
+to optimize the memory map for executables that use preloaded libraries.
+Note: The order of libraries loaded should match the runtime environment.
+.TP
 .B \-\-layout\-page\-size=SIZE
 Layout start of libraries at given boundary.
 .TP
@@ -149,6 +160,13 @@ walking directory hierarchies.
 .B \-l \-\-one\-file\-system
 When processing command line directory arguments, limit directory tree walk
 to a single file system.
+.TP
+.B \-\-root=PATHNAME
+In a cross-compilation environment, this specifies the path to the root of
+the target's file system.  All other pathnames processed by 
+.B prelink
+are relative to this root, including the name of the configuration file
+as well as its contents and pathnames supplied on the command line.
 .TP
 .B \-u \-\-undo
 Revert binaries and libraries to their original content before they were
@@ -310,6 +328,6 @@ are ignored).
 .SH BUGS
 .LP
 .B prelink
-Some architectures, including IA-64 and HPPA, are not yet supported.
+Some architectures, including HPPA, are not yet supported.
 .SH AUTHORS
 Jakub Jelinek <jakub@redhat.com>.

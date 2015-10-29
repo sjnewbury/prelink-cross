@@ -500,7 +500,10 @@ error_out:
 	int sfirst = 0, slast = 0, last = 0;
 
 	for (j = 1; j < dso->ehdr.e_shnum; ++j)
-	  if (dso->shdr[j].sh_addr >= dso->phdr[i].p_vaddr
+	  if ((dso->shdr[j].sh_size > 0
+	       || j == new_dynbss
+	       || j == new_sdynbss)
+	      && dso->shdr[j].sh_addr >= dso->phdr[i].p_vaddr
 	      && dso->shdr[j].sh_addr + dso->shdr[j].sh_size
 		 <= dso->phdr[i].p_vaddr + dso->phdr[i].p_memsz)
 	    {
@@ -572,7 +575,10 @@ error_out:
 	  }
 
 	for (j = 1; j < dso->ehdr.e_shnum; ++j)
-	  if (dso->shdr[j].sh_addr >= dso->phdr[i].p_vaddr
+	  if ((dso->shdr[j].sh_size > 0
+	       || j == new_dynbss
+	       || j == new_sdynbss)
+	      && dso->shdr[j].sh_addr >= dso->phdr[i].p_vaddr
 	      && dso->shdr[j].sh_addr + dso->shdr[j].sh_size
 		 <= dso->phdr[i].p_vaddr + dso->phdr[i].p_memsz)
 	    {

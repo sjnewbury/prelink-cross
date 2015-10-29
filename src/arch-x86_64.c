@@ -1,5 +1,7 @@
 /* Copyright (C) 2001, 2002, 2003, 2004, 2006, 2009 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
+   Copyright (C) 2011 Wind River Systems, Inc.
+   x32 support by Mark Hatle <mark.hatle@windriver.com>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,6 +29,22 @@
 #include <stdlib.h>
 
 #include "prelink.h"
+
+/* The x32 ABI: https://sites.google.com/site/x32abi/documents/abi.pdf
+ * documents a "class" value for specific reads and writes.  All this
+ * indicates is that we should be using the ELFCLASS to determine if
+ * this should be a 32/64 bit read/write.  (See table 4.9)
+ *
+ * We emulate this behavior below...
+ */
+#define read_uleclass(DSO, ADDR) \
+( gelf_getclass(DSO->elf) == ELFCLASS32 ? read_ule32(DSO, ADDR) : read_ule64(DSO, ADDR) )
+
+#define write_leclass(DSO, ADDR, VAL) \
+( gelf_getclass(DSO->elf) == ELFCLASS32 ? write_le32(DSO, ADDR, VAL) : write_le64(DSO, ADDR, VAL) )
+
+#define buf_write_leclass(DSO, BUF, VAL) \
+( gelf_getclass(DSO->elf) == ELFCLASS32 ? buf_write_le32(BUF, VAL) : buf_write_le64(BUF, VAL) )
 
 static int
 x86_64_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
@@ -84,8 +102,8 @@ x86_64_adjust_rela (DSO *dso, GElf_Rela *rela, GElf_Addr start,
     case R_X86_64_RELATIVE:
       if (rela->r_addend >= start)
 	{
-	  if (read_ule64 (dso, rela->r_offset) == rela->r_addend)
-	    write_le64 (dso, rela->r_offset, rela->r_addend + adjust);
+	  if (read_uleclass (dso, rela->r_offset) == rela->r_addend)
+	    write_leclass (dso, rela->r_offset, rela->r_addend + adjust);
 	  rela->r_addend += adjust;
 	}
       break;
@@ -94,9 +112,9 @@ x86_64_adjust_rela (DSO *dso, GElf_Rela *rela, GElf_Addr start,
 	rela->r_addend += adjust;
       /* FALLTHROUGH */
     case R_X86_64_JUMP_SLOT:
-      addr = read_ule64 (dso, rela->r_offset);
+      addr = read_uleclass (dso, rela->r_offset);
       if (addr >= start)
-	write_le64 (dso, rela->r_offset, addr + adjust);
+	write_leclass (dso, rela->r_offset, addr + adjust);
       break;
     }
   return 0;
@@ -122,7 +140,7 @@ x86_64_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
     return 0;
   else if (GELF_R_TYPE (rela->r_info) == R_X86_64_RELATIVE)
     {
-      write_le64 (dso, rela->r_offset, rela->r_addend);
+      write_leclass (dso, rela->r_offset, rela->r_addend);
       return 0;
     }
   value = info->resolve (info, GELF_R_SYM (rela->r_info),
@@ -131,6 +149,8 @@ x86_64_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
     {
     case R_X86_64_GLOB_DAT:
     case R_X86_64_JUMP_SLOT:
+      write_leclass (dso, rela->r_offset, value + rela->r_addend);
+      break;
     case R_X86_64_64:
       write_le64 (dso, rela->r_offset, value + rela->r_addend);
       break;
@@ -181,6 +201,8 @@ x86_64_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
     {
     case R_X86_64_GLOB_DAT:
     case R_X86_64_JUMP_SLOT:
+      buf_write_leclass (info->dso, buf, rela->r_addend);
+      break;
     case R_X86_64_64:
       buf_write_le64 (buf, rela->r_addend);
       break;
@@ -223,6 +245,8 @@ x86_64_apply_rela (struct prelink_info *info, GElf_Rela *rela, char *buf)
       break;
     case R_X86_64_GLOB_DAT:
     case R_X86_64_JUMP_SLOT:
+      buf_write_leclass (info->dso, buf, value + rela->r_addend);
+      break;
     case R_X86_64_64:
       buf_write_le64 (buf, value + rela->r_addend);
       break;
@@ -305,7 +329,7 @@ x86_64_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_X86_64_GLOB_DAT:
-      ret->r_info = GELF_R_INFO (0, R_X86_64_64);
+      ret->r_info = GELF_R_INFO (0, (gelf_getclass (dso->elf) == ELFCLASS32 ? R_X86_64_32 : R_X86_64_64));
       /* FALLTHROUGH */
     case R_X86_64_JUMP_SLOT:
     case R_X86_64_64:
@@ -459,16 +483,18 @@ x86_64_undo_prelink_rela (DSO *dso, GElf_Rela *rela, GElf_Addr relaaddr)
 	}
       else
 	{
-	  Elf64_Addr data = read_ule64 (dso, dso->shdr[sec].sh_addr + 8);
+	  Elf64_Addr data = read_uleclass (dso, dso->shdr[sec].sh_addr + 8);
 
 	  assert (rela->r_offset >= dso->shdr[sec].sh_addr + 24);
 	  assert (((rela->r_offset - dso->shdr[sec].sh_addr) & 7) == 0);
-	  write_le64 (dso, rela->r_offset,
+	  write_leclass (dso, rela->r_offset,
 		      2 * (rela->r_offset - dso->shdr[sec].sh_addr - 24)
 		      + data);
 	}
       break;
     case R_X86_64_GLOB_DAT:
+      write_leclass (dso, rela->r_offset, 0);
+      break;
     case R_X86_64_64:
     case R_X86_64_DTPMOD64:
     case R_X86_64_DTPOFF64:
@@ -509,6 +535,21 @@ x86_64_reloc_size (int reloc_type)
 }
 
 static int
+x86_64_x32_reloc_size (int reloc_type)
+{
+  switch (reloc_type)
+    {
+    case R_X86_64_64:
+      return 8;
+    case R_X86_64_GLOB_DAT:
+    case R_X86_64_JUMP_SLOT:
+    case R_X86_64_IRELATIVE:
+    default:
+      return 4;
+    }
+}
+
+static int
 x86_64_reloc_class (int reloc_type)
 {
   switch (reloc_type)
@@ -523,7 +564,46 @@ x86_64_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(x32) = {
+  .name = "x32",
+  .class = ELFCLASS32,
+  .machine = EM_X86_64,
+  .alternate_machine = { EM_NONE },
+  .R_JMP_SLOT = R_X86_64_JUMP_SLOT,
+  .R_COPY = R_X86_64_COPY,
+  .R_RELATIVE = R_X86_64_RELATIVE,
+  .rtype_class_valid = RTYPE_CLASS_VALID,
+  .dynamic_linker = "/libx32/ld-linux-x32.so.2",
+  .adjust_dyn = x86_64_adjust_dyn,
+  .adjust_rel = x86_64_adjust_rel,
+  .adjust_rela = x86_64_adjust_rela,
+  .prelink_rel = x86_64_prelink_rel,
+  .prelink_rela = x86_64_prelink_rela,
+  .prelink_conflict_rel = x86_64_prelink_conflict_rel,
+  .prelink_conflict_rela = x86_64_prelink_conflict_rela,
+  .apply_conflict_rela = x86_64_apply_conflict_rela,
+  .apply_rel = x86_64_apply_rel,
+  .apply_rela = x86_64_apply_rela,
+  .rel_to_rela = x86_64_rel_to_rela,
+  .need_rel_to_rela = x86_64_need_rel_to_rela,
+  .reloc_size = x86_64_x32_reloc_size,
+  .reloc_class = x86_64_reloc_class,
+  .max_reloc_size = 8,
+  .arch_prelink = x86_64_arch_prelink,
+  .arch_undo_prelink = x86_64_arch_undo_prelink,
+  .undo_prelink_rela = x86_64_undo_prelink_rela,
+  /* Although TASK_UNMAPPED_BASE is 0x40000000, we leave some
+     area so that mmap of /etc/ld.so.cache and ld.so's malloc
+     does not take some library's VA slot.
+     Also, if this guard area isn't too small, typically
+     even dlopened libraries will get the slots they desire.  */
+  .mmap_base = 0x41000000,
+  .mmap_end =  0x50000000,
+  .max_page_size = 0x200000,
+  .page_size = 0x1000
+};
+
+PL_ARCH(x86_64) = {
   .name = "x86-64",
   .class = ELFCLASS64,
   .machine = EM_X86_64,

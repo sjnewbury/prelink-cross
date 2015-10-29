@@ -1,4 +1,4 @@
-/* Copyright (C) 2001, 2002, 2004, 2009, 2011 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2004, 2009, 2011, 2013 Red Hat, Inc.
    Written by Jakub Jelinek <jakub@redhat.com>, 2001.
 
    This program is free software; you can redistribute it and/or modify
@@ -27,6 +27,12 @@
 #include <stdlib.h>
 
 #include "prelink.h"
+
+#ifndef R_ARM_TLS_DTPMOD32
+#define R_ARM_TLS_DTPMOD32      17      /* ID of module containing symbol */
+#define R_ARM_TLS_DTPOFF32      18      /* Offset in TLS block */
+#define R_ARM_TLS_TPOFF32       19      /* Offset in static TLS block */
+#endif
 
 static int
 arm_adjust_dyn (DSO *dso, int n, GElf_Dyn *dyn, GElf_Addr start,
@@ -74,6 +80,7 @@ arm_adjust_rel (DSO *dso, GElf_Rel *rel, GElf_Addr start,
     {
     case R_ARM_RELATIVE:
     case R_ARM_JUMP_SLOT:
+    case R_ARM_IRELATIVE:
       data = read_une32 (dso, rel->r_offset);
       if (data >= start)
 	write_ne32 (dso, rel->r_offset, data + adjust);
@@ -91,6 +98,7 @@ arm_adjust_rela (DSO *dso, GElf_Rela *rela, GElf_Addr start,
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
       if ((Elf32_Addr) rela->r_addend >= start)
 	{
 	  rela->r_addend += (Elf32_Sword) adjust;
@@ -114,8 +122,10 @@ arm_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
 {
   DSO *dso;
   GElf_Addr value;
+  Elf32_Sword val;
 
   if (GELF_R_TYPE (rel->r_info) == R_ARM_RELATIVE
+      || GELF_R_TYPE (rel->r_info) == R_ARM_IRELATIVE
       || GELF_R_TYPE (rel->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
@@ -170,6 +180,24 @@ arm_prelink_rel (struct prelink_info *info, GElf_Rel *rel, GElf_Addr reladdr)
 	       "prelinked ET_EXEC REL sections",
 	       dso->filename);
       break;
+    case R_ARM_TLS_DESC:
+      if (!dso->info_DT_TLSDESC_PLT)
+        {
+          error (0, 0,
+		 "%s: Unsupported R_ARM_TLS_DESC relocation in non-lazily bound object.",
+                 dso->filename);
+          return 1;
+        }
+      val = read_une32 (dso, rel->r_offset + 4);
+      if (val != 0 && !dynamic_info_is_set (dso, DT_GNU_PRELINKED_BIT))
+        {
+          error (0, 0,
+		 "%s: Unexpected non-zero value (0x%x) in R_ARM_TLS_DESC?",
+                 dso->filename, val);
+          return 1;
+        }
+      write_ne32 (dso, rel->r_offset + 4, dso->info_DT_TLSDESC_PLT);
+      break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
 	     (int) GELF_R_TYPE (rel->r_info));
@@ -187,6 +215,7 @@ arm_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
   Elf32_Sword val;
 
   if (GELF_R_TYPE (rela->r_info) == R_ARM_RELATIVE
+      || GELF_R_TYPE (rela->r_info) == R_ARM_IRELATIVE
       || GELF_R_TYPE (rela->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
@@ -238,6 +267,24 @@ arm_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
         write_ne32 (dso, rela->r_offset,
                     value + rela->r_addend + info->resolvetls->offset);
       break;
+    case R_ARM_TLS_DESC:
+      if (!dso->info_DT_TLSDESC_PLT)
+        {
+          error (0, 0,
+		 "%s: Unsupported R_ARM_TLS_DESC relocation in non-lazily bound object.",
+                 dso->filename);
+          return 1;
+        }
+      val = read_une32 (dso, rela->r_offset + 4);
+      if (val != 0 && !dynamic_info_is_set (dso, DT_GNU_PRELINKED_BIT))
+        {
+          error (0, 0,
+		 "%s: Unexpected non-zero value (0x%x) in R_ARM_TLS_DESC?",
+                 dso->filename, val);
+          return 1;
+        }
+      write_ne32 (dso, rela->r_offset + 4, dso->info_DT_TLSDESC_PLT);
+      break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
 	     (int) GELF_R_TYPE (rela->r_info));
@@ -250,12 +297,24 @@ static int
 arm_apply_conflict_rela (struct prelink_info *info, GElf_Rela *rela,
 			 char *buf, GElf_Addr dest_addr)
 {
+  GElf_Rela *ret;
+
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_ARM_GLOB_DAT:
     case R_ARM_JUMP_SLOT:
     case R_ARM_ABS32:
       buf_write_ne32 (info->dso, buf, rela->r_addend);
+      break;
+    case R_ARM_IRELATIVE:
+      if (dest_addr == 0)
+	return 5;
+      ret = prelink_conflict_add_rela (info);
+      if (ret == NULL)
+	return 1;
+      ret->r_offset = dest_addr;
+      ret->r_info = GELF_R_INFO (0, R_ARM_IRELATIVE);
+      ret->r_addend = rela->r_addend;
       break;
     default:
       abort ();
@@ -356,35 +415,34 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
   GElf_Rela *ret;
 
   if (GELF_R_TYPE (rel->r_info) == R_ARM_RELATIVE
-      || GELF_R_TYPE (rel->r_info) == R_ARM_NONE
-      || info->dso == dso)
+      || GELF_R_TYPE (rel->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rel->r_info),
 			       GELF_R_TYPE (rel->r_info));
   if (conflict == NULL)
     {
-      if (info->curtls == NULL)
-	return 0;
-
       switch (GELF_R_TYPE (rel->r_info))
 	{
 	/* Even local DTPMOD and TPOFF relocs need conflicts.  */
 	case R_ARM_TLS_DTPMOD32:
 	case R_ARM_TLS_TPOFF32:
+	  if (info->curtls == NULL || info->dso == dso)
+	    return 0;
 	  break;
-
+	/* Similarly IRELATIVE relocations always need conflicts.  */
+	case R_ARM_IRELATIVE:
+	  break;
+	/* Likewise TLS_DESC.  */
+	case R_ARM_TLS_DESC:
+	  break;
 	default:
 	  return 0;
 	}
       value = 0;
     }
-  else if (conflict->ifunc)
-    {
-      error (0, 0, "%s: STT_GNU_IFUNC not handled on ARM yet",
-	     dso->filename);
-      return 1;
-    }
+  else if (info->dso == dso && !conflict->ifunc)
+    return 0;
   else
     {
       /* DTPOFF32 wants to see only real conflicts, not lookups
@@ -407,6 +465,11 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
     case R_ARM_GLOB_DAT:
     case R_ARM_JUMP_SLOT:
       ret->r_addend = (Elf32_Sword) value;
+      if (conflict != NULL && conflict->ifunc)
+	ret->r_info = GELF_R_INFO (0, R_ARM_IRELATIVE);
+      break;
+    case R_ARM_IRELATIVE:
+      ret->r_addend = (Elf32_Sword) read_une32 (dso, rel->r_offset);
       break;
     case R_ARM_ABS32:
     case R_ARM_PC24:
@@ -435,13 +498,16 @@ arm_prelink_conflict_rel (DSO *dso, struct prelink_info *info, GElf_Rel *rel,
 	  ret->r_addend = tls->modid;
 	  break;
 	case R_ARM_TLS_DTPOFF32:
-	  ret->r_addend = value;
+	  ret->r_addend = value + read_une32 (dso, rel->r_offset);
 	  break;
 	case R_ARM_TLS_TPOFF32:
 	  ret->r_addend = (value + read_une32 (dso, rel->r_offset)
 			   + tls->offset);
 	  break;
 	}
+      break;
+    case R_ARM_TLS_DESC:
+      /* Nothing to do.  */
       break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
@@ -462,8 +528,7 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
   Elf32_Sword val;
 
   if (GELF_R_TYPE (rela->r_info) == R_ARM_RELATIVE
-      || GELF_R_TYPE (rela->r_info) == R_ARM_NONE
-      || info->dso == dso)
+      || GELF_R_TYPE (rela->r_info) == R_ARM_NONE)
     /* Fast path: nothing to do.  */
     return 0;
   conflict = prelink_conflict (info, GELF_R_SYM (rela->r_info),
@@ -480,7 +545,9 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	case R_ARM_TLS_DTPMOD32:
 	case R_ARM_TLS_TPOFF32:
 	  break;
-
+	/* Likewise TLS_DESC.  */
+	case R_ARM_TLS_DESC:
+	  break;
 	default:
 	  return 0;
 	}
@@ -514,7 +581,10 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
     case R_ARM_GLOB_DAT:
     case R_ARM_JUMP_SLOT:
     case R_ARM_ABS32:
+    case R_ARM_IRELATIVE:
       ret->r_addend = (Elf32_Sword) (value + rela->r_addend);
+      if (conflict && conflict->ifunc)
+	ret->r_info = GELF_R_INFO (0, R_ARM_IRELATIVE);
       break;
     case R_ARM_PC24:
       val = value + rela->r_addend - rela->r_offset;
@@ -550,12 +620,15 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	  ret->r_addend = tls->modid;
 	  break;
 	case R_ARM_TLS_DTPOFF32:
-	  ret->r_addend = value;
+	  ret->r_addend = value + rela->r_addend;
 	  break;
 	case R_ARM_TLS_TPOFF32:
 	  ret->r_addend = value + rela->r_addend + tls->offset;
 	  break;
 	}
+      break;
+    case R_ARM_TLS_DESC:
+      /* Nothing to do.  */
       break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
@@ -576,8 +649,10 @@ arm_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
       /* We should be never converting .rel.plt into .rela.plt.  */
       abort ();
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
     case R_ARM_ABS32:
     case R_ARM_TLS_TPOFF32:
+    case R_ARM_TLS_DTPOFF32:
       rela->r_addend = (Elf32_Sword) read_une32 (dso, rel->r_offset);
       break;
     case R_ARM_PC24:
@@ -587,7 +662,7 @@ arm_rel_to_rela (DSO *dso, GElf_Rel *rel, GElf_Rela *rela)
     case R_ARM_COPY:
     case R_ARM_GLOB_DAT:
     case R_ARM_TLS_DTPMOD32:
-    case R_ARM_TLS_DTPOFF32:
+    case R_ARM_TLS_DESC:
       rela->r_addend = 0;
       break;
     }
@@ -606,8 +681,10 @@ arm_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
 	 and thus never .rela.plt back to .rel.plt.  */
       abort ();
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
     case R_ARM_ABS32:
     case R_ARM_TLS_TPOFF32:
+    case R_ARM_TLS_DTPOFF32:
       write_ne32 (dso, rela->r_offset, rela->r_addend);
       break;
     case R_ARM_PC24:
@@ -617,7 +694,6 @@ arm_rela_to_rel (DSO *dso, GElf_Rela *rela, GElf_Rel *rel)
       break;
     case R_ARM_GLOB_DAT:
     case R_ARM_TLS_DTPMOD32:
-    case R_ARM_TLS_DTPOFF32:
       write_ne32 (dso, rela->r_offset, 0);
       break;
     }
@@ -659,7 +735,11 @@ arm_need_rel_to_rela (DSO *dso, int first, int last)
 		   original addend.  */
 		if (dso->ehdr.e_type == ET_EXEC)
 		  return 1;
-
+	      case R_ARM_TLS_DTPOFF32:
+		/* We can prelink these fields, and the addend is relative
+		   to the symbol value.  A RELA entry is needed.  */
+		return 1;
+  
 		break;
 	      }
 	}
@@ -740,6 +820,7 @@ arm_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
   switch (GELF_R_TYPE (rel->r_info))
     {
     case R_ARM_RELATIVE:
+    case R_ARM_IRELATIVE:
     case R_ARM_NONE:
       break;
     case R_ARM_JUMP_SLOT:
@@ -793,6 +874,9 @@ arm_undo_prelink_rel (DSO *dso, GElf_Rel *rel, GElf_Addr reladdr)
       break;
     case R_ARM_TLS_TPOFF32:
       break;
+    case R_ARM_TLS_DESC:
+      write_ne32 (dso, rel->r_offset + 4, 0);
+      break;
     default:
       error (0, 0, "%s: Unknown arm relocation type %d", dso->filename,
 	     (int) GELF_R_TYPE (rel->r_info));
@@ -818,12 +902,13 @@ arm_reloc_class (int reloc_type)
     case R_ARM_TLS_DTPMOD32:
     case R_ARM_TLS_DTPOFF32:
     case R_ARM_TLS_TPOFF32:
+    case R_ARM_TLS_DESC:
       return RTYPE_CLASS_TLS;
     default: return RTYPE_CLASS_VALID;
     }
 }
 
-PL_ARCH = {
+PL_ARCH(arm) = {
   .name = "ARM",
   .class = ELFCLASS32,
   .machine = EM_ARM,
@@ -833,6 +918,7 @@ PL_ARCH = {
   .R_RELATIVE = R_ARM_RELATIVE,
   .rtype_class_valid = RTYPE_CLASS_VALID,
   .dynamic_linker = "/lib/ld-linux.so.3",
+  .dynamic_linker_alt = "/lib/ld-linux-armhf.so.3",
   .adjust_dyn = arm_adjust_dyn,
   .adjust_rel = arm_adjust_rel,
   .adjust_rela = arm_adjust_rela,
@@ -859,6 +945,6 @@ PL_ARCH = {
      even dlopened libraries will get the slots they desire.  */
   .mmap_base = 0x41000000,
   .mmap_end =  0x50000000,
-  .max_page_size = 0x8000,
+  .max_page_size = 0x10000,
   .page_size = 0x1000
 };

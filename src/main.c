@@ -59,12 +59,15 @@ const char *ld_library_path;
 const char *prelink_conf = PRELINK_CONF;
 const char *prelink_cache = PRELINK_CACHE;
 const char *undo_output;
+char *ld_preload = NULL;
+int noreexecinit;
+time_t initctime;
 
-const char *argp_program_version = "prelink 1.0";
+const char *argp_program_version = PRELINK_PROG PKGVERSION " 1.0";
 
-const char *argp_program_bug_address = "<jakub@redhat.com>";
+const char *argp_program_bug_address = REPORT_BUGS_TO;
 
-static char argp_doc[] = "prelink -- program to relocate and prelink ELF shared libraries and programs";
+static char argp_doc[] = PRELINK_PROG " -- program to relocate and prelink ELF shared libraries and programs";
 
 #define OPT_DYNAMIC_LINKER	0x80
 #define OPT_LD_LIBRARY_PATH	0x81
@@ -79,6 +82,8 @@ static char argp_doc[] = "prelink -- program to relocate and prelink ELF shared 
 #define OPT_SHA			0x8a
 #define OPT_COMPUTE_CHECKSUM	0x8b
 #define OPT_LAYOUT_PAGE_SIZE	0x8c
+#define OPT_ALLOW_TEXTREL	0x8d
+#define OPT_LD_PRELOAD		0x8e
 
 static struct argp_option options[] = {
   {"all",		'a', 0, 0,  "Prelink all binaries" },
@@ -107,6 +112,7 @@ static struct argp_option options[] = {
   {"no-exec-shield",	OPT_NO_EXEC_SHIELD, 0, 0, "Don't lay out libraries for exec-shield on IA-32" },
   {"ld-library-path",	OPT_LD_LIBRARY_PATH, "PATHLIST",
 				0,  "What LD_LIBRARY_PATH should be used" },
+  {"ld-preload",	OPT_LD_PRELOAD, "PATHLIST", 0,  "What LD_PRELOAD should be used" },
   {"libs-only",		OPT_LIBS_ONLY, 0, 0, "Prelink only libraries, no binaries" },
   {"layout-page-size",	OPT_LAYOUT_PAGE_SIZE, "SIZE", 0, "Layout start of libraries at given boundary" },
   {"disable-c++-optimizations", OPT_CXX_DISABLE, 0, OPTION_HIDDEN, "" },
@@ -114,6 +120,8 @@ static struct argp_option options[] = {
   {"mmap-region-end",	OPT_MMAP_REG_END, "BASE_ADDRESS", OPTION_HIDDEN, "" },
   {"seed",		OPT_SEED, "SEED", OPTION_HIDDEN, "" },
   {"compute-checksum",	OPT_COMPUTE_CHECKSUM, 0, OPTION_HIDDEN, "" },
+  {"init",		'i', 0, 0,  "Do not re-execute init" },
+  {"allow-textrel",	OPT_ALLOW_TEXTREL, 0, 0, "Allow text relocations even on architectures where they may not work" },
   { 0 }
 };
 
@@ -229,6 +237,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
       layout_page_size = strtoull (arg, &endarg, 0);
       if (endarg != strchr (arg, '\0') || (layout_page_size & (layout_page_size - 1)))
 	error (EXIT_FAILURE, 0, "--layout-page-size option requires numberic power-of-two argument");
+    case 'i':
+      noreexecinit=1;
+      break;
+    case OPT_ALLOW_TEXTREL:
+      allow_bad_textrel = 1;
+      break;
+    case OPT_LD_PRELOAD:
+      ld_preload = arg;
       break;
     default:
       return ARGP_ERR_UNKNOWN;
@@ -236,9 +252,24 @@ parse_opt (int key, char *arg, struct argp_state *state)
   return 0;
 }
 
+time_t get_ctime(const char *file) {
+  struct stat st;
+  if(stat(file,&st) == 0)
+    return st.st_ctime;
+  return 0;
+}
+
+void checkinit() {
+  if(initctime != get_ctime("/sbin/init")) {
+    printf("Executing /sbin/init U\n");
+    system("/sbin/init U");
+  }
+}
+
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
 
-#if (defined (__i386__) || defined (__x86_64__)) && defined (__GNUC__)
+/* Disable detection, this is not appropriate when cross prelinking. */
+#if 0 && (defined (__i386__) || defined (__x86_64__)) && defined (__GNUC__)
 static void
 set_default_layout_page_size (void)
 {
@@ -283,9 +314,7 @@ main (int argc, char *argv[])
 
   setlocale (LC_ALL, "");
 
-  /* Set the default for exec_shield.  */
-  if (! access ("/proc/sys/kernel/exec-shield", F_OK))
-    exec_shield = 1;
+  exec_shield = 2;
 
   set_default_layout_page_size ();
 
@@ -294,6 +323,11 @@ main (int argc, char *argv[])
   elf_version (EV_CURRENT);
 
   argp_parse (&argp, argc, argv, 0, &remaining, 0);
+
+  if(!noreexecinit) {
+    initctime = get_ctime("/sbin/init");
+    atexit(checkinit);
+  }
 
   if (ld_library_path == NULL)
     ld_library_path = getenv ("LD_LIBRARY_PATH");
@@ -308,6 +342,15 @@ main (int argc, char *argv[])
     error (EXIT_FAILURE, 0, "--dry-run and --verify options are incompatible");
   if ((undo || verify) && quick)
     error (EXIT_FAILURE, 0, "--undo and --quick options are incompatible");
+
+  /* Set the default for exec_shield.  */
+  if (exec_shield == 2)
+    {
+      if (! access ("/proc/sys/kernel/exec-shield", F_OK))
+	exec_shield = 1;
+      else
+	exec_shield = 0;
+    }
 
   if (print_cache)
     {

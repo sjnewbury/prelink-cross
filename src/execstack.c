@@ -32,11 +32,11 @@
 int set;
 int execflag;
 
-const char *argp_program_version = "execstack 1.0";
+const char *argp_program_version = EXECSTACK_PROG PKGVERSION " 1.0";
 
-const char *argp_program_bug_address = "<jakub@redhat.com>";
+const char *argp_program_bug_address = REPORT_BUGS_TO;
 
-static char argp_doc[] = "execstack -- program to query or set executable stack flag";
+static char argp_doc[] = EXECSTACK_PROG " -- program to query or set executable stack flag";
 
 static struct argp_option options[] = {
   {"set-execstack",	's', 0, 0,  "Set executable stack flag bit" },
@@ -46,6 +46,13 @@ static struct argp_option options[] = {
   {"query",		'q', 0, 0,  "Query executable stack flag bit" },
   { 0 }
 };
+
+/* The cached value of argv[0].  */
+const char *program_path;
+
+/* The full pathname of the prelink tool, or NULL if it hasn't been
+   computed yet.  */
+const char *prelink_path;
 
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
@@ -90,6 +97,8 @@ execstack_make_rdwr (DSO *dso, int flag)
   DSO *ndso = NULL;
   char *p = NULL;
   char filename[strlen (dso->filename) + sizeof ".#execstack#.XXXXXX"];
+  extern char *make_relative_prefix (const char *, const char *, const char *);
+  char *dirname;
 
   for (i = 0; i < dso->ehdr.e_shnum; ++i)
     {
@@ -123,13 +132,18 @@ execstack_make_rdwr (DSO *dso, int flag)
       goto error_out;
     }
 
+  if (prelink_path == NULL)
+    {
+      dirname = make_relative_prefix (program_path, BINDIR, SBINDIR);
+      asprintf (&prelink_path, "%s/%s", dirname, PRELINK_PROG EXEEXT);
+      free (dirname);
+    }
+
   pid = vfork ();
   if (pid == 0)
     {
       close (fd);
-      execlp ("prelink", "prelink", "-u", "-o", filename,
-	      dso->filename, NULL);
-      execl (SBINDIR "/prelink", "prelink", "-u", "-o", filename,
+      execl (prelink_path, prelink_path, "-u", "-o", filename,
 	     dso->filename, NULL);
       _exit (-1);
     }
@@ -184,6 +198,7 @@ execstack_make_rdwr (DSO *dso, int flag)
   p = NULL;
 
   unlink (filename);
+  fsync (fd);
   close (fd);
   fd = -1;
   close_dso (dso);
@@ -196,6 +211,7 @@ error_out:
   if (fd != -1)
     {
       unlink (filename);
+      fsync (fd);
       close (fd);
     }
   close_dso (dso);
@@ -399,6 +415,8 @@ int
 main (int argc, char *argv[])
 {
   int remaining, failures = 0;
+
+  program_path = argv[0];
 
   setlocale (LC_ALL, "");
 

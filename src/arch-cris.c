@@ -374,7 +374,7 @@ cris_reloc_class (int reloc_type)
     }
 }
 
-PL_ARCH = {
+PL_ARCH(cris) = {
   .name = "CRIS",
   .class = ELFCLASS32,
   .machine = EM_CRIS,

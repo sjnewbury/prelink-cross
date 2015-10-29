@@ -23,6 +23,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 #include "prelinktab.h"
 #include "layout.h"
 
@@ -302,7 +303,10 @@ layout_libs (void)
 	  for (j = 0, k = 0; j < l.binlibs[i]->ndepends; ++j)
 	    if (l.binlibs[i]->depends[j]->type == ET_DYN
 		&& l.binlibs[i]->depends[j]->done)
-	      deps[k++] = l.binlibs[i]->depends[j];
+	      {
+		assert (k < l.nlibs);
+	        deps[k++] = l.binlibs[i]->depends[j];
+	      }
 	  if (k)
 	    {
 	      qsort (deps, k, sizeof (struct prelink_entry *), deps_cmp);
@@ -385,6 +389,7 @@ layout_libs (void)
 		  mmap_start += mmap_base;
 		}
 
+	      fsync (fd);
 	      close (fd);
 	    }
 

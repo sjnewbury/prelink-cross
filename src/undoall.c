@@ -33,7 +33,7 @@ undo_one (void **p, void *info)
   DSO *dso;
   struct stat64 st;
   struct prelink_link *hardlink;
-  char *move = NULL;
+  char *move = NULL, *move_temp;
   size_t movelen = 0;
 
   if (ent->done != 2)
@@ -116,9 +116,11 @@ undo_one (void **p, void *info)
       if (len + sizeof (".#prelink#") > movelen)
 	{
 	  movelen = len + sizeof (".#prelink#");
+	  move_temp = move;
 	  move = realloc (move, movelen);
 	  if (move == NULL)
 	    {
+	      free(move_temp);
 	      error (0, ENOMEM, "Could not hardlink %s to %s",
 		     hardlink->canon_filename, ent->canon_filename);
 	      movelen = 0;

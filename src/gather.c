@@ -64,7 +64,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
   const char *argv[5];
   const char *envp[4];
   char *line = NULL, *p, *q = NULL;
-  const char **depends = NULL;
+  const char **depends = NULL, **depends_temp;
   size_t ndepends = 0, ndepends_alloced = 0;
   size_t len = 0;
   ssize_t n;
@@ -74,6 +74,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
   int nliblist = 0;
   const char *dl;
   const char *ent_filename;
+  int etype = dso->ehdr.e_type;
 
   if (check_dso (dso))
     {
@@ -158,6 +159,7 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
       memcpy (tp + 2, ent->filename, flen + 1);
       ent_filename = tp;
     }
+
   argv[i++] = ent_filename;
   argv[i] = NULL;
   envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
@@ -183,8 +185,8 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 	  q = strstr (p, " (");
 	  if (q == NULL && strcmp (p, " => not found") == 0)
 	    {
-	      error (0, 0, "%s: Could not find one of the dependencies",
-		     ent->filename);
+	      error (0, 0, "%s: Could not find one of the dependencies: %s",
+		     ent->filename, line);
 	      goto error_out;
 	    }
 	}
@@ -203,8 +205,8 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
 		  if (q != NULL)
 		    {
 		      error (0, 0,
-			     "%s: Could not find one of the dependencies",
-			     ent->filename);
+			     "%s: Could not find one of the dependencies: \n%s",
+			     ent->filename, line);
 		      goto error_out;
 		    }
 		}
@@ -224,11 +226,13 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
       if (ndepends == ndepends_alloced)
 	{
 	  ndepends_alloced += 10;
+	  depends_temp = depends;
 	  depends =
 	    (const char **) realloc (depends,
 				     ndepends_alloced * sizeof (char *));
 	  if (depends == NULL)
 	    {
+	      free(depends_temp);
 	      error (0, ENOMEM, "%s: Could not record dependencies",
 		     ent->filename);
 	      goto error_out;
@@ -522,8 +526,7 @@ make_unprelinkable:
 
       assert (ent->type == ET_NONE);
       ent->type = ET_UNPRELINKABLE;
-      if (dso)
-	close_dso (dso);
+      close_dso (dso);
       return 0;
     }
 
@@ -551,11 +554,19 @@ make_unprelinkable:
     }
 
   dl = dynamic_linker ?: dso->arch->dynamic_linker;
-  if (strcmp (dl, data->d_buf) != 0)
+  if (strcmp (dl, data->d_buf) != 0
+      && (dynamic_linker != NULL || dso->arch->dynamic_linker_alt == NULL
+	  || strcmp (dso->arch->dynamic_linker_alt, data->d_buf) != 0))
     {
       error (0, 0, "%s: Using %s, not %s as dynamic linker", dso->filename,
 	     (char *) data->d_buf, dl);
       goto error_out;
+    }
+
+  if (dso_has_bad_textrel (dso))
+    {
+      error (0, 0, "%s has text relocations", dso->filename);
+      goto make_unprelinkable;
     }
 
   ent = prelink_find_entry (dso->filename, st, 1);
@@ -634,6 +645,77 @@ add_dir_to_dirlist (const char *name, dev_t dev, int flags)
   return 0;
 }
 
+/* Determine if a buffer holding an ELF header and program header
+   table may be that of a position-independent executable.  */
+static int
+maybe_pie (unsigned char *e_ident, int big_endian, int sixty_four)
+{
+  uint16_t num_phdrs;
+  uint16_t phdr;
+  size_t p_type_offset;
+  size_t phnum_offset;
+  unsigned char *phdr_table;
+  unsigned char *this_phdr;
+
+  if (sixty_four)
+    {
+      uint64_t phdr_offset;
+  
+      p_type_offset = offsetof (Elf64_Phdr, p_type);
+      phnum_offset = offsetof (Elf64_Ehdr, e_phnum);
+      if (big_endian)
+        phdr_offset = buf_read_ube64 (&e_ident [offsetof (Elf64_Ehdr,
+                                                         e_phoff)]);
+      else
+        phdr_offset = buf_read_ule64 (&e_ident [offsetof (Elf64_Ehdr,
+                                                         e_phoff)]);
+      phdr_table = e_ident + phdr_offset;
+    }
+  else
+    {
+      uint32_t phdr_offset;
+  
+      p_type_offset = offsetof (Elf32_Phdr, p_type);
+      phnum_offset = offsetof (Elf32_Ehdr, e_phnum);
+      if (big_endian)
+        phdr_offset = buf_read_ube32 (&e_ident [offsetof (Elf32_Ehdr,
+                                                         e_phoff)]);
+      else
+        phdr_offset = buf_read_ule32 (&e_ident [offsetof (Elf32_Ehdr,
+                                                         e_phoff)]);
+      phdr_table = e_ident + phdr_offset;
+    }
+
+  this_phdr = phdr_table;
+
+  if (big_endian)
+    num_phdrs = buf_read_ube16 (&e_ident [phnum_offset]);
+  else
+    num_phdrs = buf_read_ule16 (&e_ident [phnum_offset]);
+
+  for (phdr = 0; phdr < num_phdrs; phdr++)
+    {
+      unsigned char *p_type_start = this_phdr + p_type_offset;
+      uint32_t p_type;
+  
+      if (big_endian)
+       p_type = buf_read_ube32 (p_type_start);
+      else
+       p_type = buf_read_ule32 (p_type_start);
+     
+      if (p_type == PT_PHDR)
+       return 1;
+
+      /* Any PT_PHDR entry must come before any PT_LOAD entry.  */
+      if (p_type == PT_LOAD)
+        return 0;
+  
+      this_phdr += sixty_four ? sizeof (Elf64_Phdr) : sizeof (Elf32_Phdr);
+    }
+    
+  return 0;
+}
+
 static int
 gather_func (const char *name, const struct stat64 *st, int type,
 	     struct FTW *ftwp)
@@ -700,6 +782,7 @@ gather_func (const char *name, const struct stat64 *st, int type,
       if (read (fd, e_ident, sizeof (e_ident)) != sizeof (e_ident))
 	{
 close_it:
+	  fsync (fd);
 	  close (fd);
 	  return FTW_CONTINUE;
 	}
@@ -718,6 +801,7 @@ make_unprelinkable:
 		  ent->type = ET_UNPRELINKABLE;
 		}
 	    }
+	  fsync (fd);
 	  close (fd);
 	  return FTW_CONTINUE;
 	}
@@ -733,66 +817,25 @@ make_unprelinkable:
 		goto make_unprelinkable;
 	      else if (e_ident [EI_CLASS] == ELFCLASS32)
 		{
-		  if (e_ident [offsetof (Elf32_Ehdr, e_phoff)]
-		      == sizeof (Elf32_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf32_Ehdr, e_phoff) + 1,
-				 "\0\0\0", 3) == 0)
+		  if (maybe_pie (e_ident, 0, 0))
 		    {
-		      Elf32_Half phnum, i;
-		      unsigned char *p;
-		      phnum = e_ident [offsetof (Elf32_Ehdr, e_phnum)]
-			      + (e_ident [offsetof (Elf32_Ehdr, e_phnum) + 1]
-				 << 8);
-		      p = e_ident + sizeof (Elf32_Ehdr)
-			  + offsetof (Elf32_Phdr, p_type);
-		      for (i = 0; i < phnum; i++, p += sizeof (Elf32_Phdr))
-			{
-			  if (p[0] == PT_PHDR
-			      && memcmp (p + 1, "\0\0\0", 3) == 0)
-			    {
 maybe_pie:
-			      dso = fdopen_dso (fd, name);
-			      if (dso == NULL)
-				goto close_it;
-			      if (dynamic_info_is_set (dso, DT_DEBUG))
-				{
-				  close_dso (dso);
-				  goto make_unprelinkable;
-				}
-			      close_dso (dso);
-			      goto close_it;
-			    }
-			  if (p[3] < (PT_LOPROC >> 24)
-			      || p[3] > (PT_HIPROC >> 24))
-			    break;
+		      dso = fdopen_dso (fd, name);
+		      if (dso == NULL)
+			goto close_it;
+		      if (dynamic_info_is_set (dso, DT_DEBUG))
+			{
+			  close_dso (dso);
+			  goto make_unprelinkable;
 			}
+		      close_dso (dso);
 		    }
 		  goto close_it;
 		}
 	      else if (e_ident [EI_CLASS] == ELFCLASS64)
 		{
-		  if (e_ident [offsetof (Elf64_Ehdr, e_phoff)]
-		      == sizeof (Elf64_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf64_Ehdr, e_phoff) + 1,
-				 "\0\0\0\0\0\0\0", 7) == 0)
-		    {
-		      Elf64_Half phnum, i;
-		      unsigned char *p;
-		      phnum = e_ident [offsetof (Elf64_Ehdr, e_phnum)]
-			      + (e_ident [offsetof (Elf64_Ehdr, e_phnum) + 1]
-				 << 8);
-		      p = e_ident + sizeof (Elf64_Ehdr)
-			  + offsetof (Elf64_Phdr, p_type);
-		      for (i = 0; i < phnum; i++, p += sizeof (Elf64_Phdr))
-			{
-			  if (p[0] == PT_PHDR
-			      && memcmp (p + 1, "\0\0\0", 3) == 0)
-			    goto maybe_pie;
-			  if (p[3] < (PT_LOPROC >> 24)
-			      || p[3] > (PT_HIPROC >> 24))
-			    break;
-			}
-		    }
+		  if (maybe_pie (e_ident, 0, 1))
+		    goto maybe_pie;
 		  goto close_it;
 		}
 	      else
@@ -808,52 +851,14 @@ maybe_pie:
 		goto make_unprelinkable;
 	      else if (e_ident [EI_CLASS] == ELFCLASS32)
 		{
-		  if (e_ident [offsetof (Elf32_Ehdr, e_phoff) + 3]
-		      == sizeof (Elf32_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf32_Ehdr, e_phoff),
-				 "\0\0\0", 3) == 0)
-		    {
-		      Elf32_Half phnum, i;
-		      unsigned char *p;
-		      phnum = (e_ident [offsetof (Elf32_Ehdr, e_phnum)] << 8)
-			      + e_ident [offsetof (Elf32_Ehdr, e_phnum) + 1];
-		      p = e_ident + sizeof (Elf32_Ehdr)
-			  + offsetof (Elf32_Phdr, p_type);
-		      for (i = 0; i < phnum; i++, p += sizeof (Elf32_Phdr))
-			{
-			  if (p[3] == PT_PHDR
-			      && memcmp (p, "\0\0\0", 3) == 0)
-			    goto maybe_pie;
-			  if (p[0] < (PT_LOPROC >> 24)
-			      || p[0] > (PT_HIPROC >> 24))
-			    break;
-			}
-		    }
+		  if (maybe_pie (e_ident, 1, 0))
+		    goto maybe_pie;
 		  goto close_it;
 		}
 	      else if (e_ident [EI_CLASS] == ELFCLASS64)
 		{
-		  if (e_ident [offsetof (Elf64_Ehdr, e_phoff) + 7]
-		      == sizeof (Elf64_Ehdr)
-		      && memcmp (e_ident + offsetof (Elf64_Ehdr, e_phoff),
-				 "\0\0\0\0\0\0\0", 7) == 0)
-		    {
-		      Elf64_Half phnum, i;
-		      unsigned char *p;
-		      phnum = (e_ident [offsetof (Elf64_Ehdr, e_phnum)] << 8)
-			      + e_ident [offsetof (Elf64_Ehdr, e_phnum) + 1];
-		      p = e_ident + sizeof (Elf64_Ehdr)
-			  + offsetof (Elf64_Phdr, p_type);
-		      for (i = 0; i < phnum; i++, p += sizeof (Elf64_Phdr))
-			{
-			  if (p[3] == PT_PHDR
-			      && memcmp (p, "\0\0\0", 3) == 0)
-			    goto maybe_pie;
-			  if (p[0] < (PT_LOPROC >> 24)
-			      || p[0] > (PT_HIPROC >> 24))
-			    break;
-			}
-		    }
+		  if (maybe_pie (e_ident, 1, 1))
+		    goto maybe_pie;
 		  goto close_it;
 		}
 	      else
@@ -938,6 +943,7 @@ gather_binlib (const char *name, const struct stat64 *st)
   if (read (fd, e_ident, sizeof (e_ident)) != sizeof (e_ident))
     {
       error (0, errno, "Could not read ELF header from %s", name);
+      fsync (fd);
       close (fd);
       return 1;
     }
@@ -947,6 +953,7 @@ gather_binlib (const char *name, const struct stat64 *st)
   if (memcmp (e_ident, ELFMAG, SELFMAG) != 0)
     {
       error (0, 0, "%s is not an ELF object", name);
+      fsync (fd);
       close (fd);
       return 1;
     }
@@ -971,6 +978,7 @@ gather_binlib (const char *name, const struct stat64 *st)
     {
 unsupported_type:
       error (0, 0, "%s is neither ELF executable nor ELF shared library", name);
+      fsync (fd);
       close (fd);
       return 1;
     }
