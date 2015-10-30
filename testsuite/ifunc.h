@@ -51,7 +51,7 @@ asm (".text\n"						\
     "\t.align 4\n"					\
   "2:\t.long " fn "@GOTOFF\n"				\
   "3:\t.long _GLOBAL_OFFSET_TABLE_-1b\n"
-elif defined __arm__
+#elif defined __arm__
 # ifdef __thumb__
 #  define PIPE_OFFSET "4"
 # else

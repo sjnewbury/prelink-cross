@@ -536,15 +536,16 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 
   if (conflict == NULL)
     {
-      if (info->curtls == NULL)
-	return 0;
-
       switch (GELF_R_TYPE (rela->r_info))
 	{
 	/* Even local DTPMOD and TPOFF relocs need conflicts.  */
 	case R_ARM_TLS_DTPMOD32:
 	case R_ARM_TLS_TPOFF32:
+	  if (info->curtls == NULL || info->dso == dso)
+	    return 0;
 	  break;
+	/* Similarly IRELATIVE relocations always need conflicts.  */
+	case R_ARM_IRELATIVE:
 	/* Likewise TLS_DESC.  */
 	case R_ARM_TLS_DESC:
 	  break;
@@ -553,12 +554,8 @@ arm_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
 	}
       value = 0;
     }
-  else if (conflict->ifunc)
-    {
-      error (0, 0, "%s: STT_GNU_IFUNC not handled on ARM yet",
-	     dso->filename);
-      return 1;
-    }
+  else if (info->dso == dso && !conflict->ifunc)
+    return 0;
   else
     {
       /* DTPOFF32 wants to see only real conflicts, not lookups
