@@ -22,7 +22,8 @@ bin_PROGRAMS = execstack
 
 arch_SOURCES = arch-i386.c arch-alpha.c arch-ppc.c arch-ppc64.c \
 	       arch-sparc.c arch-sparc64.c arch-x86_64.c arch-mips.c \
-	       arch-s390.c arch-s390x.c arch-arm.c arch-sh.c arch-ia64.c
+	       arch-s390.c arch-s390x.c arch-arm.c arch-sh.c arch-ia64.c \
+	       arch-aarch64.c
 common_SOURCES = checksum.c data.c dso.c dwarf2.c dwarf2.h fptr.c fptr.h     \
 		 hashtab.c hashtab.h mdebug.c prelink.h stabs.c crc32.c      \
 		 wrap-file.c canonicalize.c reloc-info.c reloc-info.h

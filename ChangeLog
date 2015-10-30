@@ -1,3 +1,9 @@
+2016-03-22  Vaneet Narang <v.narang@samsung.com>
+            Maninder Singh <maninder1.s@samsung.com>
+        * Makefile.am: add arch-aarch64.c
+        * arch-aarch64.c: New file
+        * dso.c: (dso_has_bad_textrel) add aarch64
+
 2016-08-17   Mark Hatle <mark.hatle@windriver.com>
 	* README: Update to include a few known issues
 

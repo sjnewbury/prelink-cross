@@ -2003,6 +2003,7 @@ dso_has_bad_textrel (DSO *dso)
     case EM_S390:
     case EM_MIPS:
     case EM_ARM:
+    case EM_AARCH64:
       return dynamic_info_is_set (dso, DT_TEXTREL);
 
     default:
