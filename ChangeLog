@@ -1,4 +1,15 @@
 2015-10-29  Mark Hatle <mark.hatle@windriver.com>
+	    Kyle McMartin  <kmcmartin@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+	    Julian Brown   <julian@codesourcery.com>
+
+	* testsuite/ifunc.h: Fix missing #
+	* src/arch-arm.c (arm_prelink_conflict_rela): Add missing hunk
+	that implemented R_ARM_IRELATIVE, and ifunc conflicts.
+
+	See: https://bugzilla.redhat.com/show_bug.cgi?id=1009601
+
+2015-10-29  Mark Hatle <mark.hatle@windriver.com>
 	* prelink.h: Define SHT_MIPS_ABIFLAGS if not set
 	* prelink.c: OK to skip SHT_MIPS_ABIFLAGS
 	  optimize the loop to stop on the first bad entry
