@@ -375,7 +375,7 @@ aarch64_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
       break;
     case R_AARCH64_TLSDESC:
 	  tls = conflict ? conflict->lookup.tls : info->curtls;
-	  ret->r_addend =  rela->r_addend + tls->offset;
+	  ret->r_addend = value + rela->r_addend + tls->offset;
      break;
     default:
       error (0, 0, "%s: Unknown AARCH64 relocation type %d", dso->filename,
