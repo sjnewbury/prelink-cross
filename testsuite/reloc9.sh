@@ -13,7 +13,7 @@ rm -f reloc9 reloc9lib*.so reloc9.log
 rm -f prelink.cache
 NOCOPYRELOC=-Wl,-z,nocopyreloc
 case "`$RUN uname -m`" in
-  x86_64|s390*|sparc*) if file reloc1lib1.so | grep -q 64-bit; then NOCOPYRELOC=; fi;;
+  x86_64|s390*|sparc*|aarch64) if file reloc1lib1.so | grep -q 64-bit; then NOCOPYRELOC=; fi;;
 esac
 $RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib1.so $srcdir/reloc3lib1.c
 $RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib2.so $srcdir/reloc1lib2.c reloc9lib1.so

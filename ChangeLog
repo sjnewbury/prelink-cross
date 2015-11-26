@@ -1,4 +1,9 @@
 2016-03-22  Vaneet Narang <v.narang@samsung.com>
+	    Maninder Singh <maninder1.s@samsung.com>
+	* testuite/reloc2.sh, testsuite/reloc8.sh, testsuite/reloc9.sh,
+	  testsuite/tls3.sh: Fix test suite errors
+
+2016-03-22  Vaneet Narang <v.narang@samsung.com>
 	    Manjeet Pawar <manjeet.p@samsung.com>
 	* arch-aarch64.c: (aarch64_prelink_conflict_rela) fix TLSDESC
 

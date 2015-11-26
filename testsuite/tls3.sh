@@ -9,7 +9,7 @@ if [ "x$CROSS" = "x" ]; then
 fi
 SHFLAGS=
 case "`$RUN uname -m`" in
-  ia64|ppc*|x86_64|alpha*|s390*|mips*|arm*) SHFLAGS=-fpic;; # Does not support non-pic shared libs
+  ia64|ppc*|x86_64|alpha*|s390*|mips*|arm*|aarch64) SHFLAGS=-fpic;; # Does not support non-pic shared libs
 esac
 # Disable this test under SELinux if textrel
 if test -z "$SHFLAGS" -a -x /usr/sbin/getenforce; then
