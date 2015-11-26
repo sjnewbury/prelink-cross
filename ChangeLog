@@ -2,6 +2,7 @@
 	    Maninder Singh <maninder1.s@samsung.com>
 	* testuite/reloc2.sh, testsuite/reloc8.sh, testsuite/reloc9.sh,
 	  testsuite/tls3.sh: Fix test suite errors
+	* src/arch-aarch64.c: Fix prelink undo error
 
 2016-03-22  Vaneet Narang <v.narang@samsung.com>
 	    Manjeet Pawar <manjeet.p@samsung.com>

@@ -470,7 +470,9 @@ aarch64_undo_prelink_rela (DSO *dso, GElf_Rela *rela, GElf_Addr relaaddr)
   switch (GELF_R_TYPE (rela->r_info))
     {
     case R_AARCH64_NONE:
+ 	break;	
     case R_AARCH64_RELATIVE:
+	write_ne64 (dso, rela->r_offset, 0);
       break;
     case R_AARCH64_JUMP_SLOT:
       sec = addr_to_sec (dso, rela->r_offset);
@@ -487,9 +489,7 @@ aarch64_undo_prelink_rela (DSO *dso, GElf_Rela *rela, GElf_Addr relaaddr)
 
 	  assert (rela->r_offset >= dso->shdr[sec].sh_addr + 24);
 	  assert (((rela->r_offset - dso->shdr[sec].sh_addr) & 7) == 0);
-	  write_neclass (dso, rela->r_offset,
-		      2 * (rela->r_offset - dso->shdr[sec].sh_addr - 24)
-		      + data);
+	  write_neclass (dso, rela->r_offset, data);
 	}
       break;
     case R_AARCH64_GLOB_DAT:
@@ -501,6 +501,7 @@ aarch64_undo_prelink_rela (DSO *dso, GElf_Rela *rela, GElf_Addr relaaddr)
       write_ne64 (dso, rela->r_offset, 0);
       break;
     case R_AARCH64_TLS_TPREL:
+      write_ne64 (dso, rela->r_offset, 0);
       break;
     case R_AARCH64_TLSDESC:
       write_ne64 (dso, rela->r_offset, 0);
