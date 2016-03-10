@@ -217,8 +217,10 @@ create_map_object_from_dso_ent (struct dso_list *cur_dso_ent)
     for (dso_list_ptr = cur_dso_ent->prev; dso_list_ptr; dso_list_ptr = dso_list_ptr->prev)
      {
 	/* This looks for fairly obvious overlaps... */
-	if ((dso_list_ptr->dso->base <= dso->base && dso->base <= dso_list_ptr->dso->end) || \
-	    (dso->base <= dso_list_ptr->dso->base && dso_list_ptr->dso->base <= dso->end))
+	if (dso_list_ptr->dso && \
+	    ((dso_list_ptr->dso->base <= dso->base && dso->base <= dso_list_ptr->dso->end) || \
+	    (dso->base <= dso_list_ptr->dso->base && dso_list_ptr->dso->base <= dso->end)) \
+	   )
 	 {
 	    l->l_map_start = (Elf64_Addr)NULL;
 	    break;
