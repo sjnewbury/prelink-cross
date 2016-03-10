@@ -5,7 +5,7 @@ dnl Detect it.
 
 dnl Written by Jakub Jelinek <jakub@redhat.com>.
 
-AC_DEFUN(AC_LIBELF_SXWORD,
+AC_DEFUN([AC_LIBELF_SXWORD],
   [AC_TRY_RUN([
 #include <errno.h>
 #include <fcntl.h>

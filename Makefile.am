@@ -1,6 +1,5 @@
 ## Process this file with automake to create Makefile.in
 
-AUTOMAKE_OPTIONS = 1.4 gnu
 MAINT_CHARSET = latin1
 
 ACLOCAL_AMFLAGS = -I m4

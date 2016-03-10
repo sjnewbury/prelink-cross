@@ -1,7 +1,5 @@
 ## Process this file with automake to create Makefile.in
 
-AUTOMAKE_OPTIONS = 1.4 gnu
-
 PKGVERSION = "\"@PKGVERSION@\""
 REPORT_BUGS_TO = "\"@REPORT_BUGS_TO@\""
 
@@ -15,13 +13,13 @@ AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"' \
 	    -DEXEEXT='"$(EXEEXT)"' \
 	    -DPKGVERSION=$(PKGVERSION) \
 	    -DREPORT_BUGS_TO=$(REPORT_BUGS_TO)
-INCLUDES = -I$(top_srcdir)/src @GELFINCLUDE@
+AM_CPPFLAGS += -I$(top_srcdir)/src @GELFINCLUDE@
 
 sbin_PROGRAMS = prelink-rtld
 
-prelink_rtld_SOURCES = $(top_srcdir)/src/data.c $(top_srcdir)/src/dso.c \
-		       $(top_srcdir)/src/canonicalize.c $(top_srcdir)/src/wrap-file.c \
-		       $(top_srcdir)/src/reloc-info.c $(top_srcdir)/src/reloc-info.h \
+prelink_rtld_SOURCES = ../data.c ../dso.c \
+		       ../canonicalize.c ../wrap-file.c \
+		       ../reloc-info.c ../src/reloc-info.h \
 		       rtld.c ld-libs.h \
 		       dl-hash.h dl-object.c dl-load.c \
 		       dl-tls.c dl-version.c dl-misc.c \
