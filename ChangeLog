@@ -3,6 +3,7 @@
 	  gelfx/Makefile.am, gelfx32/Makefile.am, patches/Makefile.am,
 	  src/Makefile.am, src/rtld/Makefile.am, testsuite/Makefile.am:
 		Update to avoid autoconf/automake warnings
+	* Resync src/rtld to glibc-2.23
 
 2015-10-29  Mark Hatle <mark.hatle@windriver.com>
 	    Kyle McMartin  <kmcmartin@redhat.com>

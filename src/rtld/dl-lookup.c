@@ -1,7 +1,7 @@
-/* glibc-2.22: elf/dl-lookup.c */
+/* glibc-2.23: elf/dl-lookup.c */
 
 /* Look up a symbol in the loaded objects.
-   Copyright (C) 1995-2015 Free Software Foundation, Inc.
+   Copyright (C) 1995-2016 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -51,7 +51,7 @@
 /* Return nonzero if check_match should consider SYM to fail to match a
    symbol reference for some machine-specific reason.  */
 #ifndef ELF_MACHINE_SYM_NO_MATCH
-/* glibc-2.20: sysdeps/mips/dl-machine.h */
+/* glibc-2.23: sysdeps/mips/dl-machine.h */
 /* The semantics of zero/non-zero values of undefined symbols differs
    depending on whether the non-PIC ABI is in use.  Under the non-PIC
    ABI, a non-zero value indicates that there is an address reference

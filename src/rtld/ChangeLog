@@ -1,3 +1,6 @@
+2016-03-10   Mark Hatle <mark.hatle@windriver.com>
+	* rtld/: Rsync to glibc-2.23 (no functional changes)
+
 2015-10-28   Mark Hatle <mark.hatle@windriver.com>
 	* dl-lookupX.h: Sync with glibc fix for ld.so / prelink mismatch
 

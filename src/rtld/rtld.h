@@ -187,14 +187,14 @@ extern const char *rtld_progname;
 #define __rtld_lock_lock_recursive(NAME)
 #define __rtld_lock_unlock_recursive(NAME)
 
-/* glibc-2.20: sysdeps/generic/ldsodefs.h */
+/* glibc-2.23: sysdeps/generic/ldsodefs.h */
 /* The filename itself, or the main program name, if available.  */
 #define DSO_FILENAME(name) ((name)[0] ? (name)                                \
                             : (rtld_progname ?: "<main program>"))
 
 #define RTLD_PROGNAME (rtld_progname ?: "<program name unknown>")
 
-/* glibc-2.20: sysdeps/generic/ldsodefs.h */
+/* glibc-2.23: sysdeps/generic/ldsodefs.h */
 #define DL_DEBUG_LIBS       (1 << 0)
 #define DL_DEBUG_IMPCALLS   (1 << 1)
 #define DL_DEBUG_BINDINGS   (1 << 2)

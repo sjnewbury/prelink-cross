@@ -119,7 +119,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 /* The following needs to be kept in sync with the 
    sysdeps/.../dl-machine.h: elf_machine_type_class macro */
 
-/* From glibc-2.22: sysdeps/i386/dl-machine.h */
+/* From glibc-2.23: sysdeps/i386/dl-machine.h */
 # define i386_elf_machine_type_class(type) \
   ((((type) == R_386_JMP_SLOT || (type) == R_386_TLS_DTPMOD32                 \
      || (type) == R_386_TLS_DTPOFF32 || (type) == R_386_TLS_TPOFF32           \
@@ -128,7 +128,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
    | (((type) == R_386_COPY) * ELF_RTYPE_CLASS_COPY)                          \
    | (((type) == R_386_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_386)))
 
-/* From glibc-2.22: sysdeps/x86_64/dl-machine.h */
+/* From glibc-2.23: sysdeps/x86_64/dl-machine.h */
 # define x86_64_elf_machine_type_class(type)                                  \
   ((((type) == R_X86_64_JUMP_SLOT                                             \
      || (type) == R_X86_64_DTPMOD64                                           \
@@ -139,7 +139,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
    | (((type) == R_X86_64_COPY) * ELF_RTYPE_CLASS_COPY)                       \
    | (((type) == R_X86_64_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_X86_64)))
 
-/* From glibc-2.22: ports/sysdeps/arm/dl-machine.h */
+/* From glibc-2.23: ports/sysdeps/arm/dl-machine.h */
 # define arm_elf_machine_type_class(type) \
   ((((type) == R_ARM_JUMP_SLOT || (type) == R_ARM_TLS_DTPMOD32          \
      || (type) == R_ARM_TLS_DTPOFF32 || (type) == R_ARM_TLS_TPOFF32     \
@@ -148,7 +148,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
    | (((type) == R_ARM_COPY) * ELF_RTYPE_CLASS_COPY)                    \
    | (((type) == R_ARM_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_ARM)))
 
-/* From glibc-2.22: ports/sysdeps/aarch64/dl-machine.h */
+/* From glibc-2.23: ports/sysdeps/aarch64/dl-machine.h */
 # define aarch64_elf_machine_type_class(type) \
   ((((type) == R_AARCH64_JUMP_SLOT ||                                   \
      (type) == R_AARCH64_TLS_DTPMOD ||                                  \
@@ -158,14 +158,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
    | (((type) == R_AARCH64_COPY) * ELF_RTYPE_CLASS_COPY)                \
    | (((type) == R_AARCH64_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_AARCH64)))
 
-/* From glibc-2.22: sysdeps/sh/dl-machine.h */
+/* From glibc-2.23: sysdeps/sh/dl-machine.h */
 # define sh_elf_machine_type_class(type) \
   ((((type) == R_SH_JMP_SLOT || (type) == R_SH_TLS_DTPMOD32                   \
      || (type) == R_SH_TLS_DTPOFF32 || (type) == R_SH_TLS_TPOFF32)            \
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_SH_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From glibc-2.22: sysdeps/powerpc/powerpc32/dl-machine.h */
+/* From glibc-2.23: sysdeps/powerpc/powerpc32/dl-machine.h */
 #define powerpc32_elf_machine_type_class(type)                    \
   ((((type) == R_PPC_JMP_SLOT                           \
     || (type) == R_PPC_REL24                            \
@@ -174,7 +174,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     || (type) == R_PPC_ADDR24) * ELF_RTYPE_CLASS_PLT)   \
    | (((type) == R_PPC_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From glibc-2.22: sysdeps/powerpc/powerpc64/dl-machine.h */
+/* From glibc-2.23: sysdeps/powerpc/powerpc64/dl-machine.h */
 /* we only support ELFv2 at this point */
 #define IS_PPC64_TLS_RELOC(R)                                           \
   (((R) >= R_PPC64_TLS && (R) <= R_PPC64_DTPREL16_HIGHESTA)             \
@@ -186,27 +186,27 @@ parse_opt (int key, char *arg, struct argp_state *state)
      || IS_PPC64_TLS_RELOC (type)) * ELF_RTYPE_CLASS_PLT)       \
    | (((type) == R_PPC64_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From glibc-2.22: sysdeps/mips/dl-machine.h */
+/* From glibc-2.23: sysdeps/mips/dl-machine.h */
 #define ELF_MACHINE_JMP_SLOT		R_MIPS_JUMP_SLOT
 #define mips_elf_machine_type_class(type) \
   ((((type) == ELF_MACHINE_JMP_SLOT) * ELF_RTYPE_CLASS_PLT)     \
    | (((type) == R_MIPS_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From glibc-2.22: sysdeps/sparc/sparc32/dl-machine.h */
+/* From glibc-2.23: sysdeps/sparc/sparc32/dl-machine.h */
 #define sparc_elf_machine_type_class(type) \
   ((((type) == R_SPARC_JMP_SLOT                                               \
      || ((type) >= R_SPARC_TLS_GD_HI22 && (type) <= R_SPARC_TLS_TPOFF64))     \
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_SPARC_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From glibc-2.22: sysdeps/sparc/sparc64/dl-machine.h */
+/* From glibc-2.23: sysdeps/sparc/sparc64/dl-machine.h */
 # define sparc64_elf_machine_type_class(type) \
   ((((type) == R_SPARC_JMP_SLOT                                               \
      || ((type) >= R_SPARC_TLS_GD_HI22 && (type) <= R_SPARC_TLS_TPOFF64))     \
     * ELF_RTYPE_CLASS_PLT)                                                    \
    | (((type) == R_SPARC_COPY) * ELF_RTYPE_CLASS_COPY))
 
-/* From glibc-2.22: sysdeps/nios2/dl-machine.h */
+/* From glibc-2.23: sysdeps/nios2/dl-machine.h */
 # define nios2_elf_machine_type_class(type)                     \
   ((((type) == R_NIOS2_JUMP_SLOT                                \
      || (type) == R_NIOS2_TLS_DTPMOD                            \
