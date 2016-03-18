@@ -263,15 +263,6 @@ void _dl_setup_hash (struct link_map *map);
 #define _dl_lookup_symbol_x64 rtld_lookup_symbol_x64
 
 /* Lookup versioned symbol.  */
-inline lookup_t _dl_lookup_symbol_x (const char *undef,
-                                     struct link_map *undef_map,
-                                     const Elf64_Sym **sym,
-                                     struct r_scope_elem *symbol_scope[],
-                                     const struct r_found_version *version,
-                                     int type_class, int flags,
-                                     struct link_map *skip_map);
-
-/* Lookup versioned symbol.  */
 lookup_t _dl_lookup_symbol_x32 (const char *undef,
                                      struct link_map *undef_map,
                                      const Elf32_Sym **sym,

@@ -287,7 +287,7 @@ fdopen_dso (int fd, const char *name)
   Elf *elf = NULL;
   GElf_Ehdr ehdr;
   GElf_Addr last_off;
-  int i, j, k, last, *sections, *invsections;
+  int i, j, k, *sections, *invsections;
   DSO *dso = NULL;
 #ifndef DSO_READONLY
   struct PLArch *plarch;
@@ -394,11 +394,10 @@ fdopen_dso (int fd, const char *name)
 
   sections = (int *) alloca (dso->ehdr.e_shnum * sizeof (int) * 2);
   sections[0] = 0;
-  for (i = 1, j = 1, k = dso->ehdr.e_shnum, last = -1;
+  for (i = 1, j = 1, k = dso->ehdr.e_shnum;
        i < dso->ehdr.e_shnum; ++i)
     if (RELOCATE_SCN (dso->shdr[i].sh_flags))
       {
-	last = i;
 	sections[j++] = i;
       }
     else
