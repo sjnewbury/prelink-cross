@@ -1,6 +1,8 @@
 #ifndef _LD_LIBS_H
 #define _LD_LIBS_H
 
+#include <stdlib.h>
+
 #include "prelinktab.h"
 
 #include <elf.h>
@@ -184,6 +186,8 @@ extern const char *rtld_progname;
 #endif
 #define _dl_debug_printf(...) printf( RTLD_DEBUG_PID ":\t" __VA_ARGS__)
 
+#define _dl_debug_printf_c printf
+
 #define __rtld_lock_lock_recursive(NAME)
 #define __rtld_lock_unlock_recursive(NAME)
 
@@ -312,6 +316,10 @@ int _dl_name_match_p (const char *name, const struct link_map *map);
 /* dl-load.c */
 
 extern void create_map_object_from_dso_ent (struct dso_list *);
+
+/* dl-open.c */
+#define _dl_show_scope rtld_show_scope
+extern void _dl_show_scope (struct link_map *l, int from);
 
 /* dl-tls.c */
 

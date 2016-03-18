@@ -1098,6 +1098,9 @@ build_local_scope (struct dso_list *ent, int max)
   ent->map->l_local_scope[0]->r_list = malloc (sizeof (struct link_map *) * max);
   ent->map->l_local_scope[0]->r_nlist = 0;
   add_to_scope (ent->map->l_local_scope, ent);
+
+  if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_SCOPES))
+    _dl_show_scope (ent->map, 0);
 }
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
@@ -1150,6 +1153,9 @@ main(int argc, char **argv)
 
   if (debug && (!strcmp(debug, "bindings") || !strcmp(debug, "all")))
     _dl_debug_mask |= DL_DEBUG_BINDINGS;
+
+  if (debug && (!strcmp(debug, "scopes") || !strcmp(debug, "all")))
+    _dl_debug_mask |= DL_DEBUG_SCOPES;
 
   while (remaining < argc)
     {
@@ -1277,13 +1283,13 @@ process_one_dso (DSO *dso, int host_paths)
   dso_list->map->l_local_scope[0]->r_nlist = i;
   cur_dso_ent = dso_list;
   i = 0;
+
   while (cur_dso_ent)
     {
       if (cur_dso_ent->map)
 	{
 	  dso_list->map->l_local_scope[0]->r_list[i] = cur_dso_ent->map;
-	  if (cur_dso_ent != dso_list)
-	    build_local_scope (cur_dso_ent, dso_list->map->l_local_scope[0]->r_nlist);
+	  build_local_scope (cur_dso_ent, dso_list->map->l_local_scope[0]->r_nlist);
 
 	  i++;
 	}
@@ -1299,6 +1305,18 @@ process_one_dso (DSO *dso, int host_paths)
   rtld_determine_tlsoffsets (dso->ehdr.e_machine, dso_list->map->l_local_scope[0]);
 
   cur_dso_ent = dso_list;
+
+  if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_SCOPES))
+   {
+      _dl_debug_printf ("Initial object scopes\n");
+
+      while (cur_dso_ent)
+	{
+	  if (cur_dso_ent->map)
+	      _dl_show_scope (cur_dso_ent->map, 0);
+	  cur_dso_ent = cur_dso_ent->next;
+	}
+   }
 
   /* In ldd mode, do not show the application. Note that we do show it
      in list-loaded-objects RTLD_TRACE_PRELINK mode.  */

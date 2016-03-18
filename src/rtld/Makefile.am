@@ -23,7 +23,7 @@ prelink_rtld_SOURCES = ../data.c ../dso.c \
 		       rtld.c ld-libs.h \
 		       dl-hash.h dl-object.c dl-load.c \
 		       dl-tls.c dl-version.c dl-misc.c \
-		       dl-lookup.c dl-lookupX.h
+		       dl-lookup.c dl-lookupX.h dl-open.c
 
 prelink_rtld_LDADD = @LIBGELF@ -liberty
 prelink_rtld_CFLAGS = -DDSO_READONLY
