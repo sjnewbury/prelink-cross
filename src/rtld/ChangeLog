@@ -1,8 +1,13 @@
+2016-03-18   Donn Seeley <donn.seeley@windriver.com>
+	* rtld.c: rewrite build_local_scope to ensure breadth-first
+		processing
+
 2016-03-18   Mark Hatle <mark.hatle@windriver.com>
 	* dl-open.c, rtld.h, Makefile.am: Add _dl_show_scope function
 	* rtld.c: Use _dl_show_scope if RTLD_DEBUG=scopes defined
 		Generate a scope for the exectuable
 	* rtld.h, ../dso.c: Fix compilation warning
+
 
 2016-03-10   Mark Hatle <mark.hatle@windriver.com>
 	* rtld/: Rsync to glibc-2.23 (no functional changes)

@@ -1073,34 +1073,37 @@ handle_relocs (DSO *dso, struct dso_list *dso_list)
 }
 
 void
-add_to_scope (struct r_scope_elem *scope[], struct dso_list *ent)
-{
-  struct needed_list *n;
-  int i;
-
-  for (i = 0; i < scope[0]->r_nlist; i++)
-    if (scope[0]->r_list[i] == ent->map)
-      return;
-
-  scope[0]->r_list[scope[0]->r_nlist++] = ent->map;
-  n = ent->needed;
-  while (n)
-    {
-      add_to_scope (scope, n->ent);
-      n = n->next;
-    }
-}
-
-void
 build_local_scope (struct dso_list *ent, int max)
 {
-  ent->map->l_local_scope[0] = malloc (sizeof (struct r_scope_elem));
-  ent->map->l_local_scope[0]->r_list = malloc (sizeof (struct link_map *) * max);
-  ent->map->l_local_scope[0]->r_nlist = 0;
-  add_to_scope (ent->map->l_local_scope, ent);
+  int i, j;
+  struct dso_list *dso, **dsos;
+  int ndsos;  struct needed_list *n;
+  struct r_scope_elem *scope;
+  struct link_map **list;
 
-  if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_SCOPES))
-    _dl_show_scope (ent->map, 0);
+  dsos = malloc (sizeof (struct dso_list *) * max);
+  dsos[0] = ent;
+  ndsos = 1;
+
+  for (i = 0; i < ndsos; ++i)
+    for (n = dsos[i]->needed; n; n = n->next)
+      {
+	dso = n->ent;
+	for (j = 0; j < ndsos; ++j)
+	  if (dsos[j]->map == dso->map)
+	    break;
+	if (j == ndsos)
+	  dsos[ndsos++] = dso;
+      }
+
+  ent->map->l_local_scope[0] = scope = malloc (sizeof (struct r_scope_elem));
+  scope->r_list = list = malloc (sizeof (struct link_map *) * max);
+  scope->r_nlist = ndsos;
+
+  for (i = 0; i < ndsos; ++i)
+    list[i] = dsos[i]->map;
+
+  free(dsos);
 }
 
 static struct argp argp = { options, parse_opt, "[FILES]", argp_doc };
