@@ -643,8 +643,8 @@ prelink_get_relocations (struct prelink_info *info)
   FILE *f;
   DSO *dso = info->dso;
   const char *argv[5];
-  const char *envp[4];
-  int i, ret, status;
+  const char *envp[5];
+  int i, j, ret, status;
   char *p;
   const char *dl = dynamic_linker ?: dso->arch->dynamic_linker;
   const char *ent_filename;
@@ -691,12 +691,20 @@ prelink_get_relocations (struct prelink_info *info)
     }
   argv[i++] = ent_filename;
   argv[i] = NULL;
-  envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
-  envp[1] = "LD_BIND_NOW=1";
+
+  j = 0;
+  if(etype == ET_EXEC && ld_preload)
+    {
+      p = alloca (sizeof "LD_PRELOAD=" + strlen (ld_preload));
+      strcpy (stpcpy (p, "LD_PRELOAD="), ld_preload);
+      envp[j++] = p;
+    }
+  envp[j++] = "LD_TRACE_LOADED_OBJECTS=1";
+  envp[j++] = "LD_BIND_NOW=1";
   p = alloca (sizeof "LD_TRACE_PRELINKING=" + strlen (info->ent->filename));
   strcpy (stpcpy (p, "LD_TRACE_PRELINKING="), info->ent->filename);
-  envp[2] = p;
-  envp[3] = NULL;
+  envp[j++] = p;
+  envp[j] = NULL;
 
   ret = 2;
   f = execve_open (dl, (char * const *)argv, (char * const *)envp);

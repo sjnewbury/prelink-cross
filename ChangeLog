@@ -1,4 +1,8 @@
-2016-22-28   Mark Hatle <mark.hatle@windriver.com>
+2016-03-22   Mark Hatle <mark.hatle@windriver.com>
+	* src/gather.c, src/get.c: Fix LD_PRELOAD
+	* Merge with cross_prelink
+
+2016-03-22   Mark Hatle <mark.hatle@windriver.com>
 	* Merge with cross_prelink
 
 2016-03-18   Donn Seeley <donn.seeley@windriver.com>
