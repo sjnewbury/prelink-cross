@@ -166,10 +166,20 @@ gather_deps (DSO *dso, struct prelink_entry *ent)
         }
       argv[i++] = ent_filename;
       argv[i] = NULL;
-      envp[0] = "LD_TRACE_LOADED_OBJECTS=1";
-      envp[1] = "LD_TRACE_PRELINKING=1";
-      envp[2] = "LD_WARN=";
-      envp[3] = NULL;
+
+      j = 0;
+      if(etype == ET_EXEC && ld_preload)
+        {
+          p = alloca (sizeof "LD_PRELOAD=" + strlen (ld_preload) + 1);
+          strcpy (stpcpy (p, "LD_PRELOAD="), ld_preload);
+          envp[j++] = p;
+        }
+
+      envp[j++] = "LD_TRACE_LOADED_OBJECTS=1";
+      envp[j++] = "LD_TRACE_PRELINKING=1";
+      envp[j++] = "LD_WARN=";
+      envp[j] = NULL;
+
       f = execve_open (dl, (char * const *)argv, (char * const *)envp);
     }
   else
