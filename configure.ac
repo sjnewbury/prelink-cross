@@ -1,11 +1,12 @@
 dnl Process this file with autoconf to produce a configure script. -*-m4-*-
-AC_INIT(src/prelink.c)
+AC_INIT([prelink], [1.0])
 AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 AC_PREREQ(2.50)			dnl Minimum Autoconf version required.
 AC_CANONICAL_SYSTEM
 AC_ARG_PROGRAM
 
-AM_INIT_AUTOMAKE([prelink], [0.0])
+AM_INIT_AUTOMAKE([subdir-objects gnu 1.4])
 
 ALL_LINGUAS=
 

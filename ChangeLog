@@ -1,3 +1,19 @@
+2016-22-28   Mark Hatle <mark.hatle@windriver.com>
+	* Merge with cross_prelink
+
+2016-03-18   Donn Seeley <donn.seeley@windriver.com>
+	* testsuite/order: Add test to verify prelink/prelink-rtld resolution
+		order
+
+2016-03-18  Mark Hatle <mark.hatle@windriver.com>
+	* src/dso.c: Fix compilation warning
+
+2016-03-10  Mark Hatle <mark.hatle@windriver.com>
+	* configure.ac, m4/libelf.m4, doc/Makefile.am, gelf/Makefile.am,
+	  gelfx/Makefile.am, gelfx32/Makefile.am, patches/Makefile.am,
+	  src/Makefile.am, testsuite/Makefile.am:
+		Update to avoid autoconf/automake warnings
+
 2015-10-29  Mark Hatle <mark.hatle@windriver.com>
 	    Kyle McMartin  <kmcmartin@redhat.com>
 	    Jakub Jelinek  <jakub@redhat.com>

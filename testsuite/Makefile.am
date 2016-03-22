@@ -1,7 +1,5 @@
 ## Process this file with automake to create Makefile.in
 
-AUTOMAKE_OPTIONS = 1.4 gnu
-
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -Wall
 AM_CFLAGS = -Wall
 
@@ -16,7 +14,7 @@ TESTS = movelibs.sh \
 	cycle1.sh cycle2.sh \
 	deps1.sh deps2.sh \
 	ifunc1.sh ifunc2.sh ifunc3.sh \
-	undosyslibs.sh preload1.sh
+	undosyslibs.sh preload1.sh order.sh
 TESTS_ENVIRONMENT = \
 	PRELINK="../src/prelink -c ./prelink.conf -C ./prelink.cache --ld-library-path=. --dynamic-linker=`echo ./ld*.so.*[0-9]`" \
 	CC="$(CC) $(LINKOPTS)" CCLINK="$(CC) -Wl,--dynamic-linker=`echo ./ld*.so.*[0-9]`" \

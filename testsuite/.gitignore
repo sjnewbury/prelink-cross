@@ -27,6 +27,8 @@ reloc2
 reloc3
 reloc6
 reloc7
+reloc8
+reloc9
 shuffle1
 shuffle2
 shuffle3
@@ -45,4 +47,5 @@ tls6
 tls7
 tlstest
 undo1
+order
 

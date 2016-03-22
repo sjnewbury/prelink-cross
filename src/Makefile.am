@@ -1,7 +1,5 @@
 ## Process this file with automake to create Makefile.in
 
-AUTOMAKE_OPTIONS = 1.4 gnu
-
 PKGVERSION = "\"@PKGVERSION@\""
 REPORT_BUGS_TO = "\"@REPORT_BUGS_TO@\""
 
@@ -13,7 +11,7 @@ AM_CPPFLAGS = -DSBINDIR='"@sbindir@"' -DBINDIR='"@bindir@"' \
 	    -DEXEEXT='"$(EXEEXT)"' \
 	    -DPKGVERSION=$(PKGVERSION) \
 	    -DREPORT_BUGS_TO=$(REPORT_BUGS_TO)
-INCLUDES = @GELFINCLUDE@
+AM_CPPFLAGS += @GELFINCLUDE@
 
 sbin_PROGRAMS = prelink
 bin_PROGRAMS = execstack
