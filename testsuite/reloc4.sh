@@ -12,7 +12,7 @@ $CC -O2 -o reloc4.tmp $srcdir/reloc4.c
 ./reloc4lib2.tmp > reloc4lib2.tmp.c
 ./reloc4lib3.tmp > reloc4lib3.tmp.c
 ./reloc4.tmp > reloc4.tmp.c
-case "`$RUN uname -m`" in
+case "`uname -m`" in
   mips*) extra=-mxgot ;;
   *) extra= ;;
 esac
