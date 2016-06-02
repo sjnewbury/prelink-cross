@@ -72,6 +72,91 @@ update_dynamic_tags (DSO *dso, GElf_Shdr *shdr, GElf_Shdr *old_shdr,
   return 0;
 }
 
+static int
+check_reorder_needed(DSO *dso, struct section_move *moves, int fixed_shstrndx,
+	int fixed_undo, int fixed_strtab, int fixed_symtab)
+{
+   const char *shstrtab_str =
+      strptr (dso, fixed_shstrndx, dso->shdr[fixed_shstrndx].sh_name);
+   const char *prelink_undo_str =
+      strptr (dso, fixed_shstrndx, dso->shdr[fixed_undo].sh_name);
+   const char *strtab_str =
+      strptr (dso, fixed_shstrndx, dso->shdr[fixed_strtab].sh_name);
+   const char *symtab_str =
+      strptr (dso, fixed_shstrndx, dso->shdr[fixed_symtab].sh_name);
+
+   if (!shstrtab_str || !prelink_undo_str || !strtab_str || !symtab_str
+      || strcmp (shstrtab_str, ".shstrtab")
+      || strcmp(prelink_undo_str, ".gnu.prelink_undo")
+      || strcmp(strtab_str, ".strtab")
+      || strcmp(symtab_str, ".symtab")
+      || (moves->old_to_new[fixed_shstrndx] == fixed_shstrndx)
+      || (dso->shdr[fixed_shstrndx].sh_offset < dso->shdr[fixed_strtab].sh_offset)
+      || (dso->shdr[fixed_shstrndx].sh_offset < dso->shdr[fixed_symtab].sh_offset))
+      return 0;
+
+   return 1; 
+}
+
+/*
+ * Some linkers create a binary which has a section header table that is
+ * not in section header offset order.  However, as noted in check_dso(),
+ * several routines in prelink and in libelf-0.7.0 too rely on sh_offsets
+ * monotonically increasing, and if that fails then prelink quits.  But
+ * the check is only on dso's, not binaries.  For binaries, fdopen_dso()
+ * reorders the section headers to section header offset order prior to
+ * work on the section data, so that the new prelinked binary is written
+ * in section order.
+ * However, on subsequent prelinks of a prelinked binary, the
+ * prelink_exec() works on the undone section, not the fdopen_dso()
+ * reordered sections, and may construct a section header table with
+ * section orders different than the first prelink of the binary.
+ * The function below tests for that case and resets the section header
+ * order to the offset order by enforcing the binutils linker change:
+ * 'The net effect is .shstrab section is now placed after .symtab and
+ * .strtab sections'. See binutils-gdb.git commit 3e19fb8f990e4c.
+ */
+static void
+section_reorder_fix(DSO *dso, GElf_Shdr *shdr, struct section_move *move,
+	int *undo)
+{
+  int i;
+  int fixed_shstrndx = dso->ehdr.e_shstrndx;
+  int fixed_undo = fixed_shstrndx - 1;
+  int fixed_strtab  = fixed_shstrndx- 2;
+  int fixed_symtab = fixed_shstrndx - 3;
+  int section_reorder_cnt = 4;
+  GElf_Shdr undone_shdr[dso->ehdr.e_shnum];
+
+  if (!check_reorder_needed(dso, move,
+      fixed_shstrndx, fixed_undo, fixed_strtab, fixed_symtab))
+    return;
+
+  /* get a copy of the undo section's shdr ordering */
+  for (i = 0 ; i < dso->ehdr.e_shnum; ++i)
+    undone_shdr[i] = shdr[i];
+
+  /* copy the undo section's shdr to the corrected index */
+  for (i = 0 ; i < section_reorder_cnt; ++i)
+    {
+      int ndx = fixed_shstrndx - i;
+      if (ndx != fixed_undo)
+	{
+	  shdr[ndx] = undone_shdr[move->old_to_new[ndx]];
+	  move->old_to_new[ndx] = ndx;
+	  move->new_to_old[ndx] = ndx;
+	}
+      else
+	{
+	  shdr[fixed_undo] = undone_shdr[*undo];
+	  /* the moves are specially flagged for the undo secton */
+	  move->old_to_new[fixed_undo] = -1;
+	  move->new_to_old[fixed_undo] = -1;
+	}
+    }
+  *undo = fixed_undo;
+}
+
 int
 prelink_exec (struct prelink_info *info)
 {
@@ -93,6 +178,7 @@ prelink_exec (struct prelink_info *info)
   Elf32_Lib *liblist = NULL;
   struct readonly_adjust adjust;
   struct section_move *move = NULL;
+  int undo_sections_done = 0;
 
   if (prelink_build_conflicts (info))
     return 1;
@@ -140,7 +226,9 @@ error_out:
 	  goto error_out;
 	}
       memcpy (dso->undo.d_buf, data->d_buf, data->d_size);
+
       ehdr.e_shstrndx = dso->ehdr.e_shstrndx;
+      undo_sections_done = 1;
     }
   undo = 0;
 
@@ -438,6 +526,10 @@ error_out:
   ehdr.e_shnum = dso->ehdr.e_shnum;
   dso->ehdr = ehdr;
   memcpy (dso->phdr, phdr, ehdr.e_phnum * sizeof (GElf_Phdr));
+
+  if (undo_sections_done)
+    section_reorder_fix(dso, shdr, move, &undo);
+
   if (reopen_dso (dso, move, NULL))
     goto error_out;
 
