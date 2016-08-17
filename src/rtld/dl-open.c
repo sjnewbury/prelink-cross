@@ -25,12 +25,14 @@ _dl_show_scope (struct link_map *l, int from)
 {
   _dl_debug_printf ("object=%s [%lu]\n",
 		    DSO_FILENAME (l->l_name), 0UL);
-  if (l->l_local_scope != NULL)
-    for (int scope_cnt = from; l->l_local_scope[scope_cnt] != NULL; ++scope_cnt)
+  if (l->l_local_scope != NULL) {
+    int scope_cnt;
+    for (scope_cnt = from; l->l_local_scope[scope_cnt] != NULL; ++scope_cnt)
       {
 	_dl_debug_printf (" scope %u:", scope_cnt);
 
-	for (unsigned int cnt = 0; cnt < l->l_local_scope[scope_cnt]->r_nlist; ++cnt)
+	unsigned int cnt;
+	for (cnt = 0; cnt < l->l_local_scope[scope_cnt]->r_nlist; ++cnt)
 	  if (*l->l_local_scope[scope_cnt]->r_list[cnt]->l_name)
 	    _dl_debug_printf_c (" %s",
 				l->l_local_scope[scope_cnt]->r_list[cnt]->l_name);
@@ -39,6 +41,7 @@ _dl_show_scope (struct link_map *l, int from)
 
 	_dl_debug_printf_c ("\n");
       }
+    }
   else
     _dl_debug_printf (" no scope\n");
   _dl_debug_printf ("\n");
