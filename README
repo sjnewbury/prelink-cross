@@ -19,3 +19,21 @@ Cc: yocto@yoctoproject.org
 Subject: [prelink-cross] ....
 
 
+Known Issues
+------------
+
+The --preload option does not always work.  The preload1 test currently fails.
+
+quick2 test will fail if you do not have static libc installed.
+
+IFUNC on glibc.  glibc appears to have a bug related to specific IFUNC
+ordering.  build_local_scope in glibc is processing depth first instead of
+breadth-first processing as it should be.  The prelink-rtld version works
+around this issue.  (Prelink-rtld is only available in the cross compile
+version.)  See:
+
+https://bugzilla.yoctoproject.org/show_bug.cgi?id=9131
+
+ARM & PPC: both are currently failing the reloc8 and reloc9 test
+Further investigation is in progress on these items.  Until an explanation
+is found, you should hold off using this for ARM and PPC.
