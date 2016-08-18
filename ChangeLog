@@ -1,4 +1,7 @@
 2016-08-17   Mark Hatle <mark.hatle@windriver.com>
+	* README: Update to include a few known issues
+
+2016-08-17   Mark Hatle <mark.hatle@windriver.com>
 	* src/rtld/dl-open.c: Change to work with older compilers
 
 2016-06-03   Dave Lerner <dave.lerner@windriver.com>
