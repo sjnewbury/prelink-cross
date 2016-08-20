@@ -1,3 +1,7 @@
+2016-08-19   Mark Hatle <mark.hatle@windriver.com>
+	* README, testsuite/reloc8.sh, testsuite/reloc9.sh:
+		update to expand on reloc8 and reloc9 failures
+
 2016-08-17   Mark Hatle <mark.hatle@windriver.com>
 	* README: Update to include a few known issues
 

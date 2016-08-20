@@ -20,14 +20,19 @@ $RUN_HOST $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc8lib2.so $srcdir/relo
 BINS="reloc8"
 LIBS="reloc8lib1.so reloc8lib2.so"
 $RUN_HOST $CCLINK -o reloc8 $NOCOPYRELOC $srcdir/reloc7.c -Wl,--rpath-link,. reloc8lib2.so -lc reloc8lib1.so
-savelibs
-echo $PRELINK ${PRELINK_OPTS--vm} ./reloc8 > reloc8.log
-$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc8 >> reloc8.log 2>&1 || exit 1
-grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc8.log && exit 2
+echo > reloc8.log
 if [ "x$CROSS" = "x" ]; then
- $RUN LD_LIBRARY_PATH=. ./reloc8 >> reloc8.log || exit 3
+ $RUN LD_LIBRARY_PATH=. ./reloc8 >> reloc8.log || exit 1
 fi
-$RUN_HOST $READELF -a ./reloc8 >> reloc8.log 2>&1 || exit 4
+$RUN_HOST $READELF -a ./reloc8 >> reloc8.log 2>&1 || exit 2
+savelibs
+echo $PRELINK ${PRELINK_OPTS--vm} ./reloc8 >> reloc8.log
+$RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./reloc8 >> reloc8.log 2>&1 || exit 3
+grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc8.log && exit 4
+if [ "x$CROSS" = "x" ]; then
+ $RUN LD_LIBRARY_PATH=. ./reloc8 >> reloc8.log || exit 5
+fi
+$RUN_HOST $READELF -a ./reloc8 >> reloc8.log 2>&1 || exit 6
 # So that it is not prelinked again
 chmod -x ./reloc8
-comparelibs >> reloc8.log 2>&1 || exit 5
+comparelibs >> reloc8.log 2>&1 || exit 7

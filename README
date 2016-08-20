@@ -33,7 +33,11 @@ around this issue.  (Prelink-rtld is only available in the cross compile
 version.)  See:
 
 https://bugzilla.yoctoproject.org/show_bug.cgi?id=9131
+https://sourceware.org/bugzilla/show_bug.cgi?id=20488
 
-ARM & PPC: both are currently failing the reloc8 and reloc9 test
-Further investigation is in progress on these items.  Until an explanation
-is found, you should hold off using this for ARM and PPC.
+ARM & PPC: both are currently failing the reloc8 and reloc9 tests.  The
+issue has been traced down to the latest binutils being unable to link with
+'-Wl,-z,nocopyreloc'.  This problem is not related to prelink, as the binaries
+fail before being prelinked.  See:
+
+https://bugzilla.yoctoproject.org/show_bug.cgi?id=10168
