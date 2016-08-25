@@ -1,3 +1,6 @@
+2017-06-20   Kyle Russell <bkylerussell@gmail.com>
+	* src/rtld/rtld.c: Add missing DT_NEEDED DSOs to needed_list
+
 2017-06-20   Mark Hatle <mark.hatle@windriver.com>
 	* doc/Makefile.am: Disable automatic generation of prelink.pdf
 

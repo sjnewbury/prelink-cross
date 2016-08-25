@@ -698,6 +698,25 @@ find_lib_by_soname (const char *soname, struct dso_list *loader,
   return NULL;
 }
 
+static void
+add_dso_to_needed (struct dso_list *cur_dso_ent, struct dso_list *new_dso_ent)
+{
+  if (!cur_dso_ent->needed)
+    {
+      cur_dso_ent->needed = malloc (sizeof (struct needed_list));
+      cur_dso_ent->needed_tail = cur_dso_ent->needed;
+      cur_dso_ent->needed_tail->ent = new_dso_ent;
+      cur_dso_ent->needed_tail->next = NULL;
+    }
+  else if (!in_needed_list (cur_dso_ent->needed, new_dso_ent->name))
+    {
+      cur_dso_ent->needed_tail->next = malloc (sizeof (struct needed_list));
+      cur_dso_ent->needed_tail = cur_dso_ent->needed_tail->next;
+      cur_dso_ent->needed_tail->ent = new_dso_ent;
+      cur_dso_ent->needed_tail->next = NULL;
+    }
+}
+
 static struct dso_list *
 load_dsos (DSO *dso, int host_paths)
 {
@@ -824,6 +843,8 @@ load_dsos (DSO *dso, int host_paths)
 			  dso_list_tail->canon_filename = strdup(soname);
 			  dso_list_tail->err_no = errno;
 
+                          add_dso_to_needed(cur_dso_ent, new_dso_ent);
+
 			  continue;
 			}
 
@@ -866,20 +887,7 @@ load_dsos (DSO *dso, int host_paths)
 			dso_list_tail->name = new_dso->soname;
 		    }
 
-		  if (!cur_dso_ent->needed)
-		    {
-		      cur_dso_ent->needed = malloc (sizeof (struct needed_list));
-		      cur_dso_ent->needed_tail = cur_dso_ent->needed;
-		      cur_dso_ent->needed_tail->ent = new_dso_ent;
-		      cur_dso_ent->needed_tail->next = NULL;
-		    }
-		  else if (!in_needed_list (cur_dso_ent->needed, soname))
-		    {
-		      cur_dso_ent->needed_tail->next = malloc (sizeof (struct needed_list));
-		      cur_dso_ent->needed_tail = cur_dso_ent->needed_tail->next;
-		      cur_dso_ent->needed_tail->ent = new_dso_ent;
-		      cur_dso_ent->needed_tail->next = NULL;
-		    }
+                  add_dso_to_needed(cur_dso_ent, new_dso_ent);
 
 		  continue;
 		}
