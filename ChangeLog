@@ -1,3 +1,7 @@
+2017-06-20  Joseph Myers  <joseph@codesourcery.com>
+	* src/rtld/rtld.c (load_ld_so_conf): Add argument use_x32.
+	(main): Update call to load_ld_so_conf.
+
 2017-06-20   Kyle Russell <bkylerussell@gmail.com>
 	* src/rtld/rtld.c: Add missing DT_NEEDED DSOs to needed_list
 

@@ -421,7 +421,7 @@ free_path (struct search_path *path)
 }
 
 void
-load_ld_so_conf (int use_64bit, int use_mipsn32)
+load_ld_so_conf (int use_64bit, int use_mipsn32, int use_x32)
 {
   int fd;
   FILE *conf;
@@ -446,6 +446,14 @@ load_ld_so_conf (int use_64bit, int use_mipsn32)
       add_dir (&ld_dirs, "/lib32", strlen ("/lib32"));
       add_dir (&ld_dirs, "/usr/lib32/tls", strlen ("/usr/lib32/tls"));
       add_dir (&ld_dirs, "/usr/lib32", strlen ("/usr/lib32"));
+    }
+  else if (use_x32)
+    {
+      dst_LIB = "libx32";
+      add_dir (&ld_dirs, "/libx32/tls", strlen ("/libx32/tls"));
+      add_dir (&ld_dirs, "/libx32", strlen ("/libx32"));
+      add_dir (&ld_dirs, "/usr/libx32/tls", strlen ("/usr/libx32/tls"));
+      add_dir (&ld_dirs, "/usr/libx32", strlen ("/usr/libx32"));
     }
   else
     {
@@ -1215,7 +1223,8 @@ main(int argc, char **argv)
 	}
 
       load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64, 
-		( dso->ehdr.e_machine == EM_MIPS) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ) );
+		( dso->ehdr.e_machine == EM_MIPS) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ),
+		dso->ehdr.e_machine == EM_X86_64 && gelf_getclass (dso->elf) == ELFCLASS32);
 
       if (multiple)
 	printf ("%s:\n", argv[remaining]);
