@@ -1,6 +1,7 @@
 2017-06-20  Andrew Stubbs  <ams@codesourcery.com>
 	* src/arch-x86_64.c (x86_64_prelink_conflict_rela): Also convert
 	R_X86_64_32 conflicts to R_X86_64_IRELATIVE for ifuncs.
+	* src/arch-x86_64.c (PL_ARCH(x32)): Set mmap_end to 0x60000000.
 
 2017-06-20  Joseph Myers  <joseph@codesourcery.com>
 	* src/rtld/rtld.c (load_ld_so_conf): Add argument use_x32.
