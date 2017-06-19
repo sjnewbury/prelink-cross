@@ -133,6 +133,11 @@ rtld_determine_tlsoffsets (int e_machine, struct r_scope_elem *search_list)
       tls_tcb_size = 0;
       break;
 
+    case EM_MICROBLAZE:
+      tls_dtv_at_tp = 1;
+      tls_tcb_size = 8;
+      break;
+
     default:
       /* Hope there's no TLS!  */
       for (i = 0; i < search_list->r_nlist; i++)

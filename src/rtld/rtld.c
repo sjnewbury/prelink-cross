@@ -215,6 +215,15 @@ parse_opt (int key, char *arg, struct argp_state *state)
    | (((type) == R_NIOS2_COPY) * ELF_RTYPE_CLASS_COPY)          \
    | (((type) == R_NIOS2_GLOB_DAT) * ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(EM_ALTERA_NIOS2)))
 
+/* From glibc-2.24: sysdeps/microblaze/dl-machine.h */
+# define microblaze_elf_machine_type_class(type) \
+  (((type) == R_MICROBLAZE_JUMP_SLOT || \
+    (type) == R_MICROBLAZE_TLSDTPREL32 || \
+    (type) == R_MICROBLAZE_TLSDTPMOD32 || \
+    (type) == R_MICROBLAZE_TLSTPREL32) \
+    * ELF_RTYPE_CLASS_PLT \
+   | ((type) == R_MICROBLAZE_COPY) * ELF_RTYPE_CLASS_COPY)
+
 int
 elf_machine_type_class (int type, int machine)
 {
@@ -243,6 +252,8 @@ elf_machine_type_class (int type, int machine)
 	return sparc64_elf_machine_type_class(type);
     case EM_ALTERA_NIOS2:
 	return nios2_elf_machine_type_class(type);
+    case EM_MICROBLAZE:
+	return microblaze_elf_machine_type_class(type);
 
     default:
       printf ("Unknown architecture!\n");
@@ -284,6 +295,7 @@ machine_no_rela (int machine)
     case EM_SPARC32PLUS:
     case EM_SPARCV9:
     case EM_ALTERA_NIOS2:
+    case EM_MICROBLAZE:
       return 0;
     default:
       return 1;
