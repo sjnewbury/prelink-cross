@@ -332,15 +332,12 @@ x86_64_prelink_conflict_rela (DSO *dso, struct prelink_info *info,
       ret->r_info = GELF_R_INFO (0, (gelf_getclass (dso->elf) == ELFCLASS32 ? R_X86_64_32 : R_X86_64_64));
       /* FALLTHROUGH */
     case R_X86_64_JUMP_SLOT:
+    case R_X86_64_32:
     case R_X86_64_64:
     case R_X86_64_IRELATIVE:
       ret->r_addend = value + rela->r_addend;
       if (conflict != NULL && conflict->ifunc)
 	ret->r_info = GELF_R_INFO (0, R_X86_64_IRELATIVE);
-      break;
-    case R_X86_64_32:
-      value += rela->r_addend;
-      ret->r_addend = value;
       break;
     case R_X86_64_PC32:
       ret->r_addend = value + rela->r_addend - rela->r_offset;
@@ -598,7 +595,7 @@ PL_ARCH(x32) = {
      Also, if this guard area isn't too small, typically
      even dlopened libraries will get the slots they desire.  */
   .mmap_base = 0x41000000,
-  .mmap_end =  0x50000000,
+  .mmap_end =  0x60000000,
   .max_page_size = 0x200000,
   .page_size = 0x1000
 };
