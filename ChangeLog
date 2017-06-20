@@ -1,3 +1,6 @@
+2017-06-20   Mark Hatle <mark.hatle@windriver.com>
+	* doc/Makefile.am: Disable automatic generation of prelink.pdf
+
 2017-06-19   Nathan Rossi <nathan@nathanrossi.com>
 	* src/rtld/dl-tls.c, src/rtld/rtld.c: Add definitions/conf to
 		support MicroBlaze, using glibc-2.24 as reference.
