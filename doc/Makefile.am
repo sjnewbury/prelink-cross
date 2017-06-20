@@ -5,7 +5,7 @@ EXTRA_DIST = prelink.8 execstack.8 prelink.conf
 PDFLATEXINPUTS = TEXINPUTS_pdflatex=.:$(srcdir):`kpsewhich --progname=pdflatex --show-path=cnf.pdflatex`
 LATEXINPUTS = TEXINPUTS_latex=.:$(srcdir):`kpsewhich --progname=latex --show-path=cnf.latex`
 
-noinst_DATA = prelink.pdf
+noinst_DATA = # prelink.pdf
 pics = gap bss basemove newseg dso1 dso2 dso3
 
 prelink.pdf: prelink.tex $(pics:=.fig) linuxtag.sty \

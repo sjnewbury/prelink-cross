@@ -18,12 +18,14 @@ $CC -shared -O2 -Wl,-z,nocombreloc -fpic -o reloc9lib2.so $srcdir/reloc1lib2.c r
 BINS="reloc9"
 LIBS="reloc9lib1.so reloc9lib2.so"
 $CCLINK -o reloc9 -Wl,-z,nocombreloc $NOCOPYRELOC $srcdir/reloc7.c -Wl,--rpath-link,. reloc9lib2.so -lc reloc9lib1.so
+LD_LIBRARY_PATH=. ./reloc9 > reloc9.log || exit 1
+readelf -a ./reloc9 >> reloc9.log 2>&1 || exit 2
 savelibs
-echo $PRELINK ${PRELINK_OPTS--vm} ./reloc9 > reloc9.log
-$PRELINK ${PRELINK_OPTS--vm} ./reloc9 >> reloc9.log 2>&1 || exit 1
-grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc9.log && exit 2
-LD_LIBRARY_PATH=. ./reloc9 >> reloc9.log || exit 3
+echo $PRELINK ${PRELINK_OPTS--vm} ./reloc9 >> reloc9.log
+$PRELINK ${PRELINK_OPTS--vm} ./reloc9 >> reloc9.log 2>&1 || exit 3
+grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` reloc9.log && exit 4
+LD_LIBRARY_PATH=. ./reloc9 >> reloc9.log || exit 4
 readelf -a ./reloc9 >> reloc9.log 2>&1 || exit 4
 # So that it is not prelinked again
 chmod -x ./reloc9
-comparelibs >> reloc9.log 2>&1 || exit 5
+comparelibs >> reloc9.log 2>&1 || exit 7
