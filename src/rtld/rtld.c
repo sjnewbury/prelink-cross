@@ -224,6 +224,17 @@ parse_opt (int key, char *arg, struct argp_state *state)
     * ELF_RTYPE_CLASS_PLT \
    | ((type) == R_MICROBLAZE_COPY) * ELF_RTYPE_CLASS_COPY)
 
+/* From glibc-2.27: sysdeps/riscv/dl-machine.h */
+#define riscv_elf_machine_type_class(type)                      \
+  ((ELF_RTYPE_CLASS_PLT * ((type) == R_RISCV_JUMP_SLOT          \
+     || ((type) == R_RISCV_TLS_DTPREL32)    \
+     || ((type) == R_RISCV_TLS_DTPMOD32)    \
+     || ((type) == R_RISCV_TLS_TPREL32)     \
+     || ((type) == R_RISCV_TLS_DTPREL64)    \
+     || ((type) == R_RISCV_TLS_DTPMOD64)    \
+     || ((type) == R_RISCV_TLS_TPREL64)))   \
+   | (ELF_RTYPE_CLASS_COPY * ((type) == R_RISCV_COPY)))
+
 int
 elf_machine_type_class (int type, int machine)
 {
@@ -254,6 +265,8 @@ elf_machine_type_class (int type, int machine)
 	return nios2_elf_machine_type_class(type);
     case EM_MICROBLAZE:
 	return microblaze_elf_machine_type_class(type);
+    case EM_RISCV:
+	return riscv_elf_machine_type_class(type);
 
     default:
       printf ("Unknown architecture!\n");
@@ -296,6 +309,7 @@ machine_no_rela (int machine)
     case EM_SPARCV9:
     case EM_ALTERA_NIOS2:
     case EM_MICROBLAZE:
+    case EM_RISCV:
       return 0;
     default:
       return 1;
@@ -329,6 +343,8 @@ is_ldso_soname (const char *soname)
       || ! strcmp (soname, "ld-linux-aarch64.so.1")
       || ! strcmp (soname, "ld-linux-aarch64_be.so.1")
       || ! strcmp (soname, "ld-linux-nios2.so.1")
+      || ! strcmp (soname, "ld-linux-riscv64-lp64.so.1")
+      || ! strcmp (soname, "ld-linux-riscv64-lp64d.so.1")
      )
     return 1;
   return 0;
@@ -1222,9 +1238,9 @@ main(int argc, char **argv)
 	  goto exit;
 	}
 
-      load_ld_so_conf (gelf_getclass (dso->elf) == ELFCLASS64, 
-		( dso->ehdr.e_machine == EM_MIPS) && ( dso->ehdr.e_flags & EF_MIPS_ABI2 ),
-		dso->ehdr.e_machine == EM_X86_64 && gelf_getclass (dso->elf) == ELFCLASS32);
+      load_ld_so_conf ( (gelf_getclass (dso->elf) == ELFCLASS64) && (dso->ehdr.e_machine != EM_RISCV),
+		(dso->ehdr.e_machine == EM_MIPS) && (dso->ehdr.e_flags & EF_MIPS_ABI2),
+		dso->ehdr.e_machine == EM_X86_64 && gelf_getclass (dso->elf) == ELFCLASS32 );
 
       if (multiple)
 	printf ("%s:\n", argv[remaining]);

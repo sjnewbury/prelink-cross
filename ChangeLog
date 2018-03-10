@@ -1,3 +1,8 @@
+2018-08-29   Khem Raj <raj.khem@gmail.com>
+	* src/elf.h: Add RISC-V defines
+	* src/rtld/dl-tls.c: Add RISC-V support
+	* src/rtld/rtld.c: Add RISC-V support
+
 2018-08-29  Robert Yang  <liezhi.yang@windriver.com>
 	* src/dso.c: use ehdr.e_shstrndx as index
 

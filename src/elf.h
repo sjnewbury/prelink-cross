@@ -254,7 +254,8 @@ typedef struct
 #define EM_TILEPRO	188		/* Tilera TILEPro */
 #define EM_MICROBLAZE	189		/* Xilinx MicroBlaze */
 #define EM_TILEGX	191		/* Tilera TILE-Gx */
-#define EM_NUM		192
+#define EM_RISCV	243		/* RISC-V */
+#define EM_NUM		244
 
 /* If it is necessary to assign new unofficial EM_* values, please
    pick large random numbers (0x8523, 0xa7f2, etc.) to minimize the
@@ -3556,6 +3557,28 @@ enum
 
 #define R_TILEGX_NUM		130
 
+/* RISC-V ELF Flags */
+#define EF_RISCV_RVC			0x0001
+#define EF_RISCV_FLOAT_ABI		0x0006
+#define EF_RISCV_FLOAT_ABI_SOFT		0x0000
+#define EF_RISCV_FLOAT_ABI_SINGLE	0x0002
+#define EF_RISCV_FLOAT_ABI_DOUBLE	0x0004
+#define EF_RISCV_FLOAT_ABI_QUAD		0x0006
+
+/* RISC-V relocations.  */
+#define R_RISCV_NONE		0
+#define R_RISCV_32		1
+#define R_RISCV_64		2
+#define R_RISCV_RELATIVE	3
+#define R_RISCV_COPY		4
+#define R_RISCV_JUMP_SLOT	5
+#define R_RISCV_TLS_DTPMOD32	6
+#define R_RISCV_TLS_DTPMOD64	7
+#define R_RISCV_TLS_DTPREL32	8
+#define R_RISCV_TLS_DTPREL64	9
+#define R_RISCV_TLS_TPREL32	10
+#define R_RISCV_TLS_TPREL64	11
+#define R_RISCV_NUM		12
 
 __END_DECLS
 
