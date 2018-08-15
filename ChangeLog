@@ -1,3 +1,6 @@
+2018-08-29  Robert Yang  <liezhi.yang@windriver.com>
+	* src/dso.c: use ehdr.e_shstrndx as index
+
 2017-06-20  Andrew Stubbs  <ams@codesourcery.com>
 	* src/arch-x86_64.c (x86_64_prelink_conflict_rela): Also convert
 	R_X86_64_32 conflicts to R_X86_64_IRELATIVE for ifuncs.
