@@ -1641,7 +1641,7 @@ close_dso_1 (DSO *dso)
     {
       int i;
 
-      for (i = 1; i < dso->ehdr.e_shnum; ++i)
+      for (i = 1; i < dso->ehdr.e_shstrndx; ++i)
 	{
 	  Elf_Scn *scn = dso->scn[i];
 	  Elf_Data *data = NULL;
