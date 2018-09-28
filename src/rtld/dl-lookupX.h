@@ -679,10 +679,10 @@ _dl_lookup_symbol_x (const char *undef_name, struct link_map *undef_map,
 	    if (do_lookup_x (undef_name, new_hash, &old_hash, *ref,
 			     &protected_value, *scope, i, version, flags,
 			     skip_map,
-			     (ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(skip_map->machine)
+			     (ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(undef_map->machine)
 			      && ELFW(ST_TYPE) ((*ref)->st_info) == STT_OBJECT
-			      && type_class == ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(skip_map->machine))
-			     ? ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(skip_map->machine)
+			      && type_class == ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(undef_map->machine))
+			     ? ELF_RTYPE_CLASS_EXTERN_PROTECTED_DATA(undef_map->machine)
 			     : ELF_RTYPE_CLASS_PLT, NULL) != 0)
 	      break;
 
