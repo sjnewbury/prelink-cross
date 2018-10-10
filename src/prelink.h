@@ -298,6 +298,7 @@ int reopen_dso (DSO *dso, struct section_move *move, const char *);
 int adjust_symbol_p (DSO *dso, GElf_Sym *sym);
 int check_dso (DSO *dso);
 int dso_is_rdwr (DSO *dso);
+int dso_is_pie(DSO *dso);
 void read_dynamic (DSO *dso);
 int set_dynamic (DSO *dso, GElf_Word tag, GElf_Addr value, int fatal);
 int addr_to_sec (DSO *dso, GElf_Addr addr);

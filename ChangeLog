@@ -1,4 +1,8 @@
 2018-10-12   Sergei Trofimovich <slyfox@gentoo.org>
+	* src/arch-x86_64.c, src/dso.c, src/prelink.h: Allow prelink of
+	pie executables with COPY relocs
+
+2018-10-12   Sergei Trofimovich <slyfox@gentoo.org>
 	* tessuite/functions.sh: Avoid timestamp drift
 
 2018-10-12   Joseph Myers <joseph@codesourcery.com>

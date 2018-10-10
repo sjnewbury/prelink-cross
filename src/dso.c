@@ -1141,6 +1141,25 @@ adjust_old_to_new (DSO *dso, GElf_Addr addr)
   return addr;
 }
 
+/* Return true is DSO is position independent executable.
+
+   There is no simple way to distinct between shared library
+   and PIE executable.  Use presence of interpreter as a heuristic.  */
+
+int dso_is_pie(DSO *dso)
+{
+  int i;
+
+  if (dso->ehdr.e_type != ET_DYN)
+    return 0;
+
+  for (i = 0; i < dso->ehdr.e_phnum; ++i)
+    if (dso->phdr[i].p_type == PT_INTERP)
+      return 1;
+
+  return 0;
+}
+
 GElf_Addr
 adjust_new_to_old (DSO *dso, GElf_Addr addr)
 {
