@@ -43,7 +43,7 @@ grep -q 'lib/lib2.so because its dependency unprel1.tree/opt/lib1.so could not b
   unprel1.log || exit 4
 grep -q 'bin/bin1 because its dependency unprel1.tree/lib/lib2.so could not be prelinked' \
   unprel1.log || exit 5
-unprel1.tree/bin/bin1 || exit 6
+$RUN unprel1.tree/bin/bin1 || exit 6
 # So that it is not prelinked again
 chmod -x unprel1.tree/bin/bin1
 LIBS=unprel1.tree/lib/lib1.so

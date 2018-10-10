@@ -1,3 +1,6 @@
+2018-10-12   Joseph Myers <joseph@codesourcery.com>
+	* testsuite/unprel1.sh: Fix for cross testing
+
 2018-10-12   Kyle Russell <bkylerussell@gmail.com>
 	* src/conflict.c, src/undo.c: Add knowledge of .data.rel.ro for
 	read-only dynamic symbols
