@@ -1,3 +1,6 @@
+2018-10-12   Sergei Trofimovich <slyfox@gentoo.org>
+	* tessuite/functions.sh: Avoid timestamp drift
+
 2018-10-12   Joseph Myers <joseph@codesourcery.com>
 	* testsuite/unprel1.sh: Fix for cross testing
 
