@@ -567,7 +567,8 @@ mips_prelink_reloc (struct prelink_info *info, GElf_Addr r_offset,
       if (dso->ehdr.e_type == ET_EXEC)
 	{
 	  value = info->resolve (info, r_sym, r_type);
-	  value += info->resolvetls->offset - TLS_TP_OFFSET;
+	  if (info->resolvetls != NULL)
+	    value += info->resolvetls->offset - TLS_TP_OFFSET;
 	  if (r_type == R_MIPS_TLS_TPREL32)
 	    mips_prelink_32bit_reloc (dso, rela, value);
 	  else

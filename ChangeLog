@@ -1,3 +1,6 @@
+2018-10-12   Robert Yang <liezhi.yang@windriver.com>
+	* src/arch-mips.c: Make tls offset optional on tls usage
+
 2018-10-12   Sergei Trofimovich <slyfox@gentoo.org>
 	* src/arch-x86_64.c, src/dso.c, src/prelink.h: Allow prelink of
 	pie executables with COPY relocs
