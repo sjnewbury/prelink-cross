@@ -450,7 +450,7 @@ get_relocated_mem (struct prelink_info *info, DSO *dso, GElf_Addr addr,
 int
 prelink_build_conflicts (struct prelink_info *info)
 {
-  int i, ndeps = info->ent->ndepends + 1;
+  int i, reset_dynbss = 0, reset_sdynbss = 0, ndeps = info->ent->ndepends + 1;
   struct prelink_entry *ent;
   int ret = 0;
   DSO *dso;
@@ -675,6 +675,11 @@ prelink_build_conflicts (struct prelink_info *info)
 		     dso->filename);
 	      goto error_out;
 	    }
+
+	  name = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[bss1].sh_name);
+	  if (strcmp(name, ".data.rel.ro") == 0)
+	    reset_sdynbss = 1;
+
 	  firstbss2 = i;
 	  info->sdynbss_size = cr.rela[i - 1].r_offset - cr.rela[0].r_offset;
 	  info->sdynbss_size += cr.rela[i - 1].r_addend;
@@ -702,6 +707,10 @@ prelink_build_conflicts (struct prelink_info *info)
 	    }
 	}
 
+      name = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[bss2].sh_name);
+      if (strcmp(name, ".data.rel.ro") == 0)
+        reset_dynbss = 1;
+
       info->dynbss_size = cr.rela[cr.count - 1].r_offset
 			  - cr.rela[firstbss2].r_offset;
       info->dynbss_size += cr.rela[cr.count - 1].r_addend;
@@ -719,9 +728,9 @@ prelink_build_conflicts (struct prelink_info *info)
 	  && strcmp (name = strptr (dso, dso->ehdr.e_shstrndx,
 				    dso->shdr[bss1].sh_name),
 		     ".dynbss") != 0
-	  && strcmp (name, ".sdynbss") != 0)
+	  && strcmp (name, ".sdynbss") != 0 && strcmp (name, ".data.rel.ro") != 0)
 	{
-	  error (0, 0, "%s: COPY relocations don't point into .bss or .sbss section",
+	  error (0, 0, "%s: COPY relocations don't point into .bss, .sbss, or .data.rel.ro sections",
 		 dso->filename);
 	  goto error_out;
 	}
@@ -730,9 +739,9 @@ prelink_build_conflicts (struct prelink_info *info)
 	  && strcmp (name = strptr (dso, dso->ehdr.e_shstrndx,
 				    dso->shdr[bss2].sh_name),
 		     ".dynbss") != 0
-	  && strcmp (name, ".sdynbss") != 0)
+	  && strcmp (name, ".sdynbss") != 0 && strcmp (name, ".data.rel.ro") != 0)
 	{
-	  error (0, 0, "%s: COPY relocations don't point into .bss or .sbss section",
+	  error (0, 0, "%s: COPY relocations don't point into .bss, .sbss, or .data.rel.ro section",
 		 dso->filename);
 	  goto error_out;
 	}
@@ -768,16 +777,21 @@ prelink_build_conflicts (struct prelink_info *info)
 	      }
 
 	  assert (j < ndeps);
+	  GElf_Addr symaddr = s->u.ent->base + s->value;
+	  char *buf;
+
 	  if (i < firstbss2)
-	    j = get_relocated_mem (info, ndso, s->u.ent->base + s->value,
-				   info->sdynbss + cr.rela[i].r_offset
-				   - info->sdynbss_base, cr.rela[i].r_addend,
-				   cr.rela[i].r_offset);
+	    if (reset_sdynbss)
+	      buf = get_data(dso, cr.rela[i].r_offset, NULL, NULL);
+	    else
+	      buf = info->sdynbss + cr.rela[i].r_offset - info->sdynbss_base;
 	  else
-	    j = get_relocated_mem (info, ndso, s->u.ent->base + s->value,
-				   info->dynbss + cr.rela[i].r_offset
-				   - info->dynbss_base, cr.rela[i].r_addend,
-				   cr.rela[i].r_offset);
+	    if (reset_dynbss)
+	      buf = get_data(dso, cr.rela[i].r_offset, NULL, NULL);
+	    else
+	      buf = info->dynbss + cr.rela[i].r_offset - info->dynbss_base;
+
+	  j = get_relocated_mem (info, ndso, symaddr, buf, cr.rela[i].r_addend, cr.rela[i].r_offset);
 
 	  switch (j)
 	    {
@@ -815,6 +829,17 @@ prelink_build_conflicts (struct prelink_info *info)
     if (info->dsos[i])
       close_dso (info->dsos[i]);
 
+  if (reset_sdynbss)
+    {
+      free (info->sdynbss);
+      info->sdynbss = NULL;
+    }
+
+  if (reset_dynbss)
+    {
+      free (info->dynbss);
+      info->dynbss = NULL;
+    }
   info->dsos = NULL;
   free (cr.rela);
   return ret;

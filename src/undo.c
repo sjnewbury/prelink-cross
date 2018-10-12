@@ -633,6 +633,15 @@ prelink_undo (DSO *dso)
 	      d->d_buf = NULL;
 	      dso->shdr[i].sh_type = SHT_NOBITS;
 	    }
+	  else if (dso->shdr[i].sh_type == SHT_PROGBITS
+		   && strcmp (name, ".data.rel.ro") == 0)
+	    {
+	      scn = dso->scn[i];
+	      d = elf_getdata (scn, NULL);
+	      assert (d != NULL && elf_getdata (scn, d) == NULL);
+	      assert (d->d_size == dso->shdr[i].sh_size);
+	      assert (memset(d->d_buf, 0, d->d_size) == d->d_buf);
+	    }
 	  else if (dso->shdr[i].sh_type == SHT_RELA
 		   && shdr[i].sh_type == SHT_REL)
 	    {

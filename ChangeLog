@@ -1,3 +1,33 @@
+2018-10-12   Mark Hatle <mark.hatle@windriver.com>
+	* Merge with cross_prelink
+
+2018-10-12   Robert Yang <liezhi.yang@windriver.com>
+	* src/arch-mips.c: Make tls offset optional on tls usage
+
+2018-10-12   Sergei Trofimovich <slyfox@gentoo.org>
+	* src/arch-x86_64.c, src/dso.c, src/prelink.h: Allow prelink of
+	pie executables with COPY relocs
+
+2018-10-12   Sergei Trofimovich <slyfox@gentoo.org>
+	* tessuite/functions.sh: Avoid timestamp drift
+
+2018-10-12   Joseph Myers <joseph@codesourcery.com>
+	* testsuite/unprel1.sh: Fix for cross testing
+
+2018-10-12   Kyle Russell <bkylerussell@gmail.com>
+	* src/conflict.c, src/undo.c: Add knowledge of .data.rel.ro for
+	read-only dynamic symbols
+
+2018-10-12   Kyle Russell <bkylerussell@gmail.com>
+	* src/rtld/dl-lookupX.h: Fix rtld segfault when _dl_lookup_symbol_x
+	is NULL on protected symbol relocations
+	* testsuite/Makefile.am, testsuite/reloc12.c, testsuite/reloc12.h,
+	testsuite/reloc12.sh, testsuite/reloc12lib1.c, testsuite/reloc12lib2.c:
+	Add a new test for these relocations
+
+2018-10-12   Mark Hatle <mark.hatle@windriver.com>
+	* Add 'Developer's Certificate of Origin' to patch requirements
+
 2018-08-29   Mark Hatle  <mark.hatle@windriver.com>
 	* Merge with cross_prelink
 

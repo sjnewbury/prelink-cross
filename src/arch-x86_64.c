@@ -179,7 +179,7 @@ x86_64_prelink_rela (struct prelink_info *info, GElf_Rela *rela,
 		    value + rela->r_addend - info->resolvetls->offset);
       break;
     case R_X86_64_COPY:
-      if (dso->ehdr.e_type == ET_EXEC)
+      if (dso->ehdr.e_type == ET_EXEC || dso_is_pie(dso))
 	/* COPY relocs are handled specially in generic code.  */
 	return 0;
       error (0, 0, "%s: R_X86_64_COPY reloc in shared library?", dso->filename);
@@ -503,7 +503,7 @@ x86_64_undo_prelink_rela (DSO *dso, GElf_Rela *rela, GElf_Addr relaaddr)
       write_le32 (dso, rela->r_offset, 0);
       break;
     case R_X86_64_COPY:
-      if (dso->ehdr.e_type == ET_EXEC)
+      if (dso->ehdr.e_type == ET_EXEC || dso_is_pie(dso))
 	/* COPY relocs are handled specially in generic code.  */
 	return 0;
       error (0, 0, "%s: R_X86_64_COPY reloc in shared library?", dso->filename);
