@@ -221,8 +221,22 @@ check_dso (DSO *dso)
 	      || RELOCATE_SCN (dso->shdr[last].sh_flags)
 	      || RELOCATE_SCN (dso->shdr[i].sh_flags))
 	    {
-	      error (0, 0, "%s: section file offsets not monotonically increasing",
-		     dso->filename);
+              int j = 0;
+              for (j = 1; j < dso->ehdr.e_shnum; ++j) {
+                  const char *name
+                    = strptr (dso, dso->ehdr.e_shstrndx, dso->shdr[j].sh_name);
+
+                  error(0, 0, "section %d %s file offset range %08lx and %08lx",
+                        j, name,
+                        dso->shdr[j].sh_offset,
+                        dso->shdr[j].sh_offset + (dso->shdr[j].sh_type == SHT_NOBITS ? 0 : dso->shdr[j].sh_size));
+              }
+
+	      error (0, 0, "%s: section [%d and %d] file offsets [%08lx and %08lx] not monotonically increasing",
+		     dso->filename, last, i, 
+                     dso->shdr[last].sh_offset + (dso->shdr[last].sh_type == SHT_NOBITS ? 0 : dso->shdr[last].sh_size),
+                     dso->shdr[i].sh_offset
+                     );
 	      return 1;
 	    }
 	}

@@ -1122,6 +1122,15 @@ error_out:
 	goto error_out;
       if (set_dynamic (dso, DT_GNU_CONFLICTSZ, dso->shdr[i].sh_size, 1))
 	goto error_out;
+      /* Check if we're going to run over the next section */
+      if (dso->shdr[i].sh_offset
+          + (dso->shdr[i].sh_type == SHT_NOBITS
+             ? 0 : dso->shdr[i].sh_size) > dso->shdr[i+1].sh_offset)
+        {
+	  error (0, ENOMEM, "%s: Could not create .gnu.conflict section [overwrites next section]",
+		 dso->filename);
+          goto error_out;
+        }
     }
 
   if (undo != -1)
