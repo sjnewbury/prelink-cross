@@ -19,6 +19,15 @@ Cc: yocto@yoctoproject.org
 Subject: [prelink-cross] ....
 
 
+Additionally, a 'Developer's Certificate of Origin' statement will be required
+for all submitted patches.  See:
+
+   https://www.kernel.org/doc/html/latest/process/submitting-patches.html#sign-your-work-the-developer-s-certificate-of-origin
+
+Effectively this means at then end of your commit, please add a 
+Signed-off-by: line.  If you are not the original author of the patch, please
+indicate this and then add your Signed-off-by: line after.
+
 Known Issues
 ------------
 

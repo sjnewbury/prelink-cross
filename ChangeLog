@@ -1,3 +1,6 @@
+2018-10-12   Mark Hatle <mark.hatle@windriver.com>
+	* Add 'Developer's Certificate of Origin' to patch requirements
+
 2018-08-29   Khem Raj <raj.khem@gmail.com>
 	* src/elf.h: Add RISC-V defines
 	* src/rtld/dl-tls.c: Add RISC-V support
