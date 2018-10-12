@@ -4,6 +4,10 @@ rm -f reloc12 reloc12lib*.so reloc12.log
 rm -f prelink.cache
 $RUN_HOST $CC -shared -O2 -fpic -o reloc12lib1.so $srcdir/reloc12lib1.c
 $RUN_HOST $CC -shared -O2 -fpic -o reloc12lib2.so $srcdir/reloc12lib2.c
+if [ $? -ne 0 ]; then
+ echo "tested relocation not available in this GCC/Linker"
+ exit 77
+fi
 BINS="reloc12"
 LIBS="reloc12lib1.so reloc12lib2.so"
 $RUN_HOST $CCLINK -o reloc12 $srcdir/reloc12.c -Wl,--rpath-link,. ${LIBS}
