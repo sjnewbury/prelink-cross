@@ -575,7 +575,7 @@ int get_relocated_mem (struct prelink_info *info, DSO *dso, GElf_Addr addr,
 
 int layout_libs (void);
 
-void prelink_all (void);
+int prelink_all (void);
 
 int undo_all (void);
 

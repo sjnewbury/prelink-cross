@@ -1,3 +1,7 @@
+2018-10-12   Kyl Russel <bkylerussel@gmail.com
+	* doit.c, main.c prelink.h: Add -e option to return an error if
+	not everything can be prelinked.
+
 2018-10-12   Mark Hatle <mark.hatle@windriver.com>
 	* testsuite/order.sh: Explain failure in log
 

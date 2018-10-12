@@ -47,6 +47,7 @@ int one_file_system;
 int enable_cxx_optimizations = 1;
 int exec_shield;
 int undo, verify;
+int errors;
 enum verify_method_t verify_method;
 int quick;
 int compute_checksum;
@@ -92,6 +93,7 @@ static struct argp_option options[] = {
   {"black-list",	'b', "PATH", 0, "Blacklist path" },
   {"cache-file",	'C', "CACHE", 0, "Use CACHE as cache file" },
   {"config-file",	'c', "CONF", 0, "Use CONF as configuration file" },
+  {"errors",            'e', 0, 0,  "Returns an error if all binaries are not prelinkable" },
   {"force",		'f', 0, 0,  "Force prelinking" },
   {"dereference",	'h', 0, 0,  "Follow symlinks when processing directory trees from command line" },
   {"one-file-system",	'l', 0, 0,  "Stay in local file system when processing directories from command line" },
@@ -142,6 +144,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'b':
       if (add_to_blacklist (arg, dereference, one_file_system))
 	exit (EXIT_FAILURE);
+      break;
+    case 'e':
+      errors = 1;
       break;
     case 'f':
       force = 1;
@@ -562,7 +567,8 @@ main (int argc, char *argv[])
     prelink_load_cache ();
 
   layout_libs ();
-  prelink_all ();
+  if(prelink_all () && errors)
+    return EXIT_FAILURE;
 
   if (! no_update && ! dry_run)
     prelink_save_cache (all);

@@ -237,11 +237,11 @@ error_out:
   return;
 }
 
-void
+int
 prelink_all (void)
 {
   struct collect_ents l;
-  int i;
+  int i, fails = 0;
 
   l.ents =
     (struct prelink_entry **) alloca (prelink_entry_count
@@ -250,7 +250,13 @@ prelink_all (void)
   htab_traverse (prelink_filename_htab, find_ents, &l);
 
   for (i = 0; i < l.nents; ++i)
-    if (l.ents[i]->done == 1
-	|| (l.ents[i]->done == 0 && l.ents[i]->type == ET_EXEC))
-      prelink_ent (l.ents[i]);
+    {
+      if (l.ents[i]->done == 1
+         || (l.ents[i]->done == 0 && l.ents[i]->type == ET_EXEC))
+	prelink_ent (l.ents[i]);
+      if (l.ents[i]->type == ET_UNPRELINKABLE)
+	fails++;
+    }
+
+  return fails;
 }
