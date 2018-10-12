@@ -22,7 +22,11 @@ echo $PRELINK ${PRELINK_OPTS--vm} ./order >> order.log
 $RUN_HOST $PRELINK ${PRELINK_OPTS--vm} ./order >> order.log 2>&1 || exit 2
 grep -q ^`echo $PRELINK | sed 's/ .*$/: /'` order.log && exit 3
 if [ "x$CROSS" = "x" ]; then
- $RUN LD_LIBRARY_PATH=. ./order >> order.log || exit 4
+ $RUN LD_LIBRARY_PATH=. ./order >> order.log
+ if [ $? -ne 0 ]; then
+  echo "ERROR: Dynamic linker is resolving depth first, not breadth first"
+  exit 4
+ fi
 fi
 # So that it is not prelinked again
 chmod -x ./order

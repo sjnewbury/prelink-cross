@@ -1,4 +1,7 @@
 2018-10-12   Mark Hatle <mark.hatle@windriver.com>
+	* testsuite/order.sh: Explain failure in log
+
+2018-10-12   Mark Hatle <mark.hatle@windriver.com>
 	* testsuite/reloc12.sh: Detect if compiler/linker support test
 
 2018-10-12   Robert Yang <liezhi.yang@windriver.com>
